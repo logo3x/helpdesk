@@ -4,8 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,37 +15,13 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
         ]);
 
-        if (app()->environment('local')) {
-            $this->call(TicketDemoSeeder::class);
-        }
-
-        $this->seedBootstrapAdmin();
-    }
-
-    /**
-     * Creates the bootstrap super_admin used during development and initial
-     * deployment. Credentials come from env vars so they are never committed.
-     *
-     * If SEED_ADMIN_PASSWORD is missing, a random password is generated and
-     * printed to the console — copy it from there, it is not stored anywhere.
-     */
-    protected function seedBootstrapAdmin(): void
-    {
-        $email = config('helpdesk.seed_admin.email');
-        $name = config('helpdesk.seed_admin.name');
-        $password = config('helpdesk.seed_admin.password');
-        $generated = false;
-
-        if (blank($password)) {
-            $password = Str::password(16, symbols: false);
-            $generated = true;
-        }
-
+        // Admin bootstrap — password fijo para dev, en producción se cambia
+        // desde el panel o con: php artisan tinker --execute "..."
         $admin = User::firstOrCreate(
-            ['email' => $email],
+            ['email' => 'admin@confipetrol.local'],
             [
-                'name' => $name,
-                'password' => Hash::make($password),
+                'name' => 'Administrador',
+                'password' => bcrypt('password'),
                 'email_verified_at' => now(),
             ],
         );
@@ -56,10 +30,8 @@ class DatabaseSeeder extends Seeder
             $admin->assignRole('super_admin');
         }
 
-        if ($generated && $admin->wasRecentlyCreated) {
-            $this->command->warn("=> Bootstrap admin created: {$email}");
-            $this->command->warn("=> Generated password: {$password}");
-            $this->command->warn('=> Save this password now — it will not be shown again. Set SEED_ADMIN_PASSWORD in .env to skip this.');
+        if (app()->environment('local')) {
+            $this->call(TicketDemoSeeder::class);
         }
     }
 }

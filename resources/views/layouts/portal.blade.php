@@ -72,5 +72,6 @@
         @endpersist
 
         @fluxScripts
+        @vite('resources/js/inventory-collector.js')
     </body>
 </html>

@@ -17,6 +17,10 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
         ]);
 
+        if (app()->environment('local')) {
+            $this->call(TicketDemoSeeder::class);
+        }
+
         $this->seedBootstrapAdmin();
     }
 

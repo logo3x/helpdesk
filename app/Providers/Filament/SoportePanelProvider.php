@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Soporte\Widgets\TicketStatsWidget;
 use Awcodes\QuickCreate\QuickCreatePlugin;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin;
@@ -41,6 +42,7 @@ class SoportePanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Soporte/Widgets'), for: 'App\Filament\Soporte\Widgets')
             ->widgets([
+                TicketStatsWidget::class,
                 AccountWidget::class,
                 FilamentInfoWidget::class,
             ])

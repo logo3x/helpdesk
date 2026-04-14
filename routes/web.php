@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AzureAuthController;
 use App\Livewire\Portal\Chatbot;
 use App\Livewire\Portal\CreateTicket;
 use App\Livewire\Portal\MyTickets;
@@ -7,6 +8,10 @@ use App\Livewire\Portal\ViewTicket;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
+
+// ── Azure AD SSO ─────────────────────────────────────────────
+Route::get('auth/azure', [AzureAuthController::class, 'redirect'])->name('auth.azure');
+Route::get('auth/azure/callback', [AzureAuthController::class, 'callback'])->name('auth.azure.callback');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');

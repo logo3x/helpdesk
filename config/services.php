@@ -35,6 +35,13 @@ return [
         ],
     ],
 
+    'microsoft' => [
+        'client_id' => env('AZURE_CLIENT_ID'),
+        'client_secret' => env('AZURE_CLIENT_SECRET'),
+        'redirect' => env('AZURE_REDIRECT_URI', '/auth/azure/callback'),
+        'tenant' => env('AZURE_TENANT_ID', 'common'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | LLM Provider (Chatbot / RAG)

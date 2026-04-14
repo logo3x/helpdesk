@@ -15,6 +15,9 @@
                 <flux:navbar.item icon="inbox" :href="route('portal.tickets.index')" :current="request()->routeIs('portal.tickets.index')" wire:navigate>
                     Mis tickets
                 </flux:navbar.item>
+                <flux:navbar.item icon="chat-bubble-left-right" :href="route('portal.chatbot')" :current="request()->routeIs('portal.chatbot')" wire:navigate>
+                    Asistente
+                </flux:navbar.item>
             </flux:navbar>
 
             <flux:spacer />

@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             DepartmentSeeder::class,
             CategorySeeder::class,
             SlaConfigSeeder::class,
+            ChatFlowSeeder::class,
         ]);
 
         // Admin bootstrap — password fijo para dev, en producción se cambia

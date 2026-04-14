@@ -21,6 +21,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class TicketsTable
 {
@@ -138,6 +139,7 @@ class TicketsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    ExportBulkAction::make()->label('Exportar Excel'),
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),

@@ -10,6 +10,7 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class AssetsTable
 {
@@ -82,6 +83,7 @@ class AssetsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    ExportBulkAction::make()->label('Exportar Excel'),
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),

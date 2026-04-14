@@ -21,6 +21,7 @@
         "livewire/livewire": "^4.1",
         "pxlrbt/filament-excel": "^3.6",
         "shuvroroy/filament-spatie-laravel-backup": "^3.4",
+        "spatie/laravel-activitylog": "^5.0",
         "spatie/laravel-medialibrary": "^11.21",
         "spatie/laravel-permission": "^7.3",
         "spatie/laravel-settings": "^3.7",

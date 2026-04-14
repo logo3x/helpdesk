@@ -6,6 +6,7 @@ use App\Enums\TicketImpact;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\TicketUrgency;
+use App\Jobs\SendSatisfactionSurveyJob;
 use App\Models\Ticket;
 use App\Models\TicketCounter;
 use App\Models\User;
@@ -13,6 +14,11 @@ use App\Notifications\TicketAssignedNotification;
 use App\Notifications\TicketCreatedNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+
+/**
+ * Orchestrates ticket lifecycle operations: numbering, priority derivation,
+ * SLA attachment, pause/resume tracking and state transitions.
+ */
 
 /**
  * Orchestrates ticket lifecycle operations: numbering, priority derivation
@@ -61,7 +67,41 @@ class TicketService
             ]);
         });
 
+        // Attach SLA due dates based on department × priority
+        app(SlaService::class)->attachSla($ticket);
+
         $requester->notify(new TicketCreatedNotification($ticket));
+
+        return $ticket;
+    }
+
+    /**
+     * Pause the SLA clock when ticket moves to "pendiente_cliente".
+     */
+    public function pauseSla(Ticket $ticket): Ticket
+    {
+        $ticket->status = TicketStatus::PendienteCliente;
+        $ticket->paused_at = now();
+        $ticket->save();
+
+        return $ticket;
+    }
+
+    /**
+     * Resume the SLA clock when ticket leaves "pendiente_cliente".
+     * Accumulates the paused time into paused_minutes.
+     */
+    public function resumeSla(Ticket $ticket, TicketStatus $newStatus): Ticket
+    {
+        if ($ticket->paused_at !== null) {
+            $pausedBizMinutes = app(SlaService::class)
+                ->businessMinutesBetween($ticket->paused_at, now());
+            $ticket->paused_minutes += $pausedBizMinutes;
+            $ticket->paused_at = null;
+        }
+
+        $ticket->status = $newStatus;
+        $ticket->save();
 
         return $ticket;
     }
@@ -118,6 +158,8 @@ class TicketService
         $ticket->status = TicketStatus::Cerrado;
         $ticket->closed_at = now();
         $ticket->save();
+
+        SendSatisfactionSurveyJob::dispatch($ticket);
 
         return $ticket;
     }

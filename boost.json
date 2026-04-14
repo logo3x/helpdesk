@@ -1,0 +1,24 @@
+{
+    "agents": [
+        "claude_code"
+    ],
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch_mcp": false,
+    "sail": false,
+    "skills": [
+        "fortify-development",
+        "laravel-best-practices",
+        "fluxui-development",
+        "livewire-development",
+        "pest-testing",
+        "tailwindcss-development",
+        "laravel-permission-development",
+        "laravel-security",
+        "laravel-security-audit",
+        "laravel-specialist",
+        "laravel-verification",
+        "spatie-laravel-php",
+        "spatie-laravel-php-standards"
+    ]
+}

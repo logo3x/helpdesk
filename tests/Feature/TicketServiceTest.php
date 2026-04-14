@@ -1,0 +1,115 @@
+<?php
+
+use App\Enums\TicketImpact;
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
+use App\Enums\TicketUrgency;
+use App\Models\Category;
+use App\Models\Ticket;
+use App\Models\TicketCounter;
+use App\Models\User;
+use App\Services\TicketService;
+use Illuminate\Support\Carbon;
+
+beforeEach(function () {
+    $this->service = app(TicketService::class);
+});
+
+describe('numbering', function () {
+    it('starts the current year at 00001', function () {
+        Carbon::setTestNow('2026-01-15');
+
+        expect($this->service->nextNumber())->toBe('TK-2026-00001');
+        expect($this->service->nextNumber())->toBe('TK-2026-00002');
+    });
+
+    it('keeps separate counters per year', function () {
+        $this->service->nextNumber(2025);
+        $this->service->nextNumber(2025);
+        $first2026 = $this->service->nextNumber(2026);
+
+        expect($first2026)->toBe('TK-2026-00001');
+        expect(TicketCounter::find(2025)->last_number)->toBe(2);
+        expect(TicketCounter::find(2026)->last_number)->toBe(1);
+    });
+});
+
+describe('create', function () {
+    it('creates a ticket with numbered sequence, priority from matrix and Nuevo status', function () {
+        Carbon::setTestNow('2026-04-13');
+
+        $requester = User::factory()->create();
+        $category = Category::factory()->create();
+
+        $ticket = $this->service->create($requester, [
+            'subject' => 'El correo no entra',
+            'description' => 'Outlook sin conexión desde las 9am',
+            'impact' => TicketImpact::Alto,
+            'urgency' => TicketUrgency::Alta,
+            'category_id' => $category->id,
+        ]);
+
+        expect($ticket->number)->toBe('TK-2026-00001');
+        expect($ticket->status)->toBe(TicketStatus::Nuevo);
+        expect($ticket->priority)->toBe(TicketPriority::Critica);
+        expect($ticket->requester_id)->toBe($requester->id);
+        expect($ticket->category_id)->toBe($category->id);
+    });
+
+    it('defaults to medio/media when impact and urgency are omitted', function () {
+        $ticket = $this->service->create(
+            User::factory()->create(),
+            ['subject' => 'Prueba', 'description' => 'Cuerpo'],
+        );
+
+        expect($ticket->impact)->toBe(TicketImpact::Medio);
+        expect($ticket->urgency)->toBe(TicketUrgency::Media);
+        expect($ticket->priority)->toBe(TicketPriority::Media);
+    });
+});
+
+describe('lifecycle transitions', function () {
+    it('moves from Nuevo to Asignado when assigned', function () {
+        $ticket = Ticket::factory()->create(['status' => TicketStatus::Nuevo]);
+        $agent = User::factory()->create();
+
+        $this->service->assign($ticket, $agent);
+
+        expect($ticket->fresh()->status)->toBe(TicketStatus::Asignado);
+        expect($ticket->fresh()->assigned_to_id)->toBe($agent->id);
+    });
+
+    it('promotes Asignado to EnProgreso on first response and is idempotent', function () {
+        $ticket = Ticket::factory()->assigned()->create();
+
+        $this->service->markFirstResponse($ticket);
+        $firstStamp = $ticket->fresh()->first_responded_at;
+
+        expect($ticket->fresh()->status)->toBe(TicketStatus::EnProgreso);
+        expect($firstStamp)->not->toBeNull();
+
+        Carbon::setTestNow(now()->addHour());
+        $this->service->markFirstResponse($ticket->fresh());
+
+        expect($ticket->fresh()->first_responded_at->equalTo($firstStamp))->toBeTrue();
+    });
+
+    it('resolve, close and reopen stamp the expected timestamps', function () {
+        $ticket = Ticket::factory()->assigned()->create();
+
+        $this->service->resolve($ticket);
+        expect($ticket->fresh()->status)->toBe(TicketStatus::Resuelto);
+        expect($ticket->fresh()->resolved_at)->not->toBeNull();
+
+        $this->service->close($ticket->fresh());
+        expect($ticket->fresh()->status)->toBe(TicketStatus::Cerrado);
+        expect($ticket->fresh()->closed_at)->not->toBeNull();
+
+        $this->service->reopen($ticket->fresh());
+        $reopened = $ticket->fresh();
+        expect($reopened->status)->toBe(TicketStatus::Reabierto);
+        expect($reopened->resolved_at)->toBeNull();
+        expect($reopened->closed_at)->toBeNull();
+        expect($reopened->reopened_at)->not->toBeNull();
+    });
+});

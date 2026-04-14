@@ -3,6 +3,7 @@
 namespace App\Filament\Soporte\Resources\Tickets\RelationManagers;
 
 use App\Models\Ticket;
+use App\Notifications\TicketCommentedNotification;
 use App\Services\TicketService;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -78,6 +79,11 @@ class CommentsRelationManager extends RelationManager
                         // First public response from support triggers the SLA timer clear.
                         if (! $record->is_private && $ticket->first_responded_at === null && $record->user_id !== $ticket->requester_id) {
                             app(TicketService::class)->markFirstResponse($ticket);
+                        }
+
+                        // Notify the requester about public comments from agents.
+                        if (! $record->is_private && $record->user_id !== $ticket->requester_id) {
+                            $ticket->requester->notify(new TicketCommentedNotification($ticket, $record));
                         }
                     }),
             ])

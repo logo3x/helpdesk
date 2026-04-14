@@ -44,6 +44,20 @@
             </div>
         </div>
 
+        <div>
+            <flux:text class="mb-1 text-sm font-medium">Adjuntos (máx. 5 archivos, 10 MB c/u)</flux:text>
+            <input
+                type="file"
+                wire:model="attachments"
+                multiple
+                class="block w-full text-sm text-zinc-500 file:mr-4 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-4 file:py-2 file:text-sm file:font-medium hover:file:bg-zinc-200 dark:text-zinc-400 dark:file:bg-zinc-700 dark:hover:file:bg-zinc-600"
+            />
+            @error('attachments.*') <flux:text class="mt-1 text-sm text-red-500">{{ $message }}</flux:text> @enderror
+            <div wire:loading wire:target="attachments" class="mt-1">
+                <flux:text size="sm" class="text-zinc-400">Subiendo archivos...</flux:text>
+            </div>
+        </div>
+
         <div class="flex items-center justify-end gap-3 pt-4">
             <flux:button :href="route('portal.tickets.index')" variant="ghost" wire:navigate>
                 Cancelar

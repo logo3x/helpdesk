@@ -9,6 +9,8 @@ use App\Enums\TicketUrgency;
 use App\Models\Ticket;
 use App\Models\TicketCounter;
 use App\Models\User;
+use App\Notifications\TicketAssignedNotification;
+use App\Notifications\TicketCreatedNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -43,7 +45,7 @@ class TicketService
         $urgency = $this->normaliseUrgency($data['urgency'] ?? TicketUrgency::Media);
         $priority = TicketPriority::fromMatrix($impact, $urgency);
 
-        return DB::transaction(function () use ($requester, $data, $impact, $urgency, $priority): Ticket {
+        $ticket = DB::transaction(function () use ($requester, $data, $impact, $urgency, $priority): Ticket {
             return Ticket::create([
                 'number' => $this->nextNumber(),
                 'subject' => $data['subject'],
@@ -58,6 +60,10 @@ class TicketService
                 'category_id' => $data['category_id'] ?? null,
             ]);
         });
+
+        $requester->notify(new TicketCreatedNotification($ticket));
+
+        return $ticket;
     }
 
     /**
@@ -72,6 +78,8 @@ class TicketService
         }
 
         $ticket->save();
+
+        $assignee->notify(new TicketAssignedNotification($ticket));
 
         return $ticket;
     }

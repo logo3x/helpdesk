@@ -11,6 +11,7 @@ use App\Models\User;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
@@ -119,6 +120,25 @@ class TicketForm
                             ->live(),
                     ])
                     ->columns(2),
+
+                Section::make('Adjuntos')
+                    ->schema([
+                        SpatieMediaLibraryFileUpload::make('attachments')
+                            ->label('Archivos adjuntos')
+                            ->collection('attachments')
+                            ->multiple()
+                            ->maxFiles(10)
+                            ->maxSize(10240)
+                            ->acceptedFileTypes([
+                                'image/*', 'application/pdf',
+                                'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                'text/plain', 'text/csv',
+                                'application/zip', 'application/x-rar-compressed',
+                            ])
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible(),
 
                 Section::make('Tiempos')
                     ->schema([

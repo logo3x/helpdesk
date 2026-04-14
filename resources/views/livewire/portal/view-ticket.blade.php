@@ -37,9 +37,26 @@
     </div>
 
     {{-- Descripción --}}
-    <div class="mb-8 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+    <div class="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
         <flux:text class="whitespace-pre-wrap">{{ $ticket->description }}</flux:text>
     </div>
+
+    {{-- Adjuntos --}}
+    @if ($ticket->getMedia('attachments')->count())
+        <div class="mb-8">
+            <flux:text class="mb-2 text-sm font-medium">Adjuntos</flux:text>
+            <div class="flex flex-wrap gap-2">
+                @foreach ($ticket->getMedia('attachments') as $media)
+                    <a href="{{ $media->getUrl() }}" target="_blank"
+                       class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700">
+                        <flux:icon name="paper-clip" class="size-4" />
+                        {{ $media->file_name }}
+                        <flux:text size="xs" class="text-zinc-400">({{ Number::fileSize($media->size) }})</flux:text>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     {{-- Comentarios --}}
     <flux:heading size="lg" class="mb-4">Comentarios</flux:heading>

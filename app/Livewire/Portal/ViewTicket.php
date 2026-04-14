@@ -4,6 +4,7 @@ namespace App\Livewire\Portal;
 
 use App\Models\Ticket;
 use App\Models\TicketComment;
+use App\Notifications\TicketCommentedNotification;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -32,12 +33,17 @@ class ViewTicket extends Component
             'commentBody' => ['required', 'string', 'min:3', 'max:5000'],
         ], attributes: ['commentBody' => 'comentario']);
 
-        TicketComment::create([
+        $comment = TicketComment::create([
             'ticket_id' => $this->ticket->id,
             'user_id' => auth()->id(),
             'body' => $this->commentBody,
             'is_private' => false,
         ]);
+
+        // Notify the assigned agent (if any) that the requester commented
+        if ($this->ticket->assignee && $this->ticket->assigned_to_id !== auth()->id()) {
+            $this->ticket->assignee->notify(new TicketCommentedNotification($this->ticket, $comment));
+        }
 
         $this->commentBody = '';
 

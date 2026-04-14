@@ -35,4 +35,22 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | LLM Provider (Chatbot / RAG)
+    |--------------------------------------------------------------------------
+    |
+    | "openrouter" — uses OpenRouter API (free tier available)
+    | "anthropic"  — direct Anthropic Claude API
+    |
+    | Switch provider by changing LLM_PROVIDER and the corresponding key.
+    |
+    */
+    'llm' => [
+        'provider' => env('LLM_PROVIDER', 'openrouter'),
+        'model' => env('LLM_MODEL', 'meta-llama/llama-3.1-8b-instruct:free'),
+        'api_key' => env('LLM_API_KEY', ''),
+        'embedding_model' => env('LLM_EMBEDDING_MODEL', 'nomic-ai/nomic-embed-text-v1.5'),
+    ],
+
 ];

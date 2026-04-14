@@ -20,6 +20,8 @@ class ChatbotService
     public function __construct(
         protected IntentClassifier $classifier,
         protected FlowEngine $flowEngine,
+        protected RagService $rag,
+        protected LlmService $llm,
     ) {}
 
     /**
@@ -124,9 +126,26 @@ class ChatbotService
             return $firstStep;
         }
 
-        // 4. (Fase 5) RAG search + LLM — placeholder for now
+        // 4. RAG search + LLM
+        $context = $this->rag->buildContext($userMessage);
+        $chatHistory = $session->messages()
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get(['role', 'content'])
+            ->reverse()
+            ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])
+            ->values()
+            ->all();
 
-        // 5. Fallback
+        $systemPrompt = $this->buildSystemPrompt($context);
+
+        $llmResponse = $this->llm->chat($chatHistory, $systemPrompt);
+
+        if (filled($llmResponse)) {
+            return $llmResponse;
+        }
+
+        // 5. Fallback (no LLM key or LLM failed)
         return 'No encontré un flujo específico para tu consulta. '
             .'Puedo ayudarte a crear un ticket de soporte — solo escribe **"crear ticket"** '
             .'o **"hablar con un agente"** y te conecto con alguien del equipo.';
@@ -144,5 +163,27 @@ class ChatbotService
         }
 
         return false;
+    }
+
+    protected function buildSystemPrompt(string $kbContext): string
+    {
+        $base = <<<'PROMPT'
+Eres el asistente virtual de soporte de Confipetrol. Responde en español.
+Tu rol es ayudar a los usuarios con problemas técnicos, preguntas de TI
+y consultas sobre procesos internos.
+
+Reglas:
+- Responde de forma concisa y amable.
+- Si tienes información de la base de conocimiento, úsala para responder.
+- Si no tienes información suficiente, dilo honestamente y sugiere crear un ticket.
+- No inventes datos sobre Confipetrol, políticas, o procedimientos.
+- Si el usuario quiere hablar con un agente humano, invítalo a escribir "crear ticket".
+PROMPT;
+
+        if (filled($kbContext)) {
+            $base .= "\n\nINFORMACIÓN DE LA BASE DE CONOCIMIENTO:\n---\n{$kbContext}\n---\n\nUsa esta información para responder si es relevante a la pregunta.";
+        }
+
+        return $base;
     }
 }

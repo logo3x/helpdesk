@@ -32,6 +32,10 @@ class SoportePanelProvider extends PanelProvider
             ->path('soporte')
             ->login()
             ->profile()
+            ->brandName('Confipetrol Soporte')
+            ->brandLogo(asset('images/logo-confipetrol-dark.png'))
+            ->brandLogoHeight('2.5rem')
+            ->darkModeBrandLogo(asset('images/logo-confipetrol.png'))
             ->colors([
                 'primary' => Color::Sky,
             ])

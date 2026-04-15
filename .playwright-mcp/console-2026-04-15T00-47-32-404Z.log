@@ -3,3 +3,9 @@
 [    1406ms] [INFO] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.bunny.net/instrument-sans/files/instrument-sans-latin-400-normal.woff2 @ http://127.0.0.1:8000/flux/flux.js?id=27098d51:124
 [    1408ms] [INFO] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.bunny.net/instrument-sans/files/instrument-sans-latin-600-normal.woff2 @ http://127.0.0.1:8000/flux/flux.js?id=27098d51:124
 [    1824ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://127.0.0.1:8000/api/inventory/web-scan:0
+[ 2997979ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:8000/livewire-fffe5d82/update:0
+[ 2997997ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://127.0.0.1:8000/_boost/browser-logs @ :6
+[ 2998351ms] Object
+[ 2998352ms] Object
+[ 2998353ms] Object
+[ 3015923ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://127.0.0.1:8000/_boost/browser-logs @ http://127.0.0.1:8000/login:55

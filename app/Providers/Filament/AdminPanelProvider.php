@@ -35,6 +35,10 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->profile()
+            ->brandName('Confipetrol Helpdesk')
+            ->brandLogo(asset('images/logo-confipetrol-dark.png'))
+            ->brandLogoHeight('2.5rem')
+            ->darkModeBrandLogo(asset('images/logo-confipetrol.png'))
             ->colors([
                 'primary' => Color::Amber,
             ])

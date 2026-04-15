@@ -6,7 +6,12 @@
     <body class="min-h-screen bg-white dark:bg-zinc-800">
         {{-- Portal header — clean top‐bar for end users --}}
         <flux:header container class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-            <flux:brand href="{{ route('portal.tickets.index') }}" wire:navigate name="{{ config('app.name') }}" class="max-lg:hidden" />
+            <flux:brand href="{{ route('portal.tickets.index') }}" wire:navigate class="max-lg:hidden">
+                <x-slot name="logo">
+                    <img src="{{ asset('images/logo-confipetrol-dark.png') }}" alt="Confipetrol" class="block h-6 w-auto max-h-full object-contain dark:hidden" />
+                    <img src="{{ asset('images/logo-confipetrol.png') }}" alt="Confipetrol" class="hidden h-6 w-auto max-h-full object-contain dark:block" />
+                </x-slot>
+            </flux:brand>
 
             <flux:navbar class="-mb-px max-lg:hidden">
                 <flux:navbar.item icon="plus-circle" :href="route('portal.tickets.create')" :current="request()->routeIs('portal.tickets.create')" wire:navigate>

@@ -1,0 +1,51 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Helpdesk Confipetrol" [ref=e4] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/portal/tickets
+        - generic [ref=e5]: Helpdesk Confipetrol
+      - navigation [ref=e6]:
+        - link "Crear ticket" [ref=e7] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/portal/tickets/create
+          - img [ref=e9]
+          - generic [ref=e11]: Crear ticket
+        - link "Mis tickets" [ref=e12] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/portal/tickets
+          - img [ref=e14]
+          - generic [ref=e16]: Mis tickets
+        - link "Asistente" [ref=e17] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/portal/chatbot
+          - img [ref=e19]
+          - generic [ref=e21]: Asistente
+      - button "UF" [ref=e23]:
+        - generic [ref=e26]: UF
+        - img [ref=e28]
+  - generic [ref=e31]:
+    - generic [ref=e32]:
+      - link "Volver" [ref=e34] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/portal/tickets
+        - img [ref=e35]
+        - generic [ref=e37]: Volver
+      - generic [ref=e38]:
+        - generic [ref=e39]: TK-2026-00002
+        - generic [ref=e40]: En progreso
+        - generic [ref=e41]: Crítica
+      - generic [ref=e42]: Correo no recibe mensajes externos
+      - paragraph [ref=e43]: "Creado hace 1 hora · Categoría: Correo y Teams · Asignado a: Agente Soporte"
+    - paragraph [ref=e45]: Desde esta mañana no llegan correos desde dominios externos. Los internos sí.
+    - generic [ref=e46]: Comentarios
+    - generic [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]: Agente Soporte
+        - paragraph [ref=e51]: hace 1 hora
+      - paragraph [ref=e52]: Estoy revisando los logs del servidor de correo. Te aviso en breve.
+    - generic [ref=e54]:
+      - generic [ref=e55]:
+        - generic [ref=e56]: Agregar comentario
+        - textbox "Agregar comentario" [ref=e57]:
+          - /placeholder: Escribe un comentario o más información...
+      - button "Enviar comentario" [ref=e59]:
+        - img [ref=e61]
+        - generic [ref=e64]: Enviar comentario
+  - generic:
+    - status

@@ -1,290 +1,433 @@
 # Plan de Testing — Helpdesk Confipetrol
 
-**Prerequisitos:**
+**Fecha:** 15 de abril de 2026
+**Versión:** 1.1 (post-pruebas Playwright)
+
+---
+
+## Prerequisitos
+
 ```bash
+# 1. Recrear BD limpia con todos los datos demo
 php artisan migrate:fresh --seed --force
+
+# 2. Compilar assets (OBLIGATORIO para que el portal funcione)
 npm run build
+
+# 3. Levantar servidor
 php artisan serve
 ```
 
-**Credenciales:**
-| Email | Password | Rol |
+Abrir: http://127.0.0.1:8000
+
+---
+
+## Credenciales
+
+| Email | Password | Rol | Panel(es) |
+|---|---|---|---|
+| admin@confipetrol.local | password | super_admin | /admin + /soporte + /portal |
+| supervisor@confipetrol.local | password | supervisor_soporte | /soporte |
+| agente@confipetrol.local | password | agente_soporte | /soporte |
+| usuario@confipetrol.local | password | usuario_final | /portal |
+
+---
+
+## Datos demo sembrados
+
+| Dato | Cantidad | Detalles |
 |---|---|---|
-| admin@confipetrol.local | password | super_admin |
-| agente@confipetrol.local | password | agente_soporte |
-| supervisor@confipetrol.local | password | supervisor_soporte |
-| usuario@confipetrol.local | password | usuario_final |
+| Roles | 7 | super_admin, admin, supervisor_soporte, agente_soporte, tecnico_campo, editor_kb, usuario_final |
+| Departamentos | 5 | TI, RRHH, Compras, Mantenimiento, Operaciones |
+| Categorías | 19 | Distribuidas por departamento |
+| Config SLA | 25 | 5 prioridades × 5 departamentos |
+| Flujos chatbot | 3 | Reset password, VPN, Impresoras |
+| Usuarios | 4 | admin, supervisor, agente, usuario |
+| Tickets | 3 | TK-2026-00001 (Nuevo), TK-2026-00002 (En progreso), TK-2026-00003 (Resuelto) |
+| Comentarios | 2 | 1 público + 1 interno en TK-2026-00002 |
 
 ---
 
 ## PARTE 1 — Panel Admin (/admin)
 
-### 1.1 Login y Dashboard
-1. Ir a http://127.0.0.1:8000/admin/login
-2. Ingresar: admin@confipetrol.local / password
-3. [ ] Verificar que carga el dashboard
-4. [ ] Verificar 5 stats: Tickets abiertos (2), Total tickets (3), Usuarios (4), KB publicados (0), CSAT (—)
-5. [ ] Verificar gráfico "Tickets creados (últimos 30 días)" con líneas creados/resueltos
-6. [ ] Verificar gráfico "Tickets por estado" (doughnut)
+**Login:** admin@confipetrol.local / password
+**URL:** http://127.0.0.1:8000/admin/login
 
-### 1.2 Departamentos
-1. Ir a /admin/departments
-2. [ ] Verificar 5 departamentos listados (TI, RRHH, Compras, Mantenimiento, Operaciones)
-3. [ ] Click "Crear Departamento"
-4. [ ] Llenar: Nombre = "Logística", verificar que el slug se autogenera como "logistica"
-5. [ ] Guardar → verificar que aparece en la lista
-6. [ ] Editar "Logística" → cambiar descripción → Guardar
-7. [ ] Verificar columna "Usuarios" muestra conteo
+### 1.1 Dashboard
+- [ ] Login exitoso → redirige a /admin
+- [ ] Ver stat "Tickets abiertos": **2** (Sin SLA vencidos)
+- [ ] Ver stat "Total tickets": **3** (Histórico completo)
+- [ ] Ver stat "Usuarios": **4** (0 activos en inventario)
+- [ ] Ver stat "KB publicados": **0**
+- [ ] Ver stat "Satisfacción (CSAT)": **—**
+- [ ] Ver gráfico "Tickets creados (últimos 30 días)" con líneas creados/resueltos
+- [ ] Ver gráfico "Tickets por estado" (doughnut con colores)
+- [ ] Menú lateral muestra: Escritorio, Filament Shield > Roles, Configuraciones > Respaldos, Inventario > Inventario, Configuración > Departamentos + Categorías, Reportes > Reporte SLA
 
-### 1.3 Categorías
-1. Ir a /admin/categories
-2. [ ] Verificar 19 categorías agrupadas por departamento
-3. [ ] Click "Crear Categoría"
-4. [ ] Seleccionar departamento "Logística", Nombre = "Despachos"
-5. [ ] Guardar → verificar que aparece bajo el grupo "Logística"
-6. [ ] Verificar filtro por departamento funciona
-7. [ ] Verificar filtro activas/inactivas funciona
+### 1.2 Departamentos (/admin/departments)
+- [ ] Ver 5 departamentos: TI, RRHH, Compras, Mantenimiento, Operaciones
+- [ ] Columnas: Nombre, Slug, Padre, Usuarios, Activo
+- [ ] TI muestra "2" usuarios (agente + supervisor)
+- [ ] Click "Crear Departamento"
+- [ ] Llenar Nombre: "Logística" → verificar slug se autogenera "logistica"
+- [ ] Guardar → aparece en la lista
+- [ ] Editar "Logística" → cambiar descripción → Guardar
+- [ ] Verificar filtro Activos/Inactivos funciona
 
-### 1.4 Inventario
-1. Ir a /admin/assets
-2. [ ] Verificar que la tabla está vacía (o tiene 1 si ya visitaste el portal)
-3. [ ] Verificar que el botón "Exportar Excel" aparece en acciones bulk
+### 1.3 Categorías (/admin/categories)
+- [ ] Ver 19 categorías agrupadas por departamento (Department: Compras, Department: Mantenimiento, etc.)
+- [ ] Columnas: Departamento (badge), Nombre, Tickets, Activa, Orden
+- [ ] Click "Crear Categoría"
+- [ ] Seleccionar departamento, llenar nombre → slug autogenerado
+- [ ] Guardar → verificar que aparece en el grupo correcto
+- [ ] Verificar filtro por departamento
+- [ ] Verificar filtro activas/inactivas
 
-### 1.5 Shield → Roles
-1. Ir a /admin/shield/roles
-2. [ ] Verificar que se listan los 7 roles
-3. [ ] Click en "super_admin" → verificar todos los permisos marcados
-4. [ ] Click en "agente_soporte" → verificar permisos de Ticket, KB, Template, CannedResponse
+### 1.4 Inventario (/admin/assets)
+- [ ] Tabla vacía inicialmente
+- [ ] Después de visitar /portal (como usuario logueado), verificar que aparece un registro de web scan
+- [ ] Verificar botón "Exportar Excel" en acciones bulk
 
-### 1.6 Respaldos
-1. Ir a /admin/backups
-2. [ ] Verificar que se muestra el dashboard de Spatie Backup
-3. [ ] Click "Create backup" (solo DB)
-4. [ ] Verificar que se genera un archivo en storage/app/backups/
+### 1.5 Shield → Roles (/admin/shield/roles)
+- [ ] Ver 7 roles listados
+- [ ] Click en "super_admin" → verificar acceso total
+- [ ] Click en "agente_soporte" → verificar permisos de Ticket, KbArticle, CannedResponse, TicketTemplate
 
-### 1.7 Reporte SLA
-1. Ir a /admin/sla-report
-2. [ ] Verificar matriz 5 departamentos × 5 prioridades
-3. [ ] Verificar que RRHH/Baja muestra "100%" (1 ticket resuelto sin breach)
-4. [ ] Verificar sección "Últimas escalaciones" (vacía si no ha pasado tiempo)
+### 1.6 Respaldos (/admin/backups)
+- [ ] Ver dashboard de Spatie Backup
+- [ ] Ejecutar backup manual (solo BD)
+- [ ] Verificar archivo creado en storage/app/backups/
+
+### 1.7 Reporte SLA (/admin/sla-report)
+- [ ] Ver tabla "Cumplimiento SLA por departamento (últimos 30 días)"
+- [ ] 5 departamentos × 5 prioridades (Planificada, Baja, Media, Alta, Crítica)
+- [ ] RRHH/Baja muestra "100%" con "1 tickets"
+- [ ] Los demás muestran "—"
+- [ ] Ver sección "Últimas escalaciones" (vacía o con datos si pasó tiempo)
 
 ---
 
 ## PARTE 2 — Panel Soporte (/soporte)
 
-### 2.1 Login y Dashboard
-1. Cerrar sesión del admin
-2. Ir a http://127.0.0.1:8000/soporte/login
-3. Ingresar: agente@confipetrol.local / password
-4. [ ] Verificar dashboard con 7 stats
-5. [ ] SLA Compliance: 100%
-6. [ ] Tickets abiertos: 2
-7. [ ] Sin asignar/reabiertos: 1
-8. [ ] Asignados a mí: 1
+**Login:** agente@confipetrol.local / password
+**URL:** http://127.0.0.1:8000/soporte/login
 
-### 2.2 Lista de Tickets
-1. Ir a /soporte/tickets
-2. [ ] Verificar filtro "Solo abiertos" activo por defecto
-3. [ ] Verificar 2 tickets visibles (TK-2026-00001 Nuevo, TK-2026-00002 En progreso)
-4. [ ] Verificar badge "1" en el menú lateral (tickets sin asignar)
-5. [ ] Verificar columnas: Número, Asunto, Estado, Prioridad, Solicitante, Asignado a
-6. [ ] Click en icono de filtros → verificar filtros disponibles (estado, prioridad, departamento, etc.)
-7. [ ] Activar filtro "Asignados a mí" → verificar solo 1 ticket (TK-2026-00002)
+### 2.1 Dashboard
+- [ ] Login exitoso → redirige a /soporte
+- [ ] Ver "SLA Compliance (30d)": **100%**
+- [ ] Ver "Tiempo promedio 1ra respuesta": **0 min**
+- [ ] Ver "CSAT (30d)": **—**
+- [ ] Ver "Tickets abiertos": **2**
+- [ ] Ver "Sin asignar / reabiertos": **1**
+- [ ] Ver "Prioridad alta/crítica": **1**
+- [ ] Ver "Asignados a mí": **1**
+- [ ] Menú lateral: Escritorio, Tickets (con badge "1"), Base De Conocimiento, Configuración > Plantillas + Respuestas Predefinidas
 
-### 2.3 Ver Ticket (ViewTicket)
-1. Click en "Ver" en TK-2026-00002
-2. [ ] Verificar datos: número, asunto, estado "En progreso", prioridad "Crítica"
-3. [ ] Verificar botones de acción visibles: "Resolver" (visible), "Cerrar" (no visible aún)
-4. [ ] Verificar sección "Comentarios" con 2 comentarios existentes (1 público, 1 interno con candado)
+### 2.2 Lista de Tickets (/soporte/tickets)
+- [ ] Filtro "Solo abiertos" activo por defecto (badge "Filtros activos")
+- [ ] Ver 2 tickets: TK-2026-00001 (Nuevo, Media) y TK-2026-00002 (En progreso, Crítica)
+- [ ] Columnas: Número (copiable), Asunto, Estado (badge color), Prioridad (badge color), Solicitante, Asignado a, Departamento, Categoría, Creado
+- [ ] Badge "1" en menú lateral (tickets nuevos/reabiertos)
+- [ ] Click icono filtros → verificar: Estado, Prioridad, Impacto, Urgencia, Departamento, Categoría, Asignado a, Solo abiertos, Asignados a mí, Archivados
+- [ ] Activar "Asignados a mí" → solo TK-2026-00002
 
-### 2.4 Agregar Comentario
-1. En la vista de TK-2026-00002, sección Comentarios
-2. [ ] Click "New" / "Crear"
-3. [ ] Escribir "Revisé los logs, el problema es DNS" en el cuerpo
-4. [ ] Dejar "Comentario interno" en OFF
-5. [ ] Guardar → verificar que aparece en la lista
-6. [ ] Crear otro comentario con "Nota: escalar si no se resuelve hoy" con toggle "interno" ON
-7. [ ] Verificar que muestra candado en el comentario interno
+### 2.3 Ver Ticket (/soporte/tickets/1)
+- [ ] Título: "Ver TK-2026-00001"
+- [ ] Sección Identificación: Número, Asunto "Pantalla no enciende", Descripción completa
+- [ ] Sección Clasificación: Impacto Medio, Urgencia Media, Prioridad Media, Estado Nuevo
+- [ ] Sección Partes: Solicitante "Usuario Final", Asignado "Sin asignar", Departamento TI, Categoría Hardware
+- [ ] Sección Adjuntos (vacía)
+- [ ] Sección Tiempos (colapsada)
+- [ ] **Botones header**: Editar, Asignar, Marcar primera respuesta
 
-### 2.5 Asignar Ticket
-1. Ir a /soporte/tickets, click "Ver" en TK-2026-00001 (Nuevo, sin asignar)
-2. [ ] Click botón "Asignar"
-3. [ ] Seleccionar "Agente Soporte" en el dropdown
-4. [ ] Confirmar → verificar que el estado cambia a "Asignado"
-5. [ ] Verificar en la lista que ahora muestra "Agente Soporte" en columna "Asignado a"
+### 2.4 Asignar Ticket
+1. En la vista de TK-2026-00001:
+- [ ] Click "Asignar"
+- [ ] Se abre modal con dropdown de agentes
+- [ ] Seleccionar "Agente Soporte"
+- [ ] Confirmar → notificación "Ticket asignado" verde
+- [ ] Estado cambia a "Asignado"
+- [ ] Botón "Asignar" sigue visible, ahora "Marcar primera respuesta" también
 
-### 2.6 Resolver y Cerrar Ticket
-1. Ver TK-2026-00001 (ahora Asignado)
-2. [ ] Click "Marcar primera respuesta" → verificar estado cambia a "En progreso"
-3. [ ] Click "Resolver" → confirmar → verificar estado "Resuelto"
-4. [ ] Click "Cerrar" → confirmar → verificar estado "Cerrado"
-5. [ ] Verificar que desaparece de la lista (filtro "Solo abiertos")
-6. [ ] Quitar filtro → verificar que el ticket aparece como "Cerrado"
+### 2.5 Marcar Primera Respuesta
+- [ ] Click "Marcar primera respuesta" → confirmar
+- [ ] Estado cambia a "En progreso"
+- [ ] Botón desaparece (ya se marcó)
+- [ ] Aparece botón "Resolver"
 
-### 2.7 Reabrir Ticket
-1. Ver el ticket cerrado TK-2026-00001
-2. [ ] Click "Reabrir" → confirmar
-3. [ ] Verificar estado "Reabierto"
-4. [ ] Verificar que vuelve a aparecer en la lista con filtro "Solo abiertos"
+### 2.6 Resolver Ticket
+- [ ] Click "Resolver" → confirmar
+- [ ] Estado cambia a "Resuelto"
+- [ ] Aparece botón "Cerrar" y "Reabrir"
 
-### 2.8 Crear Ticket desde Soporte
-1. Click "Crear Ticket"
-2. [ ] Llenar Asunto: "Prueba desde soporte"
-3. [ ] Llenar Descripción: "Ticket creado por agente a nombre de usuario"
-4. [ ] Seleccionar Solicitante: "Usuario Final"
-5. [ ] Seleccionar Impacto: "Alto", Urgencia: "Alta"
-6. [ ] Verificar que Prioridad muestra "Crítica" automáticamente
-7. [ ] Seleccionar Departamento y Categoría
-8. [ ] Guardar → verificar que se crea con número TK-2026-00004
-9. [ ] Verificar que redirige a la vista del ticket
+### 2.7 Cerrar Ticket
+- [ ] Click "Cerrar" → confirmar
+- [ ] Estado cambia a "Cerrado"
+- [ ] Solo queda botón "Reabrir"
+- [ ] Ticket desaparece de la lista (filtro "Solo abiertos")
 
-### 2.9 Base de Conocimiento
-1. Ir a /soporte/kb-articles
-2. [ ] Verificar tabla vacía (no hay artículos aún)
-3. [ ] Click "Crear"
-4. [ ] Título: "Cómo conectarse al WiFi corporativo"
-5. [ ] Slug: verificar que se autogenera
-6. [ ] Body: escribir instrucciones
-7. [ ] Estado: "published"
-8. [ ] Guardar → verificar que aparece en la lista
+### 2.8 Reabrir Ticket
+- [ ] Quitar filtro "Solo abiertos" → ver ticket cerrado
+- [ ] Click "Ver" → click "Reabrir" → confirmar
+- [ ] Estado cambia a "Reabierto"
+- [ ] Vuelve a aparecer en la lista con filtro activo
 
-### 2.10 Plantillas
-1. Ir a /soporte/ticket-templates
-2. [ ] Click "Crear"
-3. [ ] Nombre: "Solicitud de equipo nuevo"
-4. [ ] Asunto: "Solicitud de equipo - [nombre]"
-5. [ ] Descripción: texto predefinido
-6. [ ] Guardar → verificar en lista
+### 2.9 Agregar Comentarios
+1. En vista de TK-2026-00002 (tab "Comentarios"):
+- [ ] Ver 2 comentarios existentes
+- [ ] Comentario público del agente: "Estoy revisando los logs..."
+- [ ] Comentario interno del supervisor: icono candado + "Nota interna: verificar si coincide..."
+- [ ] Click "Crear" (nuevo comentario)
+- [ ] Escribir "Ya identifiqué el problema, es un tema de DNS"
+- [ ] Toggle "Comentario interno" en OFF → Guardar
+- [ ] Verificar que aparece sin candado
+- [ ] Crear otro con toggle interno ON → verificar candado
 
-### 2.11 Respuestas Predefinidas
-1. Ir a /soporte/canned-responses
-2. [ ] Click "Crear"
-3. [ ] Título: "Ticket recibido"
-4. [ ] Body: "Hemos recibido tu solicitud y estamos trabajando en ella."
-5. [ ] Compartida: ON
-6. [ ] Guardar → verificar en lista
+### 2.10 Crear Ticket desde Soporte (/soporte/tickets/create)
+- [ ] Formulario con 4 secciones: Identificación, Clasificación, Partes y asignación, Adjuntos
+- [ ] Número: placeholder "TK-YYYY-NNNNN (se asigna al guardar)" (disabled)
+- [ ] Llenar Asunto: "Equipo nuevo para contabilidad"
+- [ ] Llenar Descripción: "Se requiere un equipo para el nuevo empleado del área contable"
+- [ ] Impacto: "Bajo", Urgencia: "Baja" → Prioridad muestra "Planificada" automáticamente
+- [ ] Cambiar Impacto a "Alto", Urgencia a "Alta" → Prioridad cambia a "Crítica"
+- [ ] Seleccionar Solicitante: "Usuario Final"
+- [ ] Seleccionar Departamento y Categoría
+- [ ] Click "Crear" → redirige a vista del ticket con número TK-2026-00004 o mayor
+- [ ] Verificar que el ticket aparece en la lista
 
-### 2.12 Exportar Excel
-1. Ir a /soporte/tickets
-2. [ ] Seleccionar todos los tickets (checkbox header)
-3. [ ] Click "Acciones" → "Exportar Excel"
-4. [ ] Verificar que se descarga un .xlsx
+### 2.11 Base de Conocimiento (/soporte/kb-articles)
+- [ ] Tabla vacía inicialmente
+- [ ] Click "Crear"
+- [ ] Llenar título, slug (autogenerado), body, categoría
+- [ ] Estado: "published", Visibilidad: "public"
+- [ ] Guardar → aparece en lista
+- [ ] Editar → cambiar algo → Guardar
+
+### 2.12 Plantillas (/soporte/ticket-templates)
+- [ ] Click "Crear"
+- [ ] Nombre: "Solicitud de equipo"
+- [ ] Asunto + Descripción predefinidos
+- [ ] Guardar → aparece en lista
+
+### 2.13 Respuestas Predefinidas (/soporte/canned-responses)
+- [ ] Click "Crear"
+- [ ] Título: "Ticket recibido"
+- [ ] Body: "Hemos recibido tu solicitud. Un agente te contactará pronto."
+- [ ] Toggle "Compartida" ON
+- [ ] Guardar → aparece en lista
+
+### 2.14 Exportar Excel
+- [ ] En /soporte/tickets, seleccionar checkbox de 1+ tickets
+- [ ] Click "Acciones" → "Exportar Excel"
+- [ ] Verificar descarga de archivo .xlsx
 
 ---
 
 ## PARTE 3 — Portal de Usuario (/portal)
 
-### 3.1 Login
-1. Cerrar sesión
-2. Ir a http://127.0.0.1:8000/login
-3. Ingresar: usuario@confipetrol.local / password
-4. [ ] Verificar que redirige a /dashboard
-5. [ ] Navegar a /portal/tickets
+**Login:** usuario@confipetrol.local / password
+**URL:** http://127.0.0.1:8000/login (login Fortify estándar)
 
-### 3.2 Mis Tickets
-1. En /portal/tickets
-2. [ ] Verificar 3 tickets listados con badges de color
-3. [ ] Verificar buscador: escribir "correo" → solo muestra TK-2026-00002
-4. [ ] Verificar filtro por estado: seleccionar "Resuelto" → solo TK-2026-00003
-5. [ ] Verificar nav header: "Crear ticket", "Mis tickets", "Asistente"
+### 3.1 Login y Navegación
+- [ ] Login con usuario@confipetrol.local / password
+- [ ] Redirige a /dashboard
+- [ ] Navegar a /portal → redirige a /portal/tickets
+- [ ] Header nav: "Helpdesk Confipetrol", "Crear ticket", "Mis tickets" (activo), "Asistente", perfil (UF)
 
-### 3.3 Crear Ticket
-1. Click "Crear ticket" o ir a /portal/tickets/create
-2. [ ] Llenar Asunto: "No puedo acceder al sistema de nómina" (mín 5 chars)
-3. [ ] Llenar Descripción: "Al intentar entrar muestra error 403..." (mín 10 chars)
-4. [ ] Seleccionar Categoría: "Nómina"
-5. [ ] Cambiar Impacto a "Alto", Urgencia a "Media"
-6. [ ] Verificar que "Prioridad calculada" muestra "Alta"
-7. [ ] (Opcional) Adjuntar un archivo de prueba
-8. [ ] Click "Enviar ticket"
-9. [ ] Verificar redirect a la vista del ticket con número TK-2026-00004 o 00005
-10. [ ] Verificar toast "Ticket creado correctamente"
+### 3.2 Mis Tickets (/portal/tickets)
+- [ ] Ver 3 tickets con cards:
+  - TK-2026-00002: En progreso, Crítica, "Correo no recibe mensajes externos"
+  - TK-2026-00003: Resuelto, Baja, "Reporte de horas de nómina no genera"
+  - TK-2026-00001: Nuevo, Media, "Pantalla no enciende"
+- [ ] Cada card muestra: número (badge), estado (badge color), prioridad (badge color), asunto, categoría, asignado, tiempo relativo
+- [ ] Buscador: escribir "correo" → solo muestra TK-2026-00002
+- [ ] Filtro estado: seleccionar "Resuelto" → solo TK-2026-00003
+- [ ] Limpiar filtros → vuelven los 3
 
-### 3.4 Ver Ticket
-1. Click en TK-2026-00002 desde la lista
-2. [ ] Verificar header: número, estado "En progreso", prioridad "Crítica"
-3. [ ] Verificar descripción visible
-4. [ ] Verificar que los adjuntos se muestran (si los hay)
-5. [ ] Verificar comentarios públicos visibles (NO los internos)
-6. [ ] Verificar que NO aparece el comentario con candado del supervisor
+### 3.3 Crear Ticket (/portal/tickets/create)
+- [ ] Formulario: Asunto, Descripción, Categoría (dropdown), Impacto, Urgencia, Prioridad calculada, Adjuntos
+- [ ] Validación: asunto mín 5 chars, descripción mín 10 chars
+- [ ] Intentar enviar vacío → errores de validación
+- [ ] Llenar: Asunto "No puedo acceder al sistema de nómina", Descripción "Al intentar entrar al sistema de nómina me muestra error 403 forbidden..."
+- [ ] Categoría: "Nómina"
+- [ ] Impacto "Alto" + Urgencia "Media" → Prioridad calculada: "Alta"
+- [ ] (Opcional) Adjuntar un archivo
+- [ ] Click "Enviar ticket"
+- [ ] Redirige a /portal/tickets/{id} con toast "Ticket creado correctamente"
+- [ ] Número asignado: TK-2026-00004 o 00005
+
+### 3.4 Ver Ticket (/portal/tickets/{id})
+1. Click en TK-2026-00002 desde la lista:
+- [ ] Header: botón "Volver", badges TK-2026-00002 + En progreso + Crítica
+- [ ] Título: "Correo no recibe mensajes externos"
+- [ ] Metadata: creado hace X, categoría, asignado
+- [ ] Descripción en caja gris
+- [ ] Sección Comentarios: **solo 1 comentario visible** (público del agente)
+- [ ] **El comentario interno del supervisor NO aparece** (IMPORTANTE: seguridad)
+- [ ] Formulario "Agregar comentario" visible (ticket abierto)
+
+2. Ver TK-2026-00003 (Resuelto):
+- [ ] **NO hay formulario de comentario** — muestra "Este ticket está Resuelto — no se pueden agregar comentarios"
 
 ### 3.5 Agregar Comentario
-1. En la vista de TK-2026-00002
-2. [ ] Escribir "Sigue sin funcionar el correo" en el campo de comentario
-3. [ ] Click "Enviar comentario"
-4. [ ] Verificar que aparece con burbuja azul (es del solicitante)
-5. [ ] Verificar timestamp "hace unos segundos"
+1. En TK-2026-00002:
+- [ ] Escribir "El problema sigue, no he recibido correos externos todo el día"
+- [ ] Click "Enviar comentario"
+- [ ] Comentario aparece con burbuja azul (es del solicitante)
+- [ ] Timestamp "hace unos segundos"
 
-### 3.6 Ticket Cerrado — No Comentar
-1. Ver TK-2026-00003 (Resuelto)
-2. [ ] Verificar que el formulario de comentario NO aparece
-3. [ ] Verificar mensaje "Este ticket está Resuelto — no se pueden agregar comentarios"
+### 3.6 Seguridad — Acceso a tickets ajenos
+- [ ] Intentar ir a /portal/tickets/999 → Error 404 o 403
+- [ ] (Si hay tickets de otros usuarios con IDs conocidos) Verificar 403 Forbidden
 
-### 3.7 Seguridad — No ver tickets ajenos
-1. Intentar acceder a un ticket que NO sea del usuario (si hay TK de otro usuario)
-2. [ ] Verificar que da error 403 Forbidden
+### 3.7 Chatbot — Flujo Reset Password (/portal/chatbot)
+- [ ] Mensaje de bienvenida del asistente
+- [ ] Escribir "password" → responde con flujo: "¿Qué contraseña necesitas resetear?"
+- [ ] Escribir "1" → instrucciones de reset Windows
+- [ ] Escribir "sí" → flujo completado
 
-### 3.8 Chatbot — Flujos
-1. Ir a /portal/chatbot
-2. [ ] Verificar mensaje de bienvenida del asistente
-3. [ ] Escribir "password" → verificar que activa flujo de reset de contraseña
-4. [ ] Escribir "1" → verificar que avanza al siguiente paso
-5. [ ] Escribir "sí" → verificar que el flujo se completa
+### 3.8 Chatbot — Flujo VPN
+- [ ] Recargar página (nueva sesión)
+- [ ] Escribir "vpn" → responde con instrucciones FortiClient
 
-### 3.9 Chatbot — VPN
-1. Recargar /portal/chatbot (nueva sesión después de 30 min o reload)
-2. [ ] Escribir "vpn" → verificar que activa flujo VPN
-3. [ ] Verificar que muestra pasos de FortiClient
+### 3.9 Chatbot — Flujo Impresoras
+- [ ] Nueva sesión
+- [ ] Escribir "impresora" → responde con opciones
 
-### 3.10 Chatbot — Escalación
-1. En el chatbot
-2. [ ] Escribir "crear ticket" → verificar que ofrece escalar
-3. [ ] Escribir "escalar: Mi impresora no funciona" → verificar que crea ticket
-4. [ ] Verificar mensaje con número de ticket creado
-5. [ ] Ir a /portal/tickets → verificar que el nuevo ticket aparece
+### 3.10 Chatbot — Escalación a Ticket
+- [ ] Escribir "crear ticket" → responde ofreciendo escalar
+- [ ] Escribir "escalar: Mi monitor se apagó y no enciende"
+- [ ] Responde: "Tu conversación se ha escalado al ticket **TK-2026-NNNNN**"
+- [ ] Ir a /portal/tickets → verificar nuevo ticket en la lista
+- [ ] Ver el ticket → descripción contiene el historial de chat
+
+### 3.11 Chatbot — Fallback (sin LLM key)
+- [ ] Escribir algo random: "mesa rota en la sala de reuniones"
+- [ ] Responde: "No encontré un flujo específico... escribe 'crear ticket'"
 
 ---
 
 ## PARTE 4 — Notificaciones
 
-### 4.1 Verificar emails en log
-1. Después de crear/asignar/comentar tickets:
+### 4.1 Verificar en log (MAIL_MAILER=log)
 ```bash
-cat storage/logs/laravel.log | grep -A 5 "Ticket creado\|Ticket asignado\|Nuevo comentario"
+# Después de crear/asignar/comentar tickets:
+grep -c "TicketCreated\|TicketAssigned\|TicketCommented\|SatisfactionSurvey" storage/logs/laravel.log
 ```
-2. [ ] Verificar que se generaron notificaciones de tipo mail
-3. [ ] Verificar que la tabla `notifications` tiene registros (canal database)
+- [ ] Al crear ticket → email "Ticket creado" al solicitante
+- [ ] Al asignar ticket → email "Ticket asignado" al agente
+- [ ] Al comentar (agente → solicitante) → email "Nuevo comentario"
+- [ ] Al cerrar ticket → email "¿Cómo fue tu experiencia?" con link de encuesta
+
+### 4.2 Verificar en base de datos (canal database)
 ```bash
-php artisan tinker --execute "echo App\Models\User::find(4)->notifications()->count();"
+php artisan tinker --execute "echo App\Models\User::find(4)->unreadNotifications->count() . ' notificaciones no leidas';"
+```
+- [ ] El usuario tiene notificaciones de tipo ticket_created, ticket_commented
+
+---
+
+## PARTE 5 — Inventario (Web Scan)
+
+### 5.1 Verificar collector JS
+- [ ] Visitar /portal/tickets como usuario logueado
+- [ ] Abrir DevTools → Network → buscar request a /api/inventory/web-scan
+- [ ] Debería enviar POST con: hostname, os_name, cpu_cores, ram_gb, gpu_info, etc.
+- [ ] Verificar en BD:
+```bash
+php artisan tinker --execute "echo App\Models\AssetScan::count() . ' scans';"
 ```
 
 ---
 
-## PARTE 5 — Verificación Final
+## PARTE 6 — SLA (requiere espera o simulación)
 
-### 5.1 Tests automatizados
+### 6.1 Verificar SLA attachment
+```bash
+php artisan tinker --execute "echo App\Models\Ticket::whereNotNull('sla_config_id')->count() . ' tickets con SLA';"
+```
+- [ ] Los tickets con departamento asignado tienen sla_config_id, first_response_due_at, resolution_due_at
+
+### 6.2 Simular breach (opcional)
+```bash
+# Correr check breaches manualmente
+php artisan tinker --execute "echo app(App\Services\SlaService::class)->checkBreaches() . ' escalaciones';"
+```
+- [ ] Si hay tickets con SLA vencido, se crean escalation_logs
+
+### 6.3 Auto-close (opcional)
+```bash
+# Simular ticket resuelto hace 8 días
+php artisan tinker --execute "
+  App\Models\Ticket::where('status', 'resuelto')->update(['resolved_at' => now()->subDays(8)]);
+  dispatch(new App\Jobs\AutoCloseTicketsJob());
+  echo App\Models\Ticket::where('status', 'cerrado')->count() . ' cerrados';
+"
+```
+
+---
+
+## PARTE 7 — Verificación Final
+
+### 7.1 Tests automatizados
 ```bash
 php artisan test --compact
 ```
-- [ ] 53/53 passing
+- [ ] **53/53 passing** (128 assertions)
 
-### 5.2 Pint
+### 7.2 Code style
 ```bash
 vendor/bin/pint --test --format agent
 ```
-- [ ] Sin errores de estilo
+- [ ] Sin errores
 
-### 5.3 Rutas
+### 7.3 Rutas registradas
 ```bash
-php artisan route:list --except-vendor | wc -l
+php artisan route:list --except-vendor | grep -c "GET\|POST"
 ```
-- [ ] Verificar que todas las rutas listadas en la tabla de accesos existen
+- [ ] Todas las rutas del plan existen
 
 ---
 
-## Notas
+## Resumen de rutas para testing rápido
 
-- **MAIL_MAILER=log**: los emails no se envían realmente, se escriben en `storage/logs/laravel.log`
-- **LLM_API_KEY vacío**: el chatbot usa fallback si no hay key de OpenRouter
-- **AZURE_CLIENT_ID vacío**: el botón SSO no funciona hasta configurar las credenciales
-- **Inventario web scan**: al visitar el portal, el JS envía datos del browser al API. Verificar en la tabla `asset_scans` después de la primera visita
+| # | URL | Método | Usuario | Qué hacer |
+|---|---|---|---|---|
+| 1 | /admin/login | GET | admin | Login |
+| 2 | /admin | GET | admin | Dashboard |
+| 3 | /admin/departments | GET | admin | Ver/Crear/Editar |
+| 4 | /admin/categories | GET | admin | Ver/Crear |
+| 5 | /admin/assets | GET | admin | Ver inventario |
+| 6 | /admin/shield/roles | GET | admin | Ver roles y permisos |
+| 7 | /admin/backups | GET | admin | Ver/Ejecutar backup |
+| 8 | /admin/sla-report | GET | admin | Ver reporte SLA |
+| 9 | /soporte/login | GET | agente | Login |
+| 10 | /soporte | GET | agente | Dashboard |
+| 11 | /soporte/tickets | GET | agente | Lista con filtros |
+| 12 | /soporte/tickets/create | GET | agente | Crear ticket |
+| 13 | /soporte/tickets/1 | GET | agente | Ver + Asignar + Resolver |
+| 14 | /soporte/tickets/1/edit | GET | agente | Editar ticket |
+| 15 | /soporte/kb-articles | GET | agente | CRUD artículos KB |
+| 16 | /soporte/ticket-templates | GET | agente | CRUD plantillas |
+| 17 | /soporte/canned-responses | GET | agente | CRUD respuestas predefinidas |
+| 18 | /login | GET | usuario | Login Fortify |
+| 19 | /portal/tickets | GET | usuario | Mis tickets |
+| 20 | /portal/tickets/create | GET | usuario | Crear ticket |
+| 21 | /portal/tickets/2 | GET | usuario | Ver ticket + comentar |
+| 22 | /portal/chatbot | GET | usuario | Chatbot (flujos + escalación) |
+| 23 | POST /api/inventory/web-scan | POST | auth:sanctum | Web scan JS automático |
+| 24 | POST /api/inventory/agent-scan | POST | Bearer token | Agent PowerShell |
+
+---
+
+## Notas importantes
+
+1. **MAIL_MAILER=log**: los emails no se envían — se guardan en `storage/logs/laravel.log`
+2. **LLM_API_KEY vacío**: el chatbot usa fallback cuando no hay API key de OpenRouter
+3. **AZURE_CLIENT_ID vacío**: SSO no funciona hasta configurar credenciales Azure
+4. **npm run build**: OBLIGATORIO antes de probar el portal (ViteException si no)
+5. **Inventario web scan**: se ejecuta 1 vez por día (localStorage). Borrar localStorage para forzar reescaneo
+
+---
+
+*Documento actualizado el 15 de abril de 2026 — post pruebas Playwright.*

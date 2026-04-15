@@ -10,9 +10,9 @@ use App\Models\Category;
 use App\Models\User;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -41,11 +41,11 @@ class TicketForm
                             ->maxLength(255)
                             ->columnSpanFull(),
 
-                        Textarea::make('description')
+                        MarkdownEditor::make('description')
                             ->label('Descripción')
-                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Explica el problema con detalle: cuándo empezó, qué estabas haciendo, qué mensaje de error viste y qué has intentado. A mayor detalle, más rápido se resuelve.')
+                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Explica el problema con detalle: cuándo empezó, qué estabas haciendo, qué mensaje de error viste y qué has intentado. Admite formato Markdown (negritas, listas, etc.).')
                             ->required()
-                            ->rows(5)
+                            ->toolbarButtons(['bold', 'italic', 'link', 'bulletList', 'orderedList', 'codeBlock', 'blockquote', 'heading', 'undo', 'redo'])
                             ->columnSpanFull(),
                     ])
                     ->columns(2),

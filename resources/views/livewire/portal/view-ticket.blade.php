@@ -37,9 +37,29 @@
     </div>
 
     {{-- Descripción --}}
-    <div class="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
-        <flux:text class="whitespace-pre-wrap">{{ $ticket->description }}</flux:text>
+    <div class="ticket-description mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+        {!! str($ticket->description)->markdown()->toHtmlString() !!}
     </div>
+
+    {{-- Estilos para markdown de la descripción (mismos que el chatbot) --}}
+    <style>
+        .ticket-description > :first-child { margin-top: 0 !important; }
+        .ticket-description > :last-child { margin-bottom: 0 !important; }
+        .ticket-description p { margin: 0.5rem 0; line-height: 1.6; }
+        .ticket-description h1 { font-size: 1.25rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+        .ticket-description h2 { font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+        .ticket-description h3 { font-size: 0.95rem; font-weight: 600; margin: 0.75rem 0 0.5rem; }
+        .ticket-description ul, .ticket-description ol { margin: 0.5rem 0; padding-left: 1.5rem; }
+        .ticket-description ul { list-style: disc; }
+        .ticket-description ol { list-style: decimal; }
+        .ticket-description li { margin: 0.25rem 0; }
+        .ticket-description strong { font-weight: 600; }
+        .ticket-description em { font-style: italic; color: rgb(113 113 122); }
+        .ticket-description hr { border: 0; border-top: 1px solid rgb(228 228 231); margin: 1rem 0; }
+        .dark .ticket-description hr { border-top-color: rgb(63 63 70); }
+        .ticket-description code { background: rgb(228 228 231); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.85em; }
+        .dark .ticket-description code { background: rgb(39 39 42); }
+    </style>
 
     {{-- Adjuntos --}}
     @if ($ticket->getMedia('attachments')->count())

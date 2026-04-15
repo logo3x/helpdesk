@@ -73,19 +73,43 @@ class ChatbotService
 
     /**
      * Escalate the current chat session to a ticket.
+     *
+     * Builds a human-readable description from the chat history so a
+     * support agent can read the conversation as a formatted transcript
+     * instead of raw "[role] content" dumps.
      */
     public function escalateToTicket(ChatSession $session, User $requester, string $subject): Ticket
     {
-        // Collect chat history as ticket description
         $messages = $session->messages()
+            ->with('session.user:id,name')
             ->orderBy('created_at')
-            ->get(['role', 'content'])
-            ->map(fn ($m) => "[{$m->role}] {$m->content}")
-            ->implode("\n\n");
+            ->get(['id', 'chat_session_id', 'role', 'content', 'created_at']);
+
+        $transcript = $messages->map(function ($m) use ($requester) {
+            $who = match ($m->role) {
+                'user' => "👤 **{$requester->name}**",
+                'assistant' => '🤖 **Asistente virtual**',
+                default => ucfirst($m->role),
+            };
+
+            $time = $m->created_at->format('H:i');
+            $body = trim($m->content);
+
+            return "**{$who}** · _{$time}_\n\n{$body}";
+        })->implode("\n\n---\n\n");
+
+        $header = "# Ticket escalado desde el asistente virtual\n\n"
+            ."**Solicitante:** {$requester->name} ({$requester->email})\n"
+            ."**Sesión de chat:** #{$session->id}\n"
+            ."**Resumen del usuario:** {$subject}\n"
+            .'**Duración:** desde '.$session->created_at->format('d/m/Y H:i')
+            .' hasta '.now()->format('d/m/Y H:i')."\n"
+            .'**Total mensajes:** '.$messages->count()."\n\n"
+            ."---\n\n## Transcripción de la conversación\n\n";
 
         $ticket = app(TicketService::class)->create($requester, [
             'subject' => $subject ?: 'Escalación desde chatbot',
-            'description' => "Conversación de chatbot:\n\n{$messages}",
+            'description' => $header.$transcript,
         ]);
 
         $session->update([

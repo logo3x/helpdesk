@@ -1,0 +1,221 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e3]:
+    - link "Helpdesk Confipetrol" [ref=e5] [cursor=pointer]:
+      - /url: http://127.0.0.1:8000/soporte
+      - generic [ref=e6]: Helpdesk Confipetrol
+    - generic [ref=e7]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: Búsqueda global
+        - generic [ref=e12]:
+          - img [ref=e14]
+          - searchbox "Búsqueda global" [ref=e17]
+      - button "Quick Create" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+      - button "Menú del usuario" [ref=e26] [cursor=pointer]:
+        - img "Avatar of Agente Soporte" [ref=e27]
+  - generic [ref=e28]:
+    - complementary [ref=e30]:
+      - navigation [ref=e31]:
+        - list [ref=e32]:
+          - listitem [ref=e33]:
+            - list [ref=e34]:
+              - listitem [ref=e35]:
+                - link "Escritorio" [ref=e36] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/soporte
+                  - img [ref=e37]
+                  - generic [ref=e39]: Escritorio
+              - listitem [ref=e40]:
+                - link "Tickets 1" [ref=e41] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/soporte/tickets
+                  - img [ref=e42]
+                  - generic [ref=e44]: Tickets
+                  - generic [ref=e48]: "1"
+              - listitem [ref=e49]:
+                - link "Base De Conocimiento" [ref=e50] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/soporte/kb-articles
+                  - img [ref=e51]
+                  - generic [ref=e53]: Base De Conocimiento
+          - listitem [ref=e54]:
+            - generic [ref=e55] [cursor=pointer]:
+              - generic [ref=e56]: Configuración
+              - button "Configuración" [expanded] [ref=e57]:
+                - img [ref=e58]
+            - list [ref=e60]:
+              - listitem [ref=e61]:
+                - link "Plantillas" [ref=e62] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/soporte/ticket-templates
+                  - img [ref=e63]
+                  - generic [ref=e65]: Plantillas
+              - listitem [ref=e66]:
+                - link "Respuestas Predefinidas" [ref=e67] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/soporte/canned-responses
+                  - img [ref=e68]
+                  - generic [ref=e70]: Respuestas Predefinidas
+    - main [ref=e72]:
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - generic [ref=e76]:
+            - navigation [ref=e77]:
+              - list [ref=e78]:
+                - listitem [ref=e79]:
+                  - link "Tickets" [ref=e80] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets
+                - listitem [ref=e81]:
+                  - img [ref=e82]
+                  - generic [ref=e84]: Listado
+            - heading "Tickets" [level=1] [ref=e85]
+          - link "Crear Ticket" [ref=e88] [cursor=pointer]:
+            - /url: http://127.0.0.1:8000/soporte/tickets/create
+        - generic [ref=e96]:
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - generic [ref=e101]: Búsqueda
+              - generic [ref=e102]:
+                - img [ref=e104]
+                - searchbox "Búsqueda" [ref=e107]
+            - button "Filtrar" [ref=e110] [cursor=pointer]:
+              - img [ref=e111]
+              - generic [ref=e114]: "1"
+            - button "Alternar columnas" [ref=e117] [cursor=pointer]:
+              - img [ref=e118]
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - generic [ref=e122]: Filtros activos
+              - generic [ref=e124]:
+                - generic [ref=e126]: Solo abiertos
+                - button "Quitar filtro" [ref=e127] [cursor=pointer]:
+                  - img [ref=e128]
+                  - generic [ref=e130]: Quitar filtro
+            - button [ref=e131] [cursor=pointer]:
+              - img [ref=e132]
+          - table [ref=e135]:
+            - rowgroup [ref=e136]:
+              - row "Seleccionar/deseleccionar todos los elementos para las acciones masivas. Número Asunto Estado Prioridad Solicitante Asignado a Departamento Categoría Creado Acciones" [ref=e137]:
+                - columnheader "Seleccionar/deseleccionar todos los elementos para las acciones masivas." [ref=e138]:
+                  - checkbox "Seleccionar/deseleccionar todos los elementos para las acciones masivas." [ref=e139]
+                - columnheader "Número" [ref=e140]:
+                  - button "Número" [ref=e141] [cursor=pointer]:
+                    - text: Número
+                    - img [ref=e142]
+                - columnheader "Asunto" [ref=e144]
+                - columnheader "Estado" [ref=e145]
+                - columnheader "Prioridad" [ref=e146]
+                - columnheader "Solicitante" [ref=e147]
+                - columnheader "Asignado a" [ref=e148]
+                - columnheader "Departamento" [ref=e149]
+                - columnheader "Categoría" [ref=e150]
+                - columnheader "Creado" [ref=e151]:
+                  - button "Creado" [ref=e152] [cursor=pointer]:
+                    - text: Creado
+                    - img [ref=e153]
+                - columnheader "Acciones" [ref=e155]
+            - rowgroup [ref=e156]:
+              - row "Seleccionar/deseleccionar el elemento 2 para las acciones masivas. TK-2026-00002 Correo no recibe mensajes externos En progreso Crítica Usuario Final Agente Soporte Tecnología de la Información Correo y Teams hace 8 minutos Ver Editar" [ref=e157]:
+                - cell "Seleccionar/deseleccionar el elemento 2 para las acciones masivas." [ref=e158]:
+                  - checkbox "Seleccionar/deseleccionar el elemento 2 para las acciones masivas." [ref=e159]
+                - cell "TK-2026-00002" [ref=e160]:
+                  - link "TK-2026-00002" [ref=e161] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/2
+                    - generic [ref=e162]: TK-2026-00002
+                - cell "Correo no recibe mensajes externos" [ref=e163]:
+                  - link "Correo no recibe mensajes externos" [ref=e164] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/2
+                    - generic [ref=e165]: Correo no recibe mensajes externos
+                - cell "En progreso" [ref=e166]:
+                  - link "En progreso" [ref=e167] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/2
+                    - generic [ref=e169]: En progreso
+                - cell "Crítica" [ref=e170]:
+                  - link "Crítica" [ref=e171] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/2
+                    - generic [ref=e173]: Crítica
+                - cell "Usuario Final" [ref=e174]:
+                  - link "Usuario Final" [ref=e175] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/2
+                    - generic [ref=e176]: Usuario Final
+                - cell "Agente Soporte" [ref=e177]:
+                  - link "Agente Soporte" [ref=e178] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/2
+                    - generic [ref=e179]: Agente Soporte
+                - cell "Tecnología de la Información" [ref=e180]:
+                  - link "Tecnología de la Información" [ref=e181] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/2
+                    - generic [ref=e183]: Tecnología de la Información
+                - cell "Correo y Teams" [ref=e184]:
+                  - link "Correo y Teams" [ref=e185] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/2
+                    - generic [ref=e186]: Correo y Teams
+                - cell "hace 8 minutos" [ref=e187]:
+                  - link "hace 8 minutos" [ref=e188] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/2
+                    - generic [ref=e189]: hace 8 minutos
+                - cell "Ver Editar" [ref=e190]:
+                  - generic [ref=e191]:
+                    - link "Ver" [ref=e192] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/soporte/tickets/2
+                      - img [ref=e193]
+                      - text: Ver
+                    - link "Editar" [ref=e196] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/soporte/tickets/2/edit
+                      - img [ref=e197]
+                      - text: Editar
+              - row "Seleccionar/deseleccionar el elemento 1 para las acciones masivas. TK-2026-00001 Pantalla no enciende Nuevo Media Usuario Final — Tecnología de la Información Hardware hace 8 minutos Ver Editar" [ref=e200]:
+                - cell "Seleccionar/deseleccionar el elemento 1 para las acciones masivas." [ref=e201]:
+                  - checkbox "Seleccionar/deseleccionar el elemento 1 para las acciones masivas." [ref=e202]
+                - cell "TK-2026-00001" [ref=e203]:
+                  - link "TK-2026-00001" [ref=e204] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/1
+                    - generic [ref=e205]: TK-2026-00001
+                - cell "Pantalla no enciende" [ref=e206]:
+                  - link "Pantalla no enciende" [ref=e207] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/1
+                    - generic [ref=e208]: Pantalla no enciende
+                - cell "Nuevo" [ref=e209]:
+                  - link "Nuevo" [ref=e210] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/1
+                    - generic [ref=e212]: Nuevo
+                - cell "Media" [ref=e213]:
+                  - link "Media" [ref=e214] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/1
+                    - generic [ref=e216]: Media
+                - cell "Usuario Final" [ref=e217]:
+                  - link "Usuario Final" [ref=e218] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/1
+                    - generic [ref=e219]: Usuario Final
+                - cell "—" [ref=e220]:
+                  - link "—" [ref=e221] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/1
+                    - paragraph [ref=e223]: —
+                - cell "Tecnología de la Información" [ref=e224]:
+                  - link "Tecnología de la Información" [ref=e225] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/1
+                    - generic [ref=e227]: Tecnología de la Información
+                - cell "Hardware" [ref=e228]:
+                  - link "Hardware" [ref=e229] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/1
+                    - generic [ref=e230]: Hardware
+                - cell "hace 8 minutos" [ref=e231]:
+                  - link "hace 8 minutos" [ref=e232] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/soporte/tickets/1
+                    - generic [ref=e233]: hace 8 minutos
+                - cell "Ver Editar" [ref=e234]:
+                  - generic [ref=e235]:
+                    - link "Ver" [ref=e236] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/soporte/tickets/1
+                      - img [ref=e237]
+                      - text: Ver
+                    - link "Editar" [ref=e240] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/soporte/tickets/1/edit
+                      - img [ref=e241]
+                      - text: Editar
+          - navigation "Navegación de paginación" [ref=e244]:
+            - generic [ref=e245]: Se muestran de 1 a 2 de 2 resultados
+            - generic [ref=e248]:
+              - generic [ref=e250]: por página
+              - combobox "por página" [ref=e252]:
+                - option "5"
+                - option "10" [selected]
+                - option "25"
+                - option "50"
+  - generic:
+    - status

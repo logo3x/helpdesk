@@ -37,14 +37,15 @@ class IntentClassifier
         }
 
         return [
-            'flow' => $bestScore >= 0.3 ? $bestFlow : null,
+            'flow' => $bestScore > 0 ? $bestFlow : null,
             'confidence' => round($bestScore, 2),
         ];
     }
 
     /**
      * Score how well a flow matches the message (0.0–1.0).
-     * Simple: count of trigger keywords found / total triggers.
+     * Any single trigger match is enough (score = matches found / total).
+     * Minimum 1 match required.
      */
     protected function scoreFlow(ChatFlow $flow, string $message): float
     {

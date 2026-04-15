@@ -1,0 +1,144 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e3]:
+    - link "Helpdesk Confipetrol" [ref=e5] [cursor=pointer]:
+      - /url: http://127.0.0.1:8000/admin
+      - generic [ref=e6]: Helpdesk Confipetrol
+    - generic [ref=e7]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: Búsqueda global
+        - generic [ref=e12]:
+          - img [ref=e14]
+          - searchbox "Búsqueda global" [ref=e17]
+      - button "Quick Create" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+      - button "Menú del usuario" [ref=e26] [cursor=pointer]:
+        - img "Avatar of Administrador" [ref=e27]
+  - generic [ref=e28]:
+    - complementary [ref=e30]:
+      - navigation [ref=e31]:
+        - list [ref=e32]:
+          - listitem [ref=e33]:
+            - list [ref=e34]:
+              - listitem [ref=e35]:
+                - link "Escritorio" [ref=e36] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin
+                  - img [ref=e37]
+                  - generic [ref=e39]: Escritorio
+          - listitem [ref=e40]:
+            - generic [ref=e41] [cursor=pointer]:
+              - generic [ref=e42]: Filament Shield
+              - button "Filament Shield" [expanded] [ref=e43]:
+                - img [ref=e44]
+            - list [ref=e46]:
+              - listitem [ref=e47]:
+                - link "Roles" [ref=e48] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/shield/roles
+                  - img [ref=e49]
+                  - generic [ref=e51]: Roles
+          - listitem [ref=e52]:
+            - generic [ref=e53] [cursor=pointer]:
+              - generic [ref=e54]: Configuraciones
+              - button "Configuraciones" [expanded] [ref=e55]:
+                - img [ref=e56]
+            - list [ref=e58]:
+              - listitem [ref=e59]:
+                - link "Respaldos" [ref=e60] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/backups
+                  - img [ref=e61]
+                  - generic [ref=e63]: Respaldos
+          - listitem [ref=e64]:
+            - generic [ref=e65] [cursor=pointer]:
+              - generic [ref=e66]: Inventario
+              - button "Inventario" [expanded] [ref=e67]:
+                - img [ref=e68]
+            - list [ref=e70]:
+              - listitem [ref=e71]:
+                - link "Inventario" [ref=e72] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/assets
+                  - img [ref=e73]
+                  - generic [ref=e75]: Inventario
+          - listitem [ref=e76]:
+            - generic [ref=e77] [cursor=pointer]:
+              - generic [ref=e78]: Configuración
+              - button "Configuración" [expanded] [ref=e79]:
+                - img [ref=e80]
+            - list [ref=e82]:
+              - listitem [ref=e83]:
+                - link "Departamentos" [ref=e84] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/departments
+                  - img [ref=e85]
+                  - generic [ref=e87]: Departamentos
+              - listitem [ref=e88]:
+                - link "Categorías" [ref=e89] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/categories
+                  - img [ref=e90]
+                  - generic [ref=e93]: Categorías
+          - listitem [ref=e94]:
+            - generic [ref=e95] [cursor=pointer]:
+              - generic [ref=e96]: Reportes
+              - button "Reportes" [expanded] [ref=e97]:
+                - img [ref=e98]
+            - list [ref=e100]:
+              - listitem [ref=e101]:
+                - link "Reporte SLA" [ref=e102] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/sla-report
+                  - img [ref=e103]
+                  - generic [ref=e105]: Reporte SLA
+    - main [ref=e107]:
+      - generic [ref=e109]:
+        - heading "Reporte de cumplimiento SLA" [level=1] [ref=e112]
+        - generic [ref=e114]:
+          - generic [ref=e115]:
+            - heading "Cumplimiento SLA por departamento (últimos 30 días)" [level=2] [ref=e118]
+            - table [ref=e122]:
+              - rowgroup [ref=e123]:
+                - row "Departamento Planificada Baja Media Alta Crítica" [ref=e124]:
+                  - columnheader "Departamento" [ref=e125]
+                  - columnheader "Planificada" [ref=e126]
+                  - columnheader "Baja" [ref=e127]
+                  - columnheader "Media" [ref=e128]
+                  - columnheader "Alta" [ref=e129]
+                  - columnheader "Crítica" [ref=e130]
+              - rowgroup [ref=e131]:
+                - row "Tecnología de la Información — — — — —" [ref=e132]:
+                  - cell "Tecnología de la Información" [ref=e133]
+                  - cell "—" [ref=e134]
+                  - cell "—" [ref=e135]
+                  - cell "—" [ref=e136]
+                  - cell "—" [ref=e137]
+                  - cell "—" [ref=e138]
+                - row "Recursos Humanos — 100% 1 tickets — — —" [ref=e139]:
+                  - cell "Recursos Humanos" [ref=e140]
+                  - cell "—" [ref=e141]
+                  - cell "100% 1 tickets" [ref=e142]:
+                    - text: 100%
+                    - generic [ref=e143]: 1 tickets
+                  - cell "—" [ref=e144]
+                  - cell "—" [ref=e145]
+                  - cell "—" [ref=e146]
+                - row "Compras — — — — —" [ref=e147]:
+                  - cell "Compras" [ref=e148]
+                  - cell "—" [ref=e149]
+                  - cell "—" [ref=e150]
+                  - cell "—" [ref=e151]
+                  - cell "—" [ref=e152]
+                  - cell "—" [ref=e153]
+                - row "Mantenimiento — — — — —" [ref=e154]:
+                  - cell "Mantenimiento" [ref=e155]
+                  - cell "—" [ref=e156]
+                  - cell "—" [ref=e157]
+                  - cell "—" [ref=e158]
+                  - cell "—" [ref=e159]
+                  - cell "—" [ref=e160]
+                - row "Operaciones — — — — —" [ref=e161]:
+                  - cell "Operaciones" [ref=e162]
+                  - cell "—" [ref=e163]
+                  - cell "—" [ref=e164]
+                  - cell "—" [ref=e165]
+                  - cell "—" [ref=e166]
+                  - cell "—" [ref=e167]
+          - generic [ref=e168]:
+            - heading "Últimas escalaciones" [level=2] [ref=e171]
+            - paragraph [ref=e174]: No hay escalaciones recientes.
+  - generic:
+    - status

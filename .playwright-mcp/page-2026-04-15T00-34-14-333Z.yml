@@ -1,0 +1,278 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e3]:
+    - link "Helpdesk Confipetrol" [ref=e5] [cursor=pointer]:
+      - /url: http://127.0.0.1:8000/admin
+      - generic [ref=e6]: Helpdesk Confipetrol
+    - generic [ref=e7]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: Búsqueda global
+        - generic [ref=e12]:
+          - img [ref=e14]
+          - searchbox "Búsqueda global" [ref=e17]
+      - button "Quick Create" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+      - button "Menú del usuario" [ref=e26] [cursor=pointer]:
+        - img "Avatar of Administrador" [ref=e27]
+  - generic [ref=e28]:
+    - complementary [ref=e30]:
+      - navigation [ref=e31]:
+        - list [ref=e32]:
+          - listitem [ref=e33]:
+            - list [ref=e34]:
+              - listitem [ref=e35]:
+                - link "Escritorio" [ref=e36] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin
+                  - img [ref=e37]
+                  - generic [ref=e39]: Escritorio
+          - listitem [ref=e40]:
+            - generic [ref=e41] [cursor=pointer]:
+              - generic [ref=e42]: Filament Shield
+              - button "Filament Shield" [expanded] [ref=e43]:
+                - img [ref=e44]
+            - list [ref=e46]:
+              - listitem [ref=e47]:
+                - link "Roles" [ref=e48] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/shield/roles
+                  - img [ref=e49]
+                  - generic [ref=e51]: Roles
+          - listitem [ref=e52]:
+            - generic [ref=e53] [cursor=pointer]:
+              - generic [ref=e54]: Configuraciones
+              - button "Configuraciones" [expanded] [ref=e55]:
+                - img [ref=e56]
+            - list [ref=e58]:
+              - listitem [ref=e59]:
+                - link "Respaldos" [ref=e60] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/backups
+                  - img [ref=e61]
+                  - generic [ref=e63]: Respaldos
+          - listitem [ref=e64]:
+            - generic [ref=e65] [cursor=pointer]:
+              - generic [ref=e66]: Inventario
+              - button "Inventario" [expanded] [ref=e67]:
+                - img [ref=e68]
+            - list [ref=e70]:
+              - listitem [ref=e71]:
+                - link "Inventario" [ref=e72] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/assets
+                  - img [ref=e73]
+                  - generic [ref=e75]: Inventario
+          - listitem [ref=e76]:
+            - generic [ref=e77] [cursor=pointer]:
+              - generic [ref=e78]: Configuración
+              - button "Configuración" [expanded] [ref=e79]:
+                - img [ref=e80]
+            - list [ref=e82]:
+              - listitem [ref=e83]:
+                - link "Departamentos" [ref=e84] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/departments
+                  - img [ref=e85]
+                  - generic [ref=e87]: Departamentos
+              - listitem [ref=e88]:
+                - link "Categorías" [ref=e89] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/categories
+                  - img [ref=e90]
+                  - generic [ref=e93]: Categorías
+          - listitem [ref=e94]:
+            - generic [ref=e95] [cursor=pointer]:
+              - generic [ref=e96]: Reportes
+              - button "Reportes" [expanded] [ref=e97]:
+                - img [ref=e98]
+            - list [ref=e100]:
+              - listitem [ref=e101]:
+                - link "Reporte SLA" [ref=e102] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/sla-report
+                  - img [ref=e103]
+                  - generic [ref=e105]: Reporte SLA
+    - main [ref=e107]:
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - navigation [ref=e112]:
+              - list [ref=e113]:
+                - listitem [ref=e114]:
+                  - link "Departamentos" [ref=e115] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments
+                - listitem [ref=e116]:
+                  - img [ref=e117]
+                  - generic [ref=e119]: Listado
+            - heading "Departamentos" [level=1] [ref=e120]
+          - link "Crear Departamento" [ref=e123] [cursor=pointer]:
+            - /url: http://127.0.0.1:8000/admin/departments/create
+        - generic [ref=e131]:
+          - generic [ref=e134]:
+            - generic [ref=e135]:
+              - generic [ref=e136]: Búsqueda
+              - generic [ref=e137]:
+                - img [ref=e139]
+                - searchbox "Búsqueda" [ref=e142]
+            - button "Filtrar" [ref=e145] [cursor=pointer]:
+              - img [ref=e146]
+              - generic [ref=e149]: "0"
+            - button "Alternar columnas" [ref=e152] [cursor=pointer]:
+              - img [ref=e153]
+          - table [ref=e156]:
+            - rowgroup [ref=e157]:
+              - row "Seleccionar/deseleccionar todos los elementos para las acciones masivas. Nombre Slug Padre Usuarios Activo Acción" [ref=e158]:
+                - columnheader "Seleccionar/deseleccionar todos los elementos para las acciones masivas." [ref=e159]:
+                  - checkbox "Seleccionar/deseleccionar todos los elementos para las acciones masivas." [ref=e160]
+                - columnheader "Nombre" [ref=e161]:
+                  - button "Nombre" [ref=e162] [cursor=pointer]:
+                    - text: Nombre
+                    - img [ref=e163]
+                - columnheader "Slug" [ref=e165]
+                - columnheader "Padre" [ref=e166]
+                - columnheader "Usuarios" [ref=e167]
+                - columnheader "Activo" [ref=e168]
+                - columnheader "Acción" [ref=e169]
+            - rowgroup [ref=e170]:
+              - row "Seleccionar/deseleccionar el elemento 3 para las acciones masivas. Compras compras — 0 Editar" [ref=e171]:
+                - cell "Seleccionar/deseleccionar el elemento 3 para las acciones masivas." [ref=e172]:
+                  - checkbox "Seleccionar/deseleccionar el elemento 3 para las acciones masivas." [ref=e173]
+                - cell "Compras" [ref=e174]:
+                  - link "Compras" [ref=e175] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/3/edit
+                    - generic [ref=e176]: Compras
+                - cell "compras" [ref=e177]:
+                  - link "compras" [ref=e178] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/3/edit
+                    - generic [ref=e180]: compras
+                - cell "—" [ref=e181]:
+                  - link "—" [ref=e182] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/3/edit
+                    - paragraph [ref=e184]: —
+                - cell "0" [ref=e185]:
+                  - link "0" [ref=e186] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/3/edit
+                    - generic [ref=e188]: "0"
+                - cell [ref=e189]:
+                  - link [ref=e190] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/3/edit
+                    - img [ref=e192]
+                - cell "Editar" [ref=e194]:
+                  - link "Editar" [ref=e196] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/3/edit
+                    - img [ref=e197]
+                    - text: Editar
+              - row "Seleccionar/deseleccionar el elemento 4 para las acciones masivas. Mantenimiento mantenimiento — 0 Editar" [ref=e200]:
+                - cell "Seleccionar/deseleccionar el elemento 4 para las acciones masivas." [ref=e201]:
+                  - checkbox "Seleccionar/deseleccionar el elemento 4 para las acciones masivas." [ref=e202]
+                - cell "Mantenimiento" [ref=e203]:
+                  - link "Mantenimiento" [ref=e204] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/4/edit
+                    - generic [ref=e205]: Mantenimiento
+                - cell "mantenimiento" [ref=e206]:
+                  - link "mantenimiento" [ref=e207] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/4/edit
+                    - generic [ref=e209]: mantenimiento
+                - cell "—" [ref=e210]:
+                  - link "—" [ref=e211] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/4/edit
+                    - paragraph [ref=e213]: —
+                - cell "0" [ref=e214]:
+                  - link "0" [ref=e215] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/4/edit
+                    - generic [ref=e217]: "0"
+                - cell [ref=e218]:
+                  - link [ref=e219] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/4/edit
+                    - img [ref=e221]
+                - cell "Editar" [ref=e223]:
+                  - link "Editar" [ref=e225] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/4/edit
+                    - img [ref=e226]
+                    - text: Editar
+              - row "Seleccionar/deseleccionar el elemento 5 para las acciones masivas. Operaciones operaciones — 1 Editar" [ref=e229]:
+                - cell "Seleccionar/deseleccionar el elemento 5 para las acciones masivas." [ref=e230]:
+                  - checkbox "Seleccionar/deseleccionar el elemento 5 para las acciones masivas." [ref=e231]
+                - cell "Operaciones" [ref=e232]:
+                  - link "Operaciones" [ref=e233] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/5/edit
+                    - generic [ref=e234]: Operaciones
+                - cell "operaciones" [ref=e235]:
+                  - link "operaciones" [ref=e236] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/5/edit
+                    - generic [ref=e238]: operaciones
+                - cell "—" [ref=e239]:
+                  - link "—" [ref=e240] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/5/edit
+                    - paragraph [ref=e242]: —
+                - cell "1" [ref=e243]:
+                  - link "1" [ref=e244] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/5/edit
+                    - generic [ref=e246]: "1"
+                - cell [ref=e247]:
+                  - link [ref=e248] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/5/edit
+                    - img [ref=e250]
+                - cell "Editar" [ref=e252]:
+                  - link "Editar" [ref=e254] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/5/edit
+                    - img [ref=e255]
+                    - text: Editar
+              - row "Seleccionar/deseleccionar el elemento 2 para las acciones masivas. Recursos Humanos rrhh — 0 Editar" [ref=e258]:
+                - cell "Seleccionar/deseleccionar el elemento 2 para las acciones masivas." [ref=e259]:
+                  - checkbox "Seleccionar/deseleccionar el elemento 2 para las acciones masivas." [ref=e260]
+                - cell "Recursos Humanos" [ref=e261]:
+                  - link "Recursos Humanos" [ref=e262] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/2/edit
+                    - generic [ref=e263]: Recursos Humanos
+                - cell "rrhh" [ref=e264]:
+                  - link "rrhh" [ref=e265] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/2/edit
+                    - generic [ref=e267]: rrhh
+                - cell "—" [ref=e268]:
+                  - link "—" [ref=e269] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/2/edit
+                    - paragraph [ref=e271]: —
+                - cell "0" [ref=e272]:
+                  - link "0" [ref=e273] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/2/edit
+                    - generic [ref=e275]: "0"
+                - cell [ref=e276]:
+                  - link [ref=e277] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/2/edit
+                    - img [ref=e279]
+                - cell "Editar" [ref=e281]:
+                  - link "Editar" [ref=e283] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/2/edit
+                    - img [ref=e284]
+                    - text: Editar
+              - row "Seleccionar/deseleccionar el elemento 1 para las acciones masivas. Tecnología de la Información ti — 2 Editar" [ref=e287]:
+                - cell "Seleccionar/deseleccionar el elemento 1 para las acciones masivas." [ref=e288]:
+                  - checkbox "Seleccionar/deseleccionar el elemento 1 para las acciones masivas." [ref=e289]
+                - cell "Tecnología de la Información" [ref=e290]:
+                  - link "Tecnología de la Información" [ref=e291] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/1/edit
+                    - generic [ref=e292]: Tecnología de la Información
+                - cell "ti" [ref=e293]:
+                  - link "ti" [ref=e294] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/1/edit
+                    - generic [ref=e296]: ti
+                - cell "—" [ref=e297]:
+                  - link "—" [ref=e298] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/1/edit
+                    - paragraph [ref=e300]: —
+                - cell "2" [ref=e301]:
+                  - link "2" [ref=e302] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/1/edit
+                    - generic [ref=e304]: "2"
+                - cell [ref=e305]:
+                  - link [ref=e306] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/1/edit
+                    - img [ref=e308]
+                - cell "Editar" [ref=e310]:
+                  - link "Editar" [ref=e312] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/admin/departments/1/edit
+                    - img [ref=e313]
+                    - text: Editar
+          - navigation "Navegación de paginación" [ref=e316]:
+            - generic [ref=e319]:
+              - generic [ref=e321]: por página
+              - combobox "por página" [ref=e323]:
+                - option "5"
+                - option "10" [selected]
+                - option "25"
+                - option "50"
+  - generic:
+    - status

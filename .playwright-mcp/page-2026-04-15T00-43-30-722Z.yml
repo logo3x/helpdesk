@@ -1,0 +1,39 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Helpdesk Confipetrol" [ref=e4] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/portal/tickets
+        - generic [ref=e5]: Helpdesk Confipetrol
+      - navigation [ref=e6]:
+        - link "Crear ticket" [ref=e7] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/portal/tickets/create
+          - img [ref=e9]
+          - generic [ref=e11]: Crear ticket
+        - link "Mis tickets" [ref=e12] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/portal/tickets
+          - img [ref=e14]
+          - generic [ref=e16]: Mis tickets
+        - link "Asistente" [ref=e17] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/portal/chatbot
+          - img [ref=e19]
+          - generic [ref=e21]: Asistente
+      - button "UF" [ref=e23]:
+        - generic [ref=e26]: UF
+        - img [ref=e28]
+  - generic [ref=e31]:
+    - generic [ref=e32]: Asistente virtual
+    - paragraph [ref=e37]: ¡Hola! Soy el asistente virtual de Confipetrol. ¿En qué puedo ayudarte? Puedo guiarte con reset de contraseña, VPN, impresoras y más.
+    - generic [ref=e38]:
+      - textbox "Escribe tu consulta..." [active] [ref=e40]: olvidé mi contraseña
+      - button "Enviar" [ref=e41]:
+        - img [ref=e43]
+        - img [ref=e46]
+        - generic [ref=e48]: Enviar
+    - paragraph [ref=e49]:
+      - text: Escribe
+      - strong [ref=e50]: "\"crear ticket\""
+      - text: para hablar con un agente. Usa
+      - strong [ref=e51]: "\"escalar: [resumen]\""
+      - text: para crear un ticket directamente.
+  - generic:
+    - status

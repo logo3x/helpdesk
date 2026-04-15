@@ -18,6 +18,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // ── Portal de usuario ────────────────────────────────────────
     Route::prefix('portal')->name('portal.')->group(function () {
+        Route::redirect('/', '/portal/tickets')->name('home');
         Route::get('tickets', MyTickets::class)->name('tickets.index');
         Route::get('tickets/create', CreateTicket::class)->name('tickets.create');
         Route::get('tickets/{ticket}', ViewTicket::class)->name('tickets.show');

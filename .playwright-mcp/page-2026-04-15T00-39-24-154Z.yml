@@ -1,0 +1,82 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e3]:
+    - link "Helpdesk Confipetrol" [ref=e5] [cursor=pointer]:
+      - /url: http://127.0.0.1:8000/soporte
+      - generic [ref=e6]: Helpdesk Confipetrol
+    - generic [ref=e7]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: Búsqueda global
+        - generic [ref=e12]:
+          - img [ref=e14]
+          - searchbox "Búsqueda global" [ref=e17]
+      - button "Quick Create" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+      - button "Menú del usuario" [ref=e26] [cursor=pointer]:
+        - img "Avatar of Agente Soporte" [ref=e27]
+  - generic [ref=e28]:
+    - complementary [ref=e30]:
+      - navigation [ref=e31]:
+        - list [ref=e32]:
+          - listitem [ref=e33]:
+            - list [ref=e34]:
+              - listitem [ref=e35]:
+                - link "Escritorio" [ref=e36] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/soporte
+                  - img [ref=e37]
+                  - generic [ref=e39]: Escritorio
+              - listitem [ref=e40]:
+                - link "Tickets 1" [ref=e41] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/soporte/tickets
+                  - img [ref=e42]
+                  - generic [ref=e44]: Tickets
+                  - generic [ref=e48]: "1"
+              - listitem [ref=e49]:
+                - link "Base De Conocimiento" [ref=e50] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/soporte/kb-articles
+                  - img [ref=e51]
+                  - generic [ref=e53]: Base De Conocimiento
+          - listitem [ref=e54]:
+            - generic [ref=e55] [cursor=pointer]:
+              - generic [ref=e56]: Configuración
+              - button "Configuración" [expanded] [ref=e57]:
+                - img [ref=e58]
+            - list [ref=e60]:
+              - listitem [ref=e61]:
+                - link "Plantillas" [ref=e62] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/soporte/ticket-templates
+                  - img [ref=e63]
+                  - generic [ref=e65]: Plantillas
+              - listitem [ref=e66]:
+                - link "Respuestas Predefinidas" [ref=e67] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/soporte/canned-responses
+                  - img [ref=e68]
+                  - generic [ref=e70]: Respuestas Predefinidas
+    - main [ref=e72]:
+      - generic [ref=e74]:
+        - heading "Escritorio" [level=1] [ref=e77]
+        - generic [ref=e84]:
+          - generic [ref=e88]:
+            - img "Avatar of Agente Soporte" [ref=e89]
+            - generic [ref=e90]:
+              - heading "Bienvenida/o" [level=2] [ref=e91]
+              - paragraph [ref=e92]: Agente Soporte
+            - button "Salir" [ref=e94] [cursor=pointer]:
+              - img [ref=e95]
+              - text: Salir
+          - generic [ref=e101]:
+            - generic [ref=e102]:
+              - link "Filament" [ref=e103] [cursor=pointer]:
+                - /url: https://filamentphp.com
+                - img "Filament" [ref=e104]
+              - paragraph [ref=e115]: v5.5.0
+            - generic [ref=e116]:
+              - link "Documentación" [ref=e117] [cursor=pointer]:
+                - /url: https://filamentphp.com/docs
+                - img [ref=e118]
+                - text: Documentación
+              - link "GitHub" [ref=e120] [cursor=pointer]:
+                - /url: https://github.com/filamentphp/filament
+                - img [ref=e122]
+                - text: GitHub
+  - generic:
+    - status

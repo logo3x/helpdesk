@@ -99,6 +99,7 @@ class LlmService
         ];
 
         try {
+            // Retry up to 3 times with 2s backoff on 429 (rate limit) or 5xx errors
             $response = Http::withHeaders([
                 'Authorization' => "Bearer {$this->apiKey}",
                 'Content-Type' => 'application/json',
@@ -106,13 +107,25 @@ class LlmService
                 'X-Title' => config('app.name'),
             ])
                 ->timeout(60)
+                ->retry(3, 2000, function ($exception, $request) {
+                    if (isset($exception->response)) {
+                        $status = $exception->response->status();
+
+                        return $status === 429 || $status >= 500;
+                    }
+
+                    return true;
+                })
                 ->post('https://openrouter.ai/api/v1/chat/completions', $payload);
 
             if ($response->successful()) {
                 return $response->json('choices.0.message.content');
             }
 
-            Log::warning('LlmService OpenRouter failed', ['status' => $response->status()]);
+            Log::warning('LlmService OpenRouter failed', [
+                'status' => $response->status(),
+                'body' => mb_substr($response->body(), 0, 300),
+            ]);
         } catch (ConnectionException $e) {
             Log::error('LlmService OpenRouter error', ['error' => $e->getMessage()]);
         }

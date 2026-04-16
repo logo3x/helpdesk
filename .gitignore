@@ -24,3 +24,9 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# MCP / TestSprite — contienen API keys y credenciales
+.mcp.json
+/testsprite_tests
+/.playwright-mcp
+/.ai

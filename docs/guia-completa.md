@@ -1,7 +1,7 @@
 # Helpdesk Confipetrol — Guía Completa
 
-**Versión:** 1.0  
-**Fecha:** 14 de abril de 2026  
+**Versión:** 1.5 (módulo usuarios, scope depto, traslado tickets)  
+**Fecha:** 17 de abril de 2026  
 **Responsable:** Luis Oviedo (luis.oviedo@confipetrol.com)
 
 ---
@@ -214,8 +214,40 @@ Seleccionar registros en Tickets o Assets y click "Exportar Excel".
 
 ## 8. Plantillas y Respuestas Predefinidas
 
-- **Plantillas de ticket**: formularios pre-llenados para tipos comunes.
-- **Canned responses**: textos rápidos para agentes (compartidas o personales).
+### Plantillas de ticket (`/soporte/ticket-templates`)
+
+Formularios pre-llenados que el agente aplica al **crear** un ticket repetitivo.
+
+**Caso de uso:** un agente recibe "Necesito equipo para Juan Pérez" cientos de veces al año. En lugar de escribir asunto/descripción/categoría desde cero, aplica la plantilla "Solicitud de equipo nuevo" y solo modifica los datos del empleado.
+
+Campos guardados en la plantilla:
+- Nombre interno (identificador para el agente)
+- Asunto pre-llenado
+- Descripción pre-llenada (con placeholders tipo `[NOMBRE]`)
+- Categoría, Impacto, Urgencia por defecto
+- Activa / inactiva
+
+**Scope por depto:** las plantillas que el agente ve en el selector se filtran automáticamente a su departamento.
+
+### Respuestas predefinidas / Canned responses (`/soporte/canned-responses`)
+
+Fragmentos de texto que el agente **pega al comentar** un ticket para ahorrar tipeo repetitivo.
+
+**Caso de uso:** un agente cierra 20 tickets al día con el mismo mensaje de "gracias por tu paciencia, si vuelve el problema reabre el ticket". Lo guarda una vez como canned response y lo inserta con un click.
+
+Campos:
+- Título (cómo se identifica en la lista)
+- Body (el texto que se inserta, con Markdown)
+- Categoría (scoped al depto)
+- Toggle "Compartida": ON = todo el depto la usa; OFF = solo el autor.
+
+### Diferencia clave
+
+| | Plantilla | Canned Response |
+|---|---|---|
+| Momento de uso | Al CREAR un ticket | Al COMENTAR un ticket |
+| Qué rellena | Formulario completo | Body del comentario |
+| Bulk delete | Supervisor/admin | Supervisor/admin |
 
 ---
 
@@ -252,17 +284,46 @@ Seleccionar registros en Tickets o Assets y click "Exportar Excel".
 
 ## 12. Roles y Permisos
 
-| Rol | Panel | Descripción |
-|---|---|---|
-| super_admin | /admin + /soporte | Control total |
-| admin | /admin + /soporte | Administración funcional |
-| supervisor_soporte | /soporte | Supervisa grupos |
-| agente_soporte | /soporte | Atiende tickets |
-| tecnico_campo | /soporte | Técnicos en sitio |
-| editor_kb | /soporte | Gestiona KB |
-| usuario_final | /portal | Crea y consulta sus tickets |
+### Roles (7)
 
-62+ permisos generados por Filament Shield por recurso.
+| Rol | Panel | Descripción | Scope de visibilidad |
+|---|---|---|---|
+| super_admin | /admin + /soporte + /portal | Control total. Puede todo. | Todo, sin filtros |
+| admin | /admin + /soporte | Administración funcional | Todo, sin filtros |
+| supervisor_soporte | /soporte | Supervisa grupo de su depto | Todos los tickets de su depto |
+| agente_soporte | /soporte | Atiende tickets | Solo sus asignados + sin asignar de su depto |
+| tecnico_campo | /soporte | Técnicos en sitio | Igual que agente |
+| editor_kb | /soporte | Gestiona KB | KB de su depto |
+| usuario_final | /portal | Crea y consulta sus tickets | Solo sus propios tickets |
+
+### Diferencias supervisor vs agente (v1.4+)
+
+| Capacidad | Supervisor | Agente |
+|---|:---:|:---:|
+| Ver todos los tickets del depto | ✅ | ❌ (solo sus asignados + sin asignar) |
+| Crear ticket | ✅ | ✅ |
+| Editar ticket | ✅ | ✅ |
+| Eliminar ticket | ✅ | ❌ |
+| Trasladar ticket a otro depto | ✅ | ❌ |
+| Crear agentes (en /soporte/users) | ✅ (solo de su depto) | ❌ |
+| Publicar KB (pasar de Borrador a Publicado) | ✅ | ❌ (solo crea Borrador) |
+| Bulk delete en plantillas/canned | ✅ | ❌ |
+| Total permisos | 55 | 27 |
+
+### Gestión de usuarios
+
+**Super_admin (`/admin/users`):** CRUD de cualquier usuario, elige rol y depto libremente.
+
+**Supervisor (`/soporte/users`):** crea solo agentes y **forzadamente en su propio depto**. Este diseño asegura que un supervisor no pueda crear agentes en departamentos ajenos.
+
+### Traslado de tickets
+
+Cuando un ticket se crea con categoría equivocada (ej: un tema de nómina cae en TI), el supervisor tiene un botón **"Trasladar a otro depto."** en la vista del ticket. Al trasladarlo:
+
+- Se cambia `department_id` al destino correcto.
+- Se resetea `assigned_to_id` y `category_id` para que el nuevo equipo haga re-triage.
+- Se envía email al solicitante con el motivo del traslado.
+- Solo disponible para supervisor/admin y en tickets abiertos.
 
 ---
 
@@ -289,12 +350,18 @@ Seleccionar registros en Tickets o Assets y click "Exportar Excel".
 
 ## 14. Cuentas de prueba
 
-| Email | Password | Rol |
+Todos con password `password`.
+
+| Email | Rol | Depto |
 |---|---|---|
-| admin@confipetrol.local | password | super_admin |
-| supervisor@confipetrol.local | password | supervisor_soporte |
-| agente@confipetrol.local | password | agente_soporte |
-| usuario@confipetrol.local | password | usuario_final |
+| admin@confipetrol.local | super_admin | — |
+| supervisor@confipetrol.local | supervisor_soporte | TI |
+| agente@confipetrol.local | agente_soporte | TI |
+| supervisor.rrhh@confipetrol.local | supervisor_soporte | RRHH |
+| agente.rrhh@confipetrol.local | agente_soporte | RRHH |
+| usuario@confipetrol.local | usuario_final | Operaciones |
+
+Los 2 pares TI/RRHH permiten demostrar el aislamiento por departamento: el supervisor/agente de TI no ve tickets de RRHH y viceversa.
 
 ---
 
@@ -304,4 +371,4 @@ Seleccionar registros en Tickets o Assets y click "Exportar Excel".
 
 ---
 
-*Documento generado el 14 de abril de 2026.*
+*Documento actualizado 2026-04-17 — v1.5.*

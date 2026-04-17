@@ -1,11 +1,21 @@
 # Product Requirements Document (PRD)
 ## Helpdesk Confipetrol
 
-**Versión:** 1.0
-**Fecha:** 16 de abril de 2026
+**Versión:** 1.5
+**Fecha:** 17 de abril de 2026
 **Responsable de producto:** Luis Oviedo — luis.oviedo@confipetrol.com
 **Repositorio:** https://github.com/logo3x/helpdesk
-**Estado:** En desarrollo (MVP funcional, fase de pruebas)
+**Estado:** En desarrollo (MVP funcional, fase de pruebas con cliente)
+
+### Changelog
+
+| Versión | Fecha | Cambios principales |
+|---|---|---|
+| 1.5 | 2026-04-17 | **Módulo Usuarios** (super_admin en `/admin/users` + supervisor en `/soporte/users`); **scope por departamento** en tickets/KB/plantillas/canned; **traslado de tickets** entre deptos con notificación al solicitante; KB con categoría = departamento y flujo de aprobación (agente crea borradores, supervisor publica); plantillas y canned responses con categoría filtrada por depto; ChatSessions oculto; 6 usuarios demo (2 deptos). |
+| 1.4 | 2026-04-16 | Diferenciación real de permisos supervisor (51) vs agente (23). |
+| 1.3 | 2026-04-16 | Plan de testing actualizado para demo con cliente. |
+| 1.2 | 2026-04-16 | Fixes P0 tras TestSprite (3 formularios Filament vacíos implementados). |
+| 1.0 | 2026-04-16 | Primera versión del PRD. |
 
 ---
 
@@ -48,16 +58,18 @@ Una **plataforma interna de mesa de ayuda unificada** que centraliza todas las s
 ## 3. Alcance funcional (MVP)
 
 ### 3.1 Módulos incluidos (must-have)
-1. **Sistema de tickets** — ciclo de vida completo, matriz ITIL, adjuntos.
+1. **Sistema de tickets** — ciclo de vida completo, matriz ITIL, adjuntos, **traslado entre departamentos**.
 2. **Motor SLA** — monitoreo automático, alertas, pausa en "pendiente cliente".
-3. **Portal de usuario final** — crear, consultar, comentar tickets.
+3. **Portal de usuario final** — crear, consultar, comentar tickets, chatbot.
 4. **Chatbot híbrido** — flujos guiados + RAG + LLM + escalación a ticket.
-5. **Base de conocimiento** — artículos versionados, feedback útil/no útil.
+5. **Base de conocimiento** — categoría = departamento, flujo de aprobación (agente crea borrador, supervisor publica), versionado, feedback útil/no útil.
 6. **Inventario PCs** — activos, componentes, software, historial.
 7. **SSO Azure AD** — login único corporativo con sync de roles.
-8. **RBAC** — 7 roles, 62+ permisos por recurso.
-9. **Reportes y dashboards** — admin, soporte, reporte SLA.
-10. **Auditoría** — activity log de cambios en tickets + conversaciones chat.
+8. **RBAC con scope por departamento** — 7 roles, 77+ permisos por recurso, visibilidad de datos limitada al departamento del usuario.
+9. **Módulo de Usuarios (v1.5)** — super_admin crea cualquier usuario en `/admin/users`; supervisor crea agentes de su depto en `/soporte/users`.
+10. **Plantillas de ticket y respuestas predefinidas** — categorías filtradas por depto, bulk-delete solo para supervisor+admin.
+11. **Reportes y dashboards** — admin, soporte, reporte SLA.
+12. **Auditoría** — activity log de cambios en tickets + conversaciones chat.
 
 ### 3.2 Fuera de alcance (v1)
 - App móvil nativa (el portal es responsive).
@@ -164,6 +176,46 @@ Nuevo → Asignado → En progreso → Resuelto → Cerrado
 - Componentes con specs JSON flexibles.
 - Historial de cambios.
 - Raw scans (payload completo para auditoría).
+
+### 4.5.1 Módulo de Usuarios (v1.5)
+
+**Acceso super_admin (`/admin/users`):**
+- CRUD completo de usuarios.
+- Form: nombre, email (único), contraseña (mín 8), rol (select único), departamento.
+- Departamento obligatorio para roles supervisor/agente/técnico.
+- Contraseña vacía en edit = mantener la actual.
+- Filtros por rol y por departamento.
+
+**Acceso supervisor (`/soporte/users`):**
+- Solo ve y gestiona usuarios de su propio departamento.
+- Al crear, el rol se asigna automáticamente a `agente_soporte`.
+- El departamento se pre-llena con el del supervisor y **no es editable**.
+- Redirige a la lista tras crear/editar.
+
+### 4.5.2 Scope por departamento (v1.5)
+
+El RBAC se extiende con **filtros por departamento** aplicados a nivel de Eloquent query en los Resources Filament:
+
+- **Tickets** (`TicketResource::getEloquentQuery`): agentes/supervisores solo ven tickets de su depto; agentes adicionalmente se limitan a sus asignados + sin asignar.
+- **KB articles** (`KbArticleResource::getEloquentQuery`): filtrado por `department_id` directo.
+- **Templates** (`TicketTemplateResource::getEloquentQuery`): filtrado via `category.department_id`.
+- **Canned responses** (`CannedResponseResource::getEloquentQuery`): filtrado via `category.department_id`, permite también canned sin categoría.
+
+Super_admin y admin están exentos de estos filtros.
+
+### 4.5.3 Traslado de tickets entre departamentos (v1.5)
+
+Cuando un ticket queda mal clasificado, el supervisor (o admin) puede trasladarlo:
+
+- Acción **"Trasladar a otro depto."** visible en la vista del ticket.
+- Solo disponible para `super_admin`, `admin`, `supervisor_soporte` y tickets abiertos.
+- Modal pide departamento destino y motivo opcional (máx 500 chars).
+- Backend:
+  - Actualiza `department_id`.
+  - Resetea `assigned_to_id` (nuevo depto re-asigna).
+  - Resetea `category_id` (requiere re-triage).
+  - Envía `TicketTransferredNotification` al solicitante (mail + DB).
+- Ticket desaparece de la lista del depto origen, aparece en el destino.
 
 ### 4.6 SSO Azure AD
 - Flujo OAuth2 con `laravel/socialite` + `socialiteproviders/microsoft`.
@@ -409,4 +461,4 @@ Nuevo → Asignado → En progreso → Resuelto → Cerrado
 
 ---
 
-*Documento mantenido en `docs/PRD.md`. Última actualización: 16 de abril de 2026.*
+*Documento mantenido en `docs/PRD.md`. Última actualización: 17 de abril de 2026 — v1.5.*

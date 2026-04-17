@@ -1,18 +1,21 @@
 # Helpdesk Confipetrol — Tabla de Accesos para Pruebas
 
-**Fecha:** 14 de abril de 2026  
+**Fecha:** 17 de abril de 2026  
+**Versión:** 1.5 (módulo usuarios + scope por departamento)  
 **Servidor:** `php artisan serve` → http://localhost:8000
 
 ---
 
-## Usuarios y paneles
+## Usuarios demo (6 usuarios, todos con password `password`)
 
-| Usuario | Email | Password | Rol | Paneles con acceso |
+| Usuario | Email | Rol | Departamento | Paneles con acceso |
 |---|---|---|---|---|
-| Administrador | `admin@confipetrol.local` | `password` | super_admin | `/admin` + `/soporte` + `/portal` |
-| Supervisor | `supervisor@confipetrol.local` | `password` | supervisor_soporte | `/soporte` |
-| Agente | `agente@confipetrol.local` | `password` | agente_soporte | `/soporte` |
-| Usuario Final | `usuario@confipetrol.local` | `password` | usuario_final | `/portal` |
+| Administrador | `admin@confipetrol.local` | super_admin | — | `/admin` + `/soporte` + `/portal` |
+| Supervisor TI | `supervisor@confipetrol.local` | supervisor_soporte | TI | `/soporte` |
+| Agente TI | `agente@confipetrol.local` | agente_soporte | TI | `/soporte` |
+| Supervisor RRHH | `supervisor.rrhh@confipetrol.local` | supervisor_soporte | RRHH | `/soporte` |
+| Agente RRHH | `agente.rrhh@confipetrol.local` | agente_soporte | RRHH | `/soporte` |
+| Usuario Final | `usuario@confipetrol.local` | usuario_final | Operaciones | `/portal` |
 
 ---
 
@@ -21,23 +24,25 @@
 | Ruta | Requiere | Qué hace |
 |---|---|---|
 | `/admin` | super_admin, admin | Dashboard admin con stats, charts |
+| `/admin/users` | super_admin, admin | **CRUD usuarios + asignar rol + departamento** |
 | `/admin/departments` | super_admin, admin | CRUD departamentos |
-| `/admin/categories` | super_admin, admin | CRUD categorías |
+| `/admin/categories` | super_admin, admin | CRUD categorías (cada una pertenece a un depto) |
 | `/admin/assets` | super_admin, admin | Inventario de activos |
 | `/admin/shield/roles` | super_admin | Gestión de roles y permisos |
 | `/admin/backups` | super_admin, admin | Dashboard de backups |
 | `/admin/sla-report` | super_admin, admin | Reporte SLA por departamento |
-| `/soporte` | super_admin, admin, supervisor, agente, técnico, editor_kb | Dashboard soporte con stats |
-| `/soporte/tickets` | ^ | Lista de tickets con filtros |
-| `/soporte/tickets/create` | ^ | Crear ticket (a nombre de un usuario) |
-| `/soporte/tickets/{id}` | ^ | Ver ticket + acciones (asignar, resolver...) |
-| `/soporte/tickets/{id}/edit` | ^ | Editar ticket |
-| `/soporte/ticket-templates` | ^ | CRUD plantillas de ticket |
-| `/soporte/canned-responses` | ^ | CRUD respuestas predefinidas |
-| `/soporte/kb-articles` | ^ | CRUD artículos base de conocimiento |
+| `/soporte` | supervisor, agente, admin | Dashboard soporte con stats SLA |
+| `/soporte/users` | supervisor, admin | **Crear agentes para tu departamento** |
+| `/soporte/tickets` | supervisor, agente, admin | Lista de tickets (filtrada por depto) |
+| `/soporte/tickets/create` | supervisor, agente, admin | Crear ticket (a nombre de cualquier usuario) |
+| `/soporte/tickets/{id}` | supervisor, agente, admin | Ver ticket + acciones (**incluye "Trasladar a otro depto"** para supervisor+) |
+| `/soporte/tickets/{id}/edit` | supervisor, agente, admin | Editar ticket |
+| `/soporte/ticket-templates` | supervisor, agente, admin | **Plantillas pre-llenadas de tickets** (tabla con columnas visibles) |
+| `/soporte/canned-responses` | supervisor, agente, admin | **Respuestas predefinidas para comentarios** (tabla con columnas visibles) |
+| `/soporte/kb-articles` | supervisor, agente, admin | Base de conocimiento (agentes crean borradores, supervisores publican) |
 | `/portal/tickets` | cualquier auth | Mis tickets (solo los propios) |
-| `/portal/tickets/create` | cualquier auth | Crear ticket como usuario |
-| `/portal/tickets/{id}` | dueño del ticket | Ver detalle + comentar |
+| `/portal/tickets/create` | cualquier auth | Crear ticket como usuario final |
+| `/portal/tickets/{id}` | dueño del ticket | Ver detalle + comentar (solo públicos) |
 | `/portal/chatbot` | cualquier auth | Asistente virtual (chatbot) |
 | `/auth/azure` | ninguno | Redirige a Microsoft SSO |
 | `/auth/azure/callback` | ninguno | Callback OAuth de Azure |
@@ -46,111 +51,168 @@
 
 ---
 
+## Matriz de permisos por rol (v1.5)
+
+### Creación de tickets
+
+| Rol | `/portal/tickets/create` | `/soporte/tickets/create` |
+|:---:|:---:|:---:|
+| super_admin | ✅ | ✅ |
+| supervisor_soporte | — | ✅ |
+| agente_soporte | — | ✅ |
+| usuario_final | ✅ (para sí mismo) | — |
+
+### Scope de visibilidad de tickets
+
+| Rol | Qué tickets ve |
+|---|---|
+| super_admin / admin | Todos de todos los departamentos |
+| supervisor_soporte (TI) | Todos los tickets del depto TI |
+| agente_soporte (TI) | Solo sus asignados + sin asignar del depto TI |
+| supervisor_soporte (RRHH) | Todos los tickets del depto RRHH (no ve TI) |
+| agente_soporte (RRHH) | Solo sus asignados + sin asignar de RRHH |
+| usuario_final | Solo los tickets que él creó (/portal) |
+
+### Acciones sobre tickets
+
+| Acción | super_admin | supervisor | agente | usuario_final |
+|---|:---:|:---:|:---:|:---:|
+| Ver | ✅ | ✅ (su depto) | ✅ (sus asignados) | ✅ (los propios) |
+| Crear (panel Soporte) | ✅ | ✅ | ✅ | — |
+| Crear (portal) | ✅ | — | — | ✅ |
+| Editar | ✅ | ✅ | ✅ | — |
+| Asignar / reasignar | ✅ | ✅ | ✅ (a sí mismo) | — |
+| Marcar primera respuesta | ✅ | ✅ | ✅ | — |
+| Resolver | ✅ | ✅ | ✅ | — |
+| Cerrar | ✅ | ✅ | ✅ | — |
+| Reabrir | ✅ | ✅ | ✅ | — |
+| **Trasladar depto** | ✅ | ✅ | ❌ | — |
+| **Eliminar** (soft) | ✅ | ✅ | ❌ | — |
+| Restaurar / force-delete | ✅ | ✅ | ❌ | — |
+| Comentar público | ✅ | ✅ | ✅ | ✅ (si abierto) |
+| Comentar interno | ✅ | ✅ | ✅ | — |
+
+### Acciones sobre KB / Plantillas / Canned Responses
+
+| Acción | super_admin | supervisor | agente |
+|---|:---:|:---:|:---:|
+| Ver | ✅ | ✅ (su depto) | ✅ (su depto) |
+| Crear | ✅ | ✅ | ✅ |
+| Editar | ✅ | ✅ | ✅ |
+| Eliminar | ✅ | ✅ | ❌ |
+| **KB: publicar/archivar** | ✅ | ✅ | ❌ (solo crea borrador) |
+
+### Gestión de usuarios
+
+| Acción | super_admin | supervisor_soporte |
+|---|:---:|:---:|
+| Crear cualquier usuario + elegir rol + depto | ✅ en `/admin/users` | ❌ |
+| Crear agentes para su depto (rol forzado) | ✅ | ✅ en `/soporte/users` |
+| Ver usuarios de todos los deptos | ✅ | ❌ (solo su depto) |
+| Eliminar usuarios | ✅ | ✅ (solo de su depto) |
+
+---
+
 ## Qué probar por rol
 
-### Como admin (`admin@confipetrol.local` → `/admin`)
+### 1. Como super_admin (`admin@confipetrol.local` → `/admin`)
 
-- [ ] Dashboard: ver 5 stats + 2 gráficos
-- [ ] Departamentos: crear, editar, desactivar
+- [ ] Login → Dashboard con 5 stats + 2 gráficos
+- [ ] **Usuarios: crear un nuevo agente para depto Compras**
+- [ ] Departamentos: crear "Logística", editar, desactivar
 - [ ] Categorías: ver agrupadas por departamento, crear nueva
-- [ ] Inventario: ver lista de activos (vacía hasta que alguien visite el portal)
-- [ ] Shield → Roles: ver los 7 roles con 62+ permisos
+- [ ] Inventario: ver lista de activos
+- [ ] Shield → Roles: ver los 7 roles con permisos
 - [ ] Backups: ver dashboard, ejecutar backup manual
 - [ ] Reporte SLA: ver matriz departamento × prioridad
+- [ ] Cambiar al panel /soporte (super_admin accede a todos los paneles)
 
-### Como agente (`agente@confipetrol.local` → `/soporte`)
+### 2. Como supervisor (`supervisor@confipetrol.local` → `/soporte`)
 
-- [ ] Dashboard: ver 4 stats operativos + 3 SLA
-- [ ] Tickets: ver lista con filtro "Solo abiertos" activo por default
-- [ ] Badge en nav: número de tickets nuevos/reabiertos
-- [ ] Crear ticket: formulario con prioridad calculada en vivo
-- [ ] Ver ticket TK-2026-00002: botones Resolver, Cerrar disponibles
-- [ ] Comentarios: agregar público + interno (candado)
-- [ ] Plantillas: crear una plantilla de ticket
-- [ ] Respuestas predefinidas: crear una canned response
-- [ ] KB: crear un artículo borrador, publicarlo
+- [ ] Login → Dashboard con widgets SLA
+- [ ] **Usuarios: crear un agente nuevo** (el rol y depto se fuerzan)
+- [ ] **Ver todos los tickets de TI** (no ve RRHH)
+- [ ] Abrir un ticket mal clasificado → **acción "Trasladar a otro depto."** con motivo
+- [ ] Verificar que el usuario solicitante recibe notificación del traslado
+- [ ] Eliminar ticket (bulk delete disponible)
+- [ ] KB: **publicar un borrador creado por un agente** (agente no puede)
+- [ ] Intentar entrar a `/admin` → **403 Forbidden**
 
-### Como usuario (`usuario@confipetrol.local` → `/portal`)
+### 3. Como agente (`agente@confipetrol.local` → `/soporte`)
 
-- [ ] Mis tickets: ver los 3 tickets demo
+- [ ] Login → Dashboard
+- [ ] **Ver solo sus asignados + sin asignar del depto TI**
+- [ ] NO ver tickets de RRHH
+- [ ] Crear ticket a nombre de un usuario (con plantilla pre-llenada)
+- [ ] Asignar → Marcar primera respuesta → Resolver → Cerrar → Reabrir
+- [ ] Comentarios públicos + internos (candado)
+- [ ] **Plantillas: crear una** (categoría solo muestra TI)
+- [ ] **Canned response: crear una compartida**
+- [ ] KB: crear borrador (NO puede publicar, solo borrador)
+- [ ] NO aparece botón "Eliminar" en ningún ticket
+- [ ] NO aparece acción "Trasladar depto"
+
+### 4. Como agente RRHH (`agente.rrhh@confipetrol.local` → `/soporte`)
+
+- [ ] Login → Dashboard
+- [ ] **Ver solo tickets del depto RRHH** (aislamiento entre deptos)
+- [ ] NO ver tickets de TI
+- [ ] Plantillas y canned responses: solo muestra categorías RRHH
+
+### 5. Como usuario final (`usuario@confipetrol.local` → `/portal`)
+
+- [ ] Login → `/portal/tickets`
+- [ ] Ver solo tickets propios (3 inicialmente)
 - [ ] Buscar por número o asunto
 - [ ] Filtrar por estado
-- [ ] Crear ticket: llenar formulario, adjuntar archivo, enviar
-- [ ] Ver ticket: ver detalle + adjuntos + comentarios públicos
-- [ ] Agregar comentario en ticket abierto
-- [ ] Chatbot: escribir "contraseña" → debe iniciar flujo de reset
-- [ ] Chatbot: escribir "vpn" → debe iniciar flujo VPN
-- [ ] Chatbot: escribir "crear ticket" → debe ofrecer escalar
-- [ ] Chatbot: escribir "escalar: prueba" → debe crear ticket
+- [ ] Crear ticket: form con prioridad calculada en vivo
+- [ ] Agregar archivo adjunto
+- [ ] Ver ticket: detalle + comentarios públicos (**NO ve internos**)
+- [ ] Comentar en ticket abierto
+- [ ] Ticket "Resuelto" → NO permite comentar
+- [ ] Chatbot: flujos password/VPN/impresoras
+- [ ] Chatbot: escalar a ticket
+- [ ] Recibir notificación si un supervisor traslada su ticket de depto
 
 ---
 
-## Tickets demo sembrados
+## Datos demo sembrados (tras `php artisan migrate:fresh --seed --force`)
 
-| Número | Asunto | Estado | Prioridad | Asignado |
-|---|---|---|---|---|
-| TK-2026-00001 | Pantalla no enciende | Nuevo | Media | — |
-| TK-2026-00002 | Correo no recibe externos | En progreso | Crítica | Agente Soporte |
-| TK-2026-00003 | Reporte nómina no genera | Resuelto | Baja | Supervisor |
-
----
-
-## Roles y permisos
-
-| Rol | Panel | Descripción |
-|---|---|---|
-| super_admin | /admin + /soporte | Control total del sistema |
-| admin | /admin + /soporte | Administración funcional |
-| supervisor_soporte | /soporte | Supervisa grupos de soporte |
-| agente_soporte | /soporte | Atiende tickets |
-| tecnico_campo | /soporte | Técnicos en sitio |
-| editor_kb | /soporte | Gestiona base de conocimiento |
-| usuario_final | /portal | Crea y consulta sus propios tickets |
-
----
-
-## Datos sembrados
-
-| Dato | Cantidad |
+| Recurso | Cantidad |
 |---|---|
-| Roles | 7 |
+| Roles | 7 (super_admin, admin, supervisor_soporte, agente_soporte, tecnico_campo, editor_kb, usuario_final) |
 | Departamentos | 5 (TI, RRHH, Compras, Mantenimiento, Operaciones) |
-| Categorías | 19 (distribuidas por departamento) |
-| Configuraciones SLA | 25 (5 prioridades × 5 departamentos) |
-| Flujos de chatbot | 3 (contraseña, VPN, impresoras) |
-| Usuarios demo | 4 (admin, supervisor, agente, usuario) |
-| Tickets demo | 3 (nuevo, en progreso, resuelto) |
+| Categorías | 19 (distribuidas por depto) |
+| Config SLA | 25 (5 prioridades × 5 deptos) |
+| Flujos chatbot | 3 (password, VPN, impresoras) |
+| Usuarios | 6 (admin + supervisor TI + agente TI + supervisor RRHH + agente RRHH + usuario final) |
+| Tickets demo | 3 (TK-2026-00001 Nuevo, TK-2026-00002 En progreso, TK-2026-00003 Resuelto) |
+| Comentarios | 2 (1 público + 1 interno en TK-2026-00002) |
 
 ---
 
-## Comandos útiles
+## Comandos rápidos
 
 ```bash
+# Reset completo
+php artisan migrate:fresh --seed --force
+
+# Solo volver a sembrar permisos (útil si agregas resources)
+php artisan db:seed --class=ShieldPermissionSeeder --force
+
+# Build assets
+npm run build
+
 # Levantar servidor
 php artisan serve
 
-# Levantar con queue + vite (dev completo)
-composer run dev
+# Ver rutas disponibles
+php artisan route:list --except-vendor
 
-# Recrear BD desde cero con todos los datos
-php artisan migrate:fresh --seed --force
-
-# Correr tests
-php artisan test --compact
-
-# Ejecutar backup manual
-php artisan backup:run --only-db
-
-# Ver rutas registradas
-php artisan route:list
-
-# Correr scheduler manualmente
-php artisan schedule:work
-
-# Resetear password de un usuario
-php artisan tinker --execute "App\Models\User::where('email','admin@confipetrol.local')->update(['password'=>bcrypt('nuevopass')]);"
+# Limpiar caches si algo raro
+php artisan optimize:clear
 ```
 
 ---
 
-*Documento generado el 14 de abril de 2026.*
+*Documento actualizado 2026-04-17 — v1.5 con módulo usuarios, scope por depto y traslado de tickets.*

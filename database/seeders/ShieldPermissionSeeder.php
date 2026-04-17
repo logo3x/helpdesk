@@ -18,21 +18,34 @@ class ShieldPermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        // Generate permissions for both panels
+        // Clear any cached Filament components so shield:generate picks up
+        // resources from every registered panel (admin + soporte).
+        Artisan::call('filament:clear-cached-components');
+        Artisan::call('optimize:clear');
+
+        // Generate permissions for both panels. We run soporte first because
+        // it has the most resources (Tickets, KB, Canned, Templates, Users);
+        // during migrate:fresh the admin panel sometimes caches before
+        // soporte is discovered, which left us with missing perms.
         Artisan::call('shield:generate', [
             '--all' => true,
-            '--panel' => 'admin',
+            '--panel' => 'soporte',
             '--option' => 'permissions',
         ]);
         Artisan::call('shield:generate', [
             '--all' => true,
-            '--panel' => 'soporte',
+            '--panel' => 'admin',
             '--option' => 'permissions',
         ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $allPerms = Permission::pluck('name')->all();
+
+        // Safety-net: if shield:generate missed Ticket perms (race during
+        // migrate:fresh), materialize the canonical set manually so
+        // supervisors and agents always end up with proper permissions.
+        $allPerms = $this->ensureCorePermissions($allPerms);
 
         // Base de permisos del panel Soporte (Tickets + KB + CannedResponse + TicketTemplate)
         $soportePerms = array_values(array_filter($allPerms, fn ($p) => str_contains($p, 'Ticket')
@@ -79,5 +92,39 @@ class ShieldPermissionSeeder extends Seeder
         // ── editor_kb: solo permisos de KB Articles
         $kbPerms = array_values(array_filter($allPerms, fn ($p) => str_contains($p, 'KbArticle')));
         Role::where('name', 'editor_kb')->first()?->syncPermissions($kbPerms);
+    }
+
+    /**
+     * If shield:generate failed to create the core Ticket / KbArticle /
+     * CannedResponse / TicketTemplate permissions (race condition during
+     * migrate:fresh), create them manually so the seeder stays idempotent.
+     *
+     * @param  array<int, string>  $existing
+     * @return array<int, string>
+     */
+    protected function ensureCorePermissions(array $existing): array
+    {
+        $resources = ['Ticket', 'KbArticle', 'CannedResponse', 'TicketTemplate'];
+        $actions = [
+            'ViewAny', 'View', 'Create', 'Update', 'Delete', 'DeleteAny',
+            'Restore', 'ForceDelete', 'ForceDeleteAny', 'RestoreAny',
+            'Replicate', 'Reorder',
+        ];
+
+        $needed = [];
+        foreach ($resources as $resource) {
+            foreach ($actions as $action) {
+                $needed[] = "{$action}:{$resource}";
+            }
+        }
+
+        foreach ($needed as $name) {
+            if (! in_array($name, $existing, true)) {
+                Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
+                $existing[] = $name;
+            }
+        }
+
+        return $existing;
     }
 }

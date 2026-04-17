@@ -835,3 +835,149 @@ Esta sección define los escenarios para TestSprite MCP. Cada escenario debe ser
 ---
 
 *Sección 8 agregada el 2026-04-16 para soporte TestSprite MCP automatizado.*
+
+---
+
+## PARTE 9 — Plantillas y Respuestas predefinidas (¿Para qué sirven?)
+
+### 9.1 Plantillas de tickets (`/soporte/ticket-templates`)
+
+**Propósito:** Formularios pre-llenados que el agente usa al **crear** un ticket para ahorrar tiempo en casos repetitivos.
+
+**Ejemplo real:**
+- Plantilla: "Solicitud de equipo nuevo"
+  - Asunto: "Solicitud de equipo para nuevo empleado"
+  - Descripción: "Empleado: [NOMBRE]\nCargo: [CARGO]\nFecha de inicio: [FECHA]\nEquipo requerido: [especificar]"
+  - Categoría: TI - Hardware
+  - Impacto: Bajo, Urgencia: Media
+
+**Flujo de prueba:**
+1. Login como `agente@confipetrol.local`
+2. Ir a `/soporte/ticket-templates` → crear plantilla "Alta de correo corporativo"
+3. Categoría: "TI - Correo y Teams" (solo muestra categorías del depto TI)
+4. Asunto y descripción pre-llenados con [placeholders]
+5. Guardar → redirige a la lista (la plantilla aparece)
+6. (Futuro) Al crear ticket en `/soporte/tickets/create` → selector "Usar plantilla"
+
+**Estado actual:** CRUD funcional. La integración en el form de crear-ticket queda para v1.6.
+
+### 9.2 Respuestas predefinidas (`/soporte/canned-responses`)
+
+**Propósito:** Fragmentos de texto reutilizables que el agente **pega en comentarios** de tickets para evitar tipear lo mismo.
+
+**Ejemplo real:**
+- Título: "Ticket cerrado con éxito"
+- Contenido: "Hola, hemos resuelto tu solicitud. Si el problema vuelve en los próximos 7 días, reabre este ticket. Gracias — Equipo TI"
+- Toggle "Compartida": ON (todo el equipo del depto puede usarla)
+
+**Flujo de prueba:**
+1. Login como `agente@confipetrol.local`
+2. Ir a `/soporte/canned-responses` → crear respuesta "Esperando al proveedor"
+3. Categoría: filtrada al depto del agente (TI)
+4. Toggle "Compartida" ON → todo el equipo TI la puede usar
+5. Guardar → redirige a lista
+6. (Futuro) Al comentar en un ticket → dropdown "Usar respuesta predefinida"
+
+**Estado actual:** CRUD funcional. La integración en el form de comentarios queda para v1.6.
+
+### 9.3 Comparación
+
+| | Plantilla | Canned Response |
+|---|---|---|
+| **Cuándo se usa** | Al **crear** un ticket | Al **comentar** un ticket existente |
+| **Qué afecta** | Form completo (asunto, descripción, categoría, impacto, urgencia) | Solo el body del comentario |
+| **Casos típicos** | Alta de empleado, baja de equipo, solicitud de acceso | Ticket cerrado, reinicio de equipo, esperando al proveedor |
+| **Categoría filtrada por depto** | ✅ | ✅ |
+| **Bulk delete** | Solo supervisor+admin | Solo supervisor+admin |
+| **Redirect al crear** | ✅ Va a la lista | ✅ Va a la lista |
+
+---
+
+## PARTE 10 — Módulo de Usuarios (nuevo en v1.5)
+
+### 10.1 Como super_admin (`/admin/users`)
+
+**Flujo completo:**
+1. Login `admin@confipetrol.local` → `/admin`
+2. Menú lateral → "Usuarios" → lista con 6 usuarios demo
+3. Columnas: Nombre, Correo, Rol (badge), Departamento, Último acceso
+4. Filtros: por rol, por departamento
+5. Click "Nuevo usuario"
+6. Form:
+   - Nombre completo (required)
+   - Correo (unique, email válido)
+   - Contraseña (mín 8 chars, campo vacío en edit = mantener actual)
+   - Rol (select único: super_admin, admin, supervisor_soporte, agente_soporte, tecnico_campo, editor_kb, usuario_final)
+   - Departamento (required si rol = supervisor/agente/técnico; visible para usuario_final y editor_kb)
+7. Guardar → aparece en lista
+8. Click editar → cambiar rol o depto
+9. Bulk delete disponible
+
+### 10.2 Como supervisor (`/soporte/users`)
+
+**Flujo limitado:**
+1. Login `supervisor@confipetrol.local` → `/soporte`
+2. Menú lateral → "Agentes" → lista con agentes de su depto (TI)
+3. **No ve agentes de RRHH ni de otros deptos**
+4. Click "Nuevo agente"
+5. Form:
+   - Nombre completo (required)
+   - Correo (unique)
+   - Contraseña (mín 8 chars)
+   - Departamento (pre-llenado al depto del supervisor, **no editable**)
+6. Al guardar:
+   - Se asigna automáticamente rol `agente_soporte`
+   - Se asigna al mismo depto del supervisor
+   - Email verificado
+7. Redirige a la lista
+
+### 10.3 Validaciones / seguridad a probar
+
+- [ ] Supervisor TI NO puede ver a usuario de RRHH en `/soporte/users`
+- [ ] Supervisor NO puede cambiar el depto (campo disabled en UI y forzado en backend)
+- [ ] Agente `/soporte/users` → 403 Forbidden (no tiene permiso)
+- [ ] super_admin ve y gestiona todos los usuarios sin restricción
+- [ ] Password mínimo 8 chars (error si menor)
+- [ ] Email debe ser único (error si existe)
+
+---
+
+## PARTE 11 — Traslado de tickets entre departamentos (nuevo en v1.5)
+
+### 11.1 Caso de uso
+
+Usuario final crea ticket en categoría equivocada. Ejemplo: reporta "Me llegó mal la nómina" pero selecciona categoría "TI - Software" → el ticket cae al depto TI, cuando debería ser RRHH.
+
+### 11.2 Flujo
+
+1. Login `supervisor@confipetrol.local` → `/soporte/tickets`
+2. Ver ticket mal clasificado en su lista (aún del depto TI)
+3. Abrir el ticket
+4. Click botón **"Trasladar a otro depto."** (color warning, icono flecha)
+5. Modal abre:
+   - Select "Nuevo departamento" (excluye el actual)
+   - Textarea "Motivo del traslado" (opcional, máx 500 chars)
+6. Confirmar
+7. Backend:
+   - `ticket.department_id` cambia al nuevo depto
+   - `ticket.assigned_to_id` se resetea a NULL (nuevo equipo debe re-asignar)
+   - `ticket.category_id` se resetea a NULL (requiere re-triage)
+   - Se envía `TicketTransferredNotification` al solicitante (email + DB)
+8. Notificación en pantalla: "Ticket trasladado a RRHH"
+9. El ticket ya NO aparece en la lista del supervisor TI
+10. Aparece en la lista del supervisor/agentes de RRHH
+
+### 11.3 Restricciones
+
+- Solo **super_admin, admin y supervisor_soporte** ven el botón
+- Solo visible en tickets **abiertos** (no en Resuelto/Cerrado)
+- NO se puede trasladar al mismo departamento (filtro en el select)
+
+### 11.4 Qué recibe el usuario final
+
+- **Email** con: "Tu ticket TK-YYYY-NNNNN fue trasladado de TI a RRHH. Motivo: [el que escribió el supervisor]. Ver ticket."
+- **Notificación en DB** (campanita en el portal si se implementa UI)
+
+---
+
+*Secciones 9, 10, 11 agregadas el 2026-04-17 para funcionalidades de v1.5.*

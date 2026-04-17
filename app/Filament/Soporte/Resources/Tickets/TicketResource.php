@@ -79,4 +79,25 @@ class TicketResource extends Resource
                 SoftDeletingScope::class,
             ]);
     }
+
+    /**
+     * Restrict the tickets list for agente_soporte / tecnico_campo:
+     * they only see tickets assigned to them OR unassigned tickets
+     * (so they can pick them up). Supervisors and admins see everything.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        $user = auth()->user();
+
+        if ($user && ! $user->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])) {
+            $query->where(function (Builder $q) use ($user) {
+                $q->where('assigned_to_id', $user->id)
+                    ->orWhereNull('assigned_to_id');
+            });
+        }
+
+        return $query;
+    }
 }

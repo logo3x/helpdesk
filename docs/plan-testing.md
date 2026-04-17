@@ -1,10 +1,15 @@
 # Plan de Testing — Helpdesk Confipetrol
 
 **Fecha:** 16 de abril de 2026
-**Versión:** 1.2 (post-pruebas TestSprite MCP + fixes P0)
+**Versión:** 1.4 (diferenciación real de roles supervisor vs agente)
 
 ## Changelog
 
+- **v1.4 (2026-04-16, noche)** — Diferenciación real entre `supervisor_soporte` y `agente_soporte`:
+  - **Supervisor** (51 perms): acceso total — Delete, ForceDelete, Restore, Reorder en Tickets, KB, Canned Responses, Templates. Ve **todos** los tickets.
+  - **Agente** (23 perms): solo View, Create, Update, Replicate. **NO** puede eliminar ni restaurar. Ve solo tickets **asignados a él + sin asignar**.
+  - `tecnico_campo` comparte perms con agente (puede variar en el futuro).
+- **v1.3 (2026-04-16, tarde)** — Guía lista para demo con cliente. Matriz "¿a qué URL entro con qué usuario?" al frente. Notas sobre reset de BD tras correr TestSprite (TC020 modifica el email del usuario final).
 - **v1.2 (2026-04-16)** — TestSprite Round 2 (29/29 ejecutados, 20 pass = 69%). Se descubrieron 3 bugs P0 (formularios Filament Soporte vacíos). **Corregidos en este ciclo:**
   - `KbArticleForm` → ahora tiene título/slug/body/categoría/estado/visibilidad/published_at
   - `CannedResponseForm` → título/body/categoría/orden/compartida/activa
@@ -14,7 +19,7 @@
 
 ---
 
-## Prerequisitos
+## ⚡ Inicio rápido para demo con cliente
 
 ```bash
 # 1. Recrear BD limpia con todos los datos demo
@@ -25,20 +30,58 @@ npm run build
 
 # 3. Levantar servidor
 php artisan serve
+
+# 4. (opcional) Limpiar caches si vas a probar logins repetidos
+php artisan cache:clear && php artisan config:clear
 ```
 
 Abrir: http://127.0.0.1:8000
 
+> ⚠️ **IMPORTANTE:** Si acabas de ejecutar TestSprite (o Playwright), corre `php artisan migrate:fresh --seed --force` antes de la demo. Algunos tests modifican datos de demo (ej. TC020 cambia `usuario@confipetrol.local` → `usuario.actualizado@confipetrol.local` y rompe el login del portal).
+
 ---
 
-## Credenciales
+## 🔑 Credenciales — ¿A qué URL entro con qué usuario?
 
-| Email | Password | Rol | Panel(es) |
+**Todos los passwords son `password`** (en ambiente local/demo).
+
+| Panel | URL completa | Usuarios que pueden entrar |
+|---|---|---|
+| **Admin** (Filament) | http://127.0.0.1:8000/admin/login | `admin@confipetrol.local` ✅ |
+| **Soporte** (Filament) | http://127.0.0.1:8000/soporte/login | `admin@` ✅ · `supervisor@` ✅ · `agente@` ✅ |
+| **Portal usuario** (Livewire/Fortify) | http://127.0.0.1:8000/login | `usuario@confipetrol.local` ✅ (cualquier usuario autenticado también puede ver el portal) |
+
+### Roles detallados
+
+| Email | Rol Spatie | Panel(es) con acceso | Nivel |
 |---|---|---|---|
-| admin@confipetrol.local | password | super_admin | /admin + /soporte + /portal |
-| supervisor@confipetrol.local | password | supervisor_soporte | /soporte |
-| agente@confipetrol.local | password | agente_soporte | /soporte |
-| usuario@confipetrol.local | password | usuario_final | /portal |
+| admin@confipetrol.local | super_admin | /admin + /soporte + /portal | **Máximo** — todo |
+| supervisor@confipetrol.local | supervisor_soporte | /soporte | **Alto** — ve todos los tickets + puede eliminar |
+| agente@confipetrol.local | agente_soporte | /soporte | **Básico** — solo sus tickets + sin asignar, sin botón eliminar |
+| usuario@confipetrol.local | usuario_final | /portal (login por /login) | **Usuario final** — sus tickets |
+
+### 🔐 Diferencia supervisor vs agente (v1.4)
+
+| Capacidad | supervisor_soporte | agente_soporte |
+|---|:---:|:---:|
+| Ver todos los tickets del equipo | ✅ | ❌ (solo asignados + sin asignar) |
+| Crear tickets | ✅ | ✅ |
+| Editar tickets | ✅ | ✅ |
+| Asignar/reasignar tickets | ✅ | ✅ |
+| Eliminar tickets (soft delete) | ✅ | ❌ |
+| Restaurar tickets eliminados | ✅ | ❌ |
+| Force-delete (eliminar definitivamente) | ✅ | ❌ |
+| Reordenar | ✅ | ❌ |
+| CRUD Knowledge Base | ✅ full | ✅ sin Delete/Restore |
+| CRUD Canned Responses | ✅ full | ✅ sin Delete/Restore |
+| CRUD Ticket Templates | ✅ full | ✅ sin Delete/Restore |
+| Total permisos | 51 | 23 |
+
+### ❌ Errores comunes de login
+
+- **"Estas credenciales no coinciden con nuestros registros"** en `/soporte/login` con `usuario@confipetrol.local` → el usuario existe pero **no tiene rol para el panel Soporte**. Usa `agente@` o entra al portal por `/login`.
+- **"Demasiados intentos. Intente de nuevo en X segundos"** → Fortify throttle. Ahora está en `FORTIFY_LOGIN_LIMIT=1000` en `.env` para demos. Si persiste: `php artisan cache:clear`.
+- **Login OK pero pantalla en blanco** → Faltó compilar assets: `npm run build`.
 
 ---
 

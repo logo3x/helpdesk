@@ -34,18 +34,41 @@ class ShieldPermissionSeeder extends Seeder
 
         $allPerms = Permission::pluck('name')->all();
 
-        // Soporte roles get Ticket, KbArticle, TicketTemplate, CannedResponse permissions
+        // Base de permisos del panel Soporte (Tickets + KB + CannedResponse + TicketTemplate)
         $soportePerms = array_values(array_filter($allPerms, fn ($p) => str_contains($p, 'Ticket')
             || str_contains($p, 'KbArticle')
             || str_contains($p, 'CannedResponse')
             || str_contains($p, 'TicketTemplate')
         ));
 
-        foreach (['supervisor_soporte', 'agente_soporte', 'tecnico_campo'] as $roleName) {
-            Role::where('name', $roleName)->first()?->syncPermissions($soportePerms);
-        }
+        // ── supervisor_soporte: acceso total al panel Soporte (53 permisos)
+        // Puede eliminar tickets, restaurar, reordenar, hacer force-delete,
+        // y ver/editar tickets de cualquier agente.
+        Role::where('name', 'supervisor_soporte')->first()?->syncPermissions($soportePerms);
 
-        // editor_kb only gets KB article permissions
+        // ── agente_soporte: acceso limitado
+        // Puede crear, ver, editar tickets y KB, pero NO puede eliminar
+        // ni restaurar ni reordenar. El scope de "qué tickets ve" se
+        // aplica en el Resource (solo sus asignados + sin asignar).
+        $restrictedForAgente = [
+            'Delete', 'DeleteAny', 'ForceDelete', 'ForceDeleteAny',
+            'Restore', 'RestoreAny', 'Reorder',
+        ];
+        $agentePerms = array_values(array_filter($soportePerms, function ($perm) use ($restrictedForAgente) {
+            foreach ($restrictedForAgente as $restricted) {
+                if (str_starts_with($perm, $restricted.':')) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
+        Role::where('name', 'agente_soporte')->first()?->syncPermissions($agentePerms);
+
+        // ── tecnico_campo: mismas restricciones que agente (por ahora)
+        Role::where('name', 'tecnico_campo')->first()?->syncPermissions($agentePerms);
+
+        // ── editor_kb: solo permisos de KB Articles
         $kbPerms = array_values(array_filter($allPerms, fn ($p) => str_contains($p, 'KbArticle')));
         Role::where('name', 'editor_kb')->first()?->syncPermissions($kbPerms);
     }

@@ -4,12 +4,15 @@ namespace App\Filament\Soporte\Resources\Tickets\Pages;
 
 use App\Enums\TicketStatus;
 use App\Filament\Soporte\Resources\Tickets\TicketResource;
+use App\Models\Department;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Notifications\TicketTransferredNotification;
 use App\Services\TicketService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -90,6 +93,52 @@ class ViewTicket extends ViewRecord
                     app(TicketService::class)->close($ticket);
                     Notification::make()->title('Ticket cerrado')->success()->send();
                     $this->refreshFormData(['status', 'closed_at']);
+                }),
+
+            Action::make('transfer')
+                ->label('Trasladar a otro depto.')
+                ->icon('heroicon-o-arrow-right-circle')
+                ->color('warning')
+                ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])
+                    && $ticket->status->isOpen())
+                ->schema([
+                    Select::make('department_id')
+                        ->label('Nuevo departamento')
+                        ->options(fn () => Department::where('is_active', true)
+                            ->where('id', '!=', $ticket->department_id)
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all())
+                        ->required()
+                        ->searchable(),
+                    Textarea::make('reason')
+                        ->label('Motivo del traslado')
+                        ->rows(2)
+                        ->placeholder('Se notificará al solicitante este motivo.')
+                        ->maxLength(500),
+                ])
+                ->action(function (array $data) use ($ticket): void {
+                    $from = $ticket->department;
+                    $to = Department::findOrFail($data['department_id']);
+                    $reason = $data['reason'] ?? null;
+
+                    $ticket->forceFill([
+                        'department_id' => $to->id,
+                        'assigned_to_id' => null, // reset assignment on transfer
+                        'category_id' => null,    // force new triage of category
+                    ])->save();
+
+                    if ($ticket->requester) {
+                        $ticket->requester->notify(new TicketTransferredNotification($ticket, $from, $to, $reason));
+                    }
+
+                    Notification::make()
+                        ->title("Ticket trasladado a {$to->name}")
+                        ->body('Se notificó al solicitante.')
+                        ->success()
+                        ->send();
+
+                    $this->refreshFormData(['department_id', 'assigned_to_id', 'category_id']);
                 }),
 
             Action::make('reopen')

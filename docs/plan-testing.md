@@ -1,10 +1,18 @@
 # Plan de Testing — Helpdesk Confipetrol
 
-**Fecha:** 16 de abril de 2026
-**Versión:** 1.4 (diferenciación real de roles supervisor vs agente)
+**Fecha:** 17 de abril de 2026
+**Versión:** 1.5 (módulo usuarios, scope por departamento, traslado de tickets)
 
 ## Changelog
 
+- **v1.5 (2026-04-17)** — Mejoras mayores tras feedback de demo:
+  - **Módulo Usuarios**: super_admin gestiona TODOS los usuarios (`/admin/users`), supervisores crean agentes solo para su depto (`/soporte/users`).
+  - **Scope por departamento**: tickets, KB, plantillas y canned responses filtradas por depto del usuario. Un agente de TI NO ve tickets de RRHH.
+  - **Traslado de tickets**: acción "Trasladar a otro depto." en vista de ticket (solo supervisor+admin). Envía email+notificación al solicitante.
+  - **KB**: columnas visibles en tabla, categoría = departamento (no KbCategory), agentes solo crean borradores, supervisores pasan a publicado/archivado, `published_at` readonly.
+  - **Plantillas + Canned**: columnas visibles, categoría filtrada por depto del usuario, bulk delete solo para supervisor+admin, redirect a lista al crear.
+  - **ChatSessions ocultado** del panel admin.
+  - **Datos demo**: nuevos `agente.rrhh@` y `supervisor.rrhh@` para probar aislamiento entre departamentos.
 - **v1.4 (2026-04-16, noche)** — Diferenciación real entre `supervisor_soporte` y `agente_soporte`:
   - **Supervisor** (51 perms): acceso total — Delete, ForceDelete, Restore, Reorder en Tickets, KB, Canned Responses, Templates. Ve **todos** los tickets.
   - **Agente** (23 perms): solo View, Create, Update, Replicate. **NO** puede eliminar ni restaurar. Ve solo tickets **asignados a él + sin asignar**.
@@ -76,6 +84,17 @@ Abrir: http://127.0.0.1:8000
 | CRUD Canned Responses | ✅ full | ✅ sin Delete/Restore |
 | CRUD Ticket Templates | ✅ full | ✅ sin Delete/Restore |
 | Total permisos | 51 | 23 |
+
+### 🧑‍💼 Usuarios demo (6 en v1.5)
+
+| Email | Rol | Depto |
+|---|---|---|
+| admin@confipetrol.local | super_admin | — |
+| supervisor@confipetrol.local | supervisor_soporte | TI |
+| agente@confipetrol.local | agente_soporte | TI |
+| supervisor.rrhh@confipetrol.local | supervisor_soporte | RRHH |
+| agente.rrhh@confipetrol.local | agente_soporte | RRHH |
+| usuario@confipetrol.local | usuario_final | Operaciones |
 
 ### ❌ Errores comunes de login
 

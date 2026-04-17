@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class CannedResponseResource extends Resource
 {
@@ -52,5 +53,27 @@ class CannedResponseResource extends Resource
             'create' => CreateCannedResponse::route('/create'),
             'edit' => EditCannedResponse::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Canned responses are filtered by department via their category.
+     * Super_admin/admin see all; others only see responses whose
+     * category belongs to their own department (plus shared ones
+     * without category).
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        $user = auth()->user();
+
+        if ($user && ! $user->hasAnyRole(['super_admin', 'admin']) && $user->department_id) {
+            $query->where(function ($q) use ($user) {
+                $q->whereHas('category', fn ($sub) => $sub->where('department_id', $user->department_id))
+                    ->orWhereNull('category_id');
+            });
+        }
+
+        return $query;
     }
 }

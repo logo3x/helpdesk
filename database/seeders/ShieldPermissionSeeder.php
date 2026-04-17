@@ -41,9 +41,17 @@ class ShieldPermissionSeeder extends Seeder
             || str_contains($p, 'TicketTemplate')
         ));
 
+        // Agregar permisos de User (el supervisor puede crear agentes
+        // para su depto; el scope por depto se aplica en la Resource).
+        $userPerms = array_values(array_filter($allPerms, fn ($p) => in_array($p, [
+            'ViewAny:User', 'View:User', 'Create:User', 'Update:User',
+        ], true)));
+        $soportePerms = array_merge($soportePerms, $userPerms);
+
         // ── supervisor_soporte: acceso total al panel Soporte (53 permisos)
         // Puede eliminar tickets, restaurar, reordenar, hacer force-delete,
-        // y ver/editar tickets de cualquier agente.
+        // y ver/editar tickets de cualquier agente. Puede crear agentes
+        // para su departamento.
         Role::where('name', 'supervisor_soporte')->first()?->syncPermissions($soportePerms);
 
         // ── agente_soporte: acceso limitado

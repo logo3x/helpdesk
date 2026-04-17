@@ -63,4 +63,21 @@ class KbArticleResource extends Resource
                 SoftDeletingScope::class,
             ]);
     }
+
+    /**
+     * Scope KB articles by department. Super_admin/admin see all,
+     * everyone else only sees articles of their own department.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        $user = auth()->user();
+
+        if ($user && ! $user->hasAnyRole(['super_admin', 'admin']) && $user->department_id) {
+            $query->where('department_id', $user->department_id);
+        }
+
+        return $query;
+    }
 }

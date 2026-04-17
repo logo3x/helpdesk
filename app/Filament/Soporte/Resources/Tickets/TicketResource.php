@@ -81,9 +81,15 @@ class TicketResource extends Resource
     }
 
     /**
-     * Restrict the tickets list for agente_soporte / tecnico_campo:
-     * they only see tickets assigned to them OR unassigned tickets
-     * (so they can pick them up). Supervisors and admins see everything.
+     * Ticket visibility by role:
+     *
+     *   super_admin / admin → sees ALL tickets (no filter)
+     *   supervisor_soporte  → only tickets of their own department
+     *   agente_soporte / tecnico_campo → only tickets of their own
+     *       department AND (assigned to them OR unassigned)
+     *
+     * Users without a department_id see nothing (by design:
+     * agents/supervisors must always belong to a department).
      */
     public static function getEloquentQuery(): Builder
     {
@@ -91,7 +97,20 @@ class TicketResource extends Resource
 
         $user = auth()->user();
 
-        if ($user && ! $user->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])) {
+        if (! $user || $user->hasAnyRole(['super_admin', 'admin'])) {
+            return $query;
+        }
+
+        // Filter by user's department (applies to supervisor + agente + tecnico)
+        if ($user->department_id) {
+            $query->where('department_id', $user->department_id);
+        } else {
+            $query->whereRaw('0 = 1'); // no department → no tickets
+        }
+
+        // Additional restriction: agentes/tecnicos only see their assigned +
+        // unassigned. Supervisors see every ticket of their department.
+        if (! $user->hasRole('supervisor_soporte')) {
             $query->where(function (Builder $q) use ($user) {
                 $q->where('assigned_to_id', $user->id)
                     ->orWhereNull('assigned_to_id');

@@ -3,13 +3,11 @@
 namespace App\Filament\Soporte\Resources\KbArticles\Schemas;
 
 use App\Models\KbArticle;
-use App\Models\KbCategory;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
 
@@ -55,32 +53,23 @@ class KbArticleForm
 
                 Section::make('Clasificación')
                     ->schema([
-                        Select::make('kb_category_id')
-                            ->label('Categoría KB')
-                            ->relationship('category', 'name')
+                        Select::make('department_id')
+                            ->label('Departamento')
+                            ->relationship('department', 'name', fn ($query) => $query->where('is_active', true))
+                            ->default(fn () => auth()->user()?->department_id)
+                            ->required()
                             ->searchable()
                             ->preload()
-                            ->createOptionForm([
-                                TextInput::make('name')
-                                    ->label('Nombre')
-                                    ->required()
-                                    ->live(onBlur: true)
-                                    ->afterStateUpdated(fn ($state, callable $set) => $set('slug', Str::slug((string) $state))),
-                                TextInput::make('slug')
-                                    ->required()
-                                    ->unique(KbCategory::class, 'slug'),
-                            ]),
+                            ->helperText('El artículo se asocia al departamento al que pertenece.'),
 
                         Select::make('status')
                             ->label('Estado')
-                            ->options([
-                                'draft' => 'Borrador',
-                                'published' => 'Publicado',
-                                'archived' => 'Archivado',
-                            ])
+                            ->options(fn () => static::statusOptionsForUser())
                             ->default('draft')
                             ->required()
-                            ->live(),
+                            ->helperText(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])
+                                ? 'Puedes publicar o archivar este artículo.'
+                                : 'Solo los supervisores pueden publicar o archivar artículos.'),
 
                         Select::make('visibility')
                             ->label('Visibilidad')
@@ -93,10 +82,33 @@ class KbArticleForm
 
                         DateTimePicker::make('published_at')
                             ->label('Publicado el')
-                            ->helperText('Se asigna automáticamente al publicar si está vacío.')
-                            ->visible(fn (Get $get) => $get('status') === 'published'),
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->helperText('Se asigna automáticamente al publicar.'),
                     ])
                     ->columns(2),
             ]);
+    }
+
+    /**
+     * Agents can only set Borrador. Supervisors can set any status.
+     *
+     * @return array<string, string>
+     */
+    protected static function statusOptionsForUser(): array
+    {
+        $isSupervisor = auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']) ?? false;
+
+        if ($isSupervisor) {
+            return [
+                'draft' => 'Borrador',
+                'published' => 'Publicado',
+                'archived' => 'Archivado',
+            ];
+        }
+
+        return [
+            'draft' => 'Borrador',
+        ];
     }
 }

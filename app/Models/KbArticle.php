@@ -17,7 +17,7 @@ class KbArticle extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'title', 'slug', 'body', 'kb_category_id', 'author_id',
+        'title', 'slug', 'body', 'kb_category_id', 'department_id', 'author_id',
         'status', 'visibility', 'views_count', 'helpful_count',
         'not_helpful_count', 'published_at',
     ];
@@ -36,6 +36,12 @@ class KbArticle extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(KbCategory::class, 'kb_category_id');
+    }
+
+    /** @return BelongsTo<Department, $this> */
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     /** @return BelongsTo<User, $this> */

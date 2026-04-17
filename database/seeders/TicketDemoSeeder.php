@@ -45,6 +45,21 @@ class TicketDemoSeeder extends Seeder
             departmentSlug: 'operaciones',
         );
 
+        // Agente + supervisor de RRHH (para probar scope por depto)
+        $this->createDemoUser(
+            email: 'agente.rrhh@confipetrol.local',
+            name: 'Agente RRHH',
+            role: 'agente_soporte',
+            departmentSlug: 'rrhh',
+        );
+
+        $this->createDemoUser(
+            email: 'supervisor.rrhh@confipetrol.local',
+            name: 'Supervisor RRHH',
+            role: 'supervisor_soporte',
+            departmentSlug: 'rrhh',
+        );
+
         // --- Sample tickets -----------------------------------------------
         $catHardware = Category::where('slug', 'ti-hardware')->first();
         $catCorreo = Category::where('slug', 'ti-correo-y-teams')->first();

@@ -43,9 +43,21 @@ class TicketTemplateForm
                     ->schema([
                         Select::make('category_id')
                             ->label('Categoría')
-                            ->relationship('category', 'name')
+                            ->relationship(
+                                name: 'category',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: function ($query) {
+                                    $user = auth()->user();
+                                    if ($user && ! $user->hasAnyRole(['super_admin', 'admin']) && $user->department_id) {
+                                        $query->where('department_id', $user->department_id);
+                                    }
+
+                                    return $query;
+                                }
+                            )
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->helperText('Solo se muestran categorías de tu departamento.'),
 
                         Select::make('impact')
                             ->label('Impacto por defecto')

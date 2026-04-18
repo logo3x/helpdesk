@@ -2,11 +2,10 @@
 
 namespace App\Filament\Soporte\Resources\TicketTemplates\Tables;
 
-use App\Enums\TicketImpact;
-use App\Enums\TicketUrgency;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Support\Contracts\HasLabel;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -42,13 +41,13 @@ class TicketTemplatesTable
                 TextColumn::make('impact')
                     ->label('Impacto')
                     ->badge()
-                    ->formatStateUsing(fn (?string $state) => $state ? TicketImpact::from($state)->getLabel() : '—')
+                    ->formatStateUsing(fn ($state) => $state instanceof HasLabel ? $state->getLabel() : ($state ?: '—'))
                     ->placeholder('—'),
 
                 TextColumn::make('urgency')
                     ->label('Urgencia')
                     ->badge()
-                    ->formatStateUsing(fn (?string $state) => $state ? TicketUrgency::from($state)->getLabel() : '—')
+                    ->formatStateUsing(fn ($state) => $state instanceof HasLabel ? $state->getLabel() : ($state ?: '—'))
                     ->placeholder('—'),
 
                 IconColumn::make('is_active')

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
+use App\Models\Department;
 use App\Models\Ticket;
 use App\Models\User;
 
@@ -78,7 +79,7 @@ class ChatbotService
      * support agent can read the conversation as a formatted transcript
      * instead of raw "[role] content" dumps.
      */
-    public function escalateToTicket(ChatSession $session, User $requester, string $subject): Ticket
+    public function escalateToTicket(ChatSession $session, User $requester, string $subject, ?int $departmentId = null): Ticket
     {
         $messages = $session->messages()
             ->with('session.user:id,name')
@@ -98,19 +99,30 @@ class ChatbotService
             return "**{$who}** · _{$time}_\n\n{$body}";
         })->implode("\n\n---\n\n");
 
+        $departmentName = $departmentId
+            ? Department::find($departmentId)?->name
+            : null;
+
         $header = "# Ticket escalado desde el asistente virtual\n\n"
             ."**Solicitante:** {$requester->name} ({$requester->email})\n"
             ."**Sesión de chat:** #{$session->id}\n"
             ."**Resumen del usuario:** {$subject}\n"
+            .($departmentName ? "**Departamento destino:** {$departmentName}\n" : '')
             .'**Duración:** desde '.$session->created_at->format('d/m/Y H:i')
             .' hasta '.now()->format('d/m/Y H:i')."\n"
             .'**Total mensajes:** '.$messages->count()."\n\n"
             ."---\n\n## Transcripción de la conversación\n\n";
 
-        $ticket = app(TicketService::class)->create($requester, [
+        $payload = [
             'subject' => $subject ?: 'Escalación desde chatbot',
             'description' => $header.$transcript,
-        ]);
+        ];
+
+        if ($departmentId) {
+            $payload['department_id'] = $departmentId;
+        }
+
+        $ticket = app(TicketService::class)->create($requester, $payload);
 
         $session->update([
             'status' => 'escalated',
@@ -122,10 +134,14 @@ class ChatbotService
 
     protected function generateResponse(ChatSession $session, string $userMessage): string
     {
-        // 1. Check if user wants to escalate
+        // 1. Check if user wants to escalate.
+        //    El estado de escalación (awaiting_subject / awaiting_department)
+        //    se maneja en el componente Livewire (Portal\Chatbot). Aquí solo
+        //    detectamos el disparador inicial.
         if ($this->wantsEscalation($userMessage)) {
-            return 'Entendido. ¿Podrías darme un breve resumen del problema para crear el ticket? '
-                .'Escribe: **escalar: [tu resumen]**';
+            return "Claro, te ayudo a crear un ticket. 🎫\n\n"
+                .'Cuéntame **brevemente** de qué se trata tu problema o solicitud '
+                .'(ej: "Mi impresora no imprime" o "Necesito resetear mi correo").';
         }
 
         // 2. Check if there's an active flow in progress — solo continuar

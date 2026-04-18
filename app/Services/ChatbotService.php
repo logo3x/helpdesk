@@ -128,7 +128,9 @@ class ChatbotService
                 .'Escribe: **escalar: [tu resumen]**';
         }
 
-        // 2. Check if there's an active flow in progress
+        // 2. Check if there's an active flow in progress — solo continuar
+        //    flujos que el usuario ya inició. No iniciamos flujos nuevos
+        //    sin antes consultar la Base de Conocimiento (ver paso 3).
         $activeFlow = $this->flowEngine->getActiveFlow($session);
 
         if ($activeFlow !== null) {
@@ -141,7 +143,19 @@ class ChatbotService
             return $next;
         }
 
-        // 3. Classify intent and try to match a flow
+        // 3. Buscar en la Base de Conocimiento PRIMERO.
+        //    Si hay un artículo con similitud alta, preferimos servir su
+        //    contenido actualizado (refleja ediciones del equipo) en vez
+        //    de un flujo hardcoded. Esto garantiza que "editar un KB se
+        //    refleje en el asistente" sin requerir re-sembrar flows.
+        $ragResults = $this->rag->search($userMessage, topN: 1, threshold: 0.5);
+        $topKb = $ragResults->first();
+
+        if ($topKb !== null && ($topKb['similarity'] ?? 0) >= 0.55) {
+            return $this->formatKbResponse($topKb);
+        }
+
+        // 4. Si la KB no tiene match fuerte, clasificar intent y lanzar flujo.
         $intent = $this->classifier->classify($userMessage);
 
         if ($intent['flow'] !== null) {
@@ -150,8 +164,11 @@ class ChatbotService
             return $firstStep;
         }
 
-        // 4. RAG search + LLM
-        $context = $this->rag->buildContext($userMessage);
+        // 5. LLM con contexto KB (si hay API key). Se reutiliza el top-match
+        //    aunque no haya llegado al umbral de respuesta directa.
+        $context = $topKb !== null
+            ? "[Artículo: {$topKb['article_title']}]\n{$topKb['content']}"
+            : '';
         $chatHistory = $session->messages()
             ->orderByDesc('created_at')
             ->limit(10)
@@ -169,10 +186,22 @@ class ChatbotService
             return $llmResponse;
         }
 
-        // 5. Fallback (no LLM key or LLM failed)
-        return 'No encontré un flujo específico para tu consulta. '
+        // 6. Fallback final
+        return 'No encontré información específica para tu consulta. '
             .'Puedo ayudarte a crear un ticket de soporte — solo escribe **"crear ticket"** '
             .'o **"hablar con un agente"** y te conecto con alguien del equipo.';
+    }
+
+    /**
+     * Formatea un artículo KB como respuesta del asistente.
+     *
+     * @param  array{content: string, similarity: float, article_id: int, article_title: string|null}  $kb
+     */
+    protected function formatKbResponse(array $kb): string
+    {
+        $title = $kb['article_title'] ?? 'Artículo de la base de conocimiento';
+
+        return "## {$title}\n\n{$kb['content']}\n\n---\n\n¿Te sirvió esta información? Si necesitas más ayuda, escribe **\"crear ticket\"** y te conecto con un agente.";
     }
 
     protected function wantsEscalation(string $message): bool

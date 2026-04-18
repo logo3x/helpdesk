@@ -36,6 +36,9 @@ class DatabaseSeeder extends Seeder
 
         if (app()->environment('local')) {
             $this->call(TicketDemoSeeder::class);
+            $this->call(KbArticleDemoSeeder::class);
+            $this->call(TicketTemplateDemoSeeder::class);
+            $this->call(CannedResponseDemoSeeder::class);
         }
     }
 }

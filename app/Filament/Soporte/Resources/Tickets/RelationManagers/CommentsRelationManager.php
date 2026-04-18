@@ -2,15 +2,18 @@
 
 namespace App\Filament\Soporte\Resources\Tickets\RelationManagers;
 
+use App\Models\CannedResponse;
 use App\Models\Ticket;
 use App\Notifications\TicketCommentedNotification;
 use App\Services\TicketService;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -27,6 +30,38 @@ class CommentsRelationManager extends RelationManager
     {
         return $schema
             ->components([
+                Select::make('_canned_response_id')
+                    ->label('Respuesta predefinida')
+                    ->helperText('Inserta una plantilla de respuesta rápida. Puedes editarla después.')
+                    ->options(function () {
+                        $user = auth()->user();
+                        $query = CannedResponse::query()->where('is_active', true);
+
+                        if ($user && ! $user->hasAnyRole(['super_admin', 'admin']) && $user->department_id) {
+                            $query->where(function ($q) use ($user) {
+                                $q->whereHas('category', fn ($sub) => $sub->where('department_id', $user->department_id))
+                                    ->orWhereNull('category_id');
+                            });
+                        }
+
+                        return $query->orderBy('sort_order')->pluck('title', 'id')->all();
+                    })
+                    ->dehydrated(false)
+                    ->live()
+                    ->searchable()
+                    ->placeholder('— Sin respuesta predefinida —')
+                    ->afterStateUpdated(function ($state, Set $set): void {
+                        if (! $state) {
+                            return;
+                        }
+
+                        $canned = CannedResponse::find($state);
+                        if ($canned) {
+                            $set('body', $canned->body);
+                        }
+                    })
+                    ->columnSpanFull(),
+
                 Textarea::make('body')
                     ->label('Comentario')
                     ->required()

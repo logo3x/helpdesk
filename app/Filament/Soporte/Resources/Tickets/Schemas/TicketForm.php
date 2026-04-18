@@ -7,6 +7,7 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\TicketUrgency;
 use App\Models\Category;
+use App\Models\TicketTemplate;
 use App\Models\User;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
@@ -25,6 +26,58 @@ class TicketForm
     {
         return $schema
             ->components([
+                Section::make('Plantilla (opcional)')
+                    ->schema([
+                        Select::make('_template_id')
+                            ->label('Usar plantilla')
+                            ->helperText('Selecciona una plantilla para auto-llenar el formulario. Solo disponible al crear.')
+                            ->options(function () {
+                                $user = auth()->user();
+                                $query = TicketTemplate::query()->where('is_active', true);
+
+                                if ($user && ! $user->hasAnyRole(['super_admin', 'admin']) && $user->department_id) {
+                                    $query->whereHas('category', fn ($q) => $q->where('department_id', $user->department_id));
+                                }
+
+                                return $query->orderBy('sort_order')->pluck('name', 'id')->all();
+                            })
+                            ->dehydrated(false)
+                            ->live()
+                            ->searchable()
+                            ->placeholder('— Sin plantilla —')
+                            ->afterStateUpdated(function ($state, Set $set): void {
+                                if (! $state) {
+                                    return;
+                                }
+
+                                $template = TicketTemplate::find($state);
+                                if (! $template) {
+                                    return;
+                                }
+
+                                $set('subject', $template->subject);
+                                $set('description', $template->description);
+                                $category = $template->category;
+                                if ($category) {
+                                    $set('category_id', $category->id);
+                                    $set('department_id', $category->department_id);
+                                }
+                                if ($template->impact) {
+                                    $set('impact', $template->impact);
+                                }
+                                if ($template->urgency) {
+                                    $set('urgency', $template->urgency);
+                                }
+                                if ($template->impact && $template->urgency) {
+                                    $set('priority', TicketPriority::fromMatrix(
+                                        TicketImpact::from($template->impact),
+                                        TicketUrgency::from($template->urgency),
+                                    )->value);
+                                }
+                            }),
+                    ])
+                    ->visible(fn (string $operation) => $operation === 'create'),
+
                 Section::make('Identificación')
                     ->schema([
                         TextInput::make('number')

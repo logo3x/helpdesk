@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ChatFlowStat;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
 use App\Models\Department;
@@ -139,14 +140,38 @@ class ChatbotService
         //    se maneja en el componente Livewire (Portal\Chatbot). Aquí solo
         //    detectamos el disparador inicial.
         if ($this->wantsEscalation($userMessage)) {
+            $this->abandonActiveFlow($session);
+
             return "Claro, te ayudo a crear un ticket. 🎫\n\n"
                 .'Cuéntame **brevemente** de qué se trata tu problema o solicitud '
                 .'(ej: "Mi impresora no imprime" o "Necesito resetear mi correo").';
         }
 
-        // 2. Check if there's an active flow in progress — solo continuar
-        //    flujos que el usuario ya inició. No iniciamos flujos nuevos
-        //    sin antes consultar la Base de Conocimiento (ver paso 3).
+        // 2. Comando explícito para cancelar el flow en curso.
+        if ($this->wantsCancel($userMessage)) {
+            $abandoned = $this->abandonActiveFlow($session);
+
+            return $abandoned
+                ? 'Listo, cancelé el flujo en curso. ¿En qué más puedo ayudarte?'
+                : 'No hay ningún flujo activo para cancelar. ¿En qué puedo ayudarte?';
+        }
+
+        // 3. Búsqueda KB de alta confianza — si la nueva pregunta tiene match
+        //    fuerte con un artículo (>= 0.70), se interpreta como cambio de
+        //    tema y se abandona cualquier flujo en curso para servir la KB.
+        $ragResults = $this->rag->search($userMessage, topN: 1, threshold: 0.5);
+        $topKb = $ragResults->first();
+        $topSimilarity = $topKb['similarity'] ?? 0;
+
+        if ($topKb !== null && $topSimilarity >= 0.70) {
+            $this->abandonActiveFlow($session);
+
+            return $this->formatKbResponse($topKb);
+        }
+
+        // 4. Check if there's an active flow in progress — continuar el
+        //    flujo solo si la nueva entrada no fue reconocida como una
+        //    nueva consulta (paso 3 ya habría salido).
         $activeFlow = $this->flowEngine->getActiveFlow($session);
 
         if ($activeFlow !== null) {
@@ -159,19 +184,13 @@ class ChatbotService
             return $next;
         }
 
-        // 3. Buscar en la Base de Conocimiento PRIMERO.
-        //    Si hay un artículo con similitud alta, preferimos servir su
-        //    contenido actualizado (refleja ediciones del equipo) en vez
-        //    de un flujo hardcoded. Esto garantiza que "editar un KB se
-        //    refleje en el asistente" sin requerir re-sembrar flows.
-        $ragResults = $this->rag->search($userMessage, topN: 1, threshold: 0.5);
-        $topKb = $ragResults->first();
-
-        if ($topKb !== null && ($topKb['similarity'] ?? 0) >= 0.55) {
+        // 5. KB con confianza media (0.55-0.70) como respuesta principal
+        //    cuando no hay flujo activo.
+        if ($topKb !== null && $topSimilarity >= 0.55) {
             return $this->formatKbResponse($topKb);
         }
 
-        // 4. Si la KB no tiene match fuerte, clasificar intent y lanzar flujo.
+        // 6. Si la KB no tiene match fuerte, clasificar intent y lanzar flujo.
         $intent = $this->classifier->classify($userMessage);
 
         if ($intent['flow'] !== null) {
@@ -232,6 +251,36 @@ class ChatbotService
         }
 
         return false;
+    }
+
+    /**
+     * El usuario quiere salir del flujo en curso.
+     */
+    protected function wantsCancel(string $message): bool
+    {
+        $message = mb_strtolower(trim($message));
+        $triggers = ['cancelar', 'reiniciar', 'salir del flujo', 'otro tema', 'reset chat'];
+
+        foreach ($triggers as $trigger) {
+            if (str_contains($message, $trigger)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Marca el flujo activo (si lo hay) como completado. Devuelve true si
+     * había un flujo que se canceló.
+     */
+    protected function abandonActiveFlow(ChatSession $session): bool
+    {
+        $affected = ChatFlowStat::where('chat_session_id', $session->id)
+            ->where('completed', false)
+            ->update(['completed' => true]);
+
+        return $affected > 0;
     }
 
     protected function buildSystemPrompt(string $kbContext): string

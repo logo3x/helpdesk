@@ -92,8 +92,21 @@ class RagService
      */
     protected function keywordSearch(string $query, int $topN): Collection
     {
-        $tokens = collect(preg_split('/\s+/', mb_strtolower($query)))
-            ->filter(fn ($t) => mb_strlen($t) >= 3) // skip very short words
+        // Filler words que no aportan información; se excluyen para que no
+        // penalicen el score de búsqueda (ej: "como puedo cambiar mi X").
+        $stopwords = [
+            'como', 'cómo', 'puedo', 'que', 'qué', 'donde', 'dónde', 'cuando',
+            'cuándo', 'para', 'por', 'mi', 'mis', 'tu', 'tus', 'los', 'las',
+            'una', 'uno', 'del', 'con', 'sin', 'sobre', 'esta', 'este', 'eso',
+            'aquí', 'allá', 'hola', 'hay', 'necesito', 'quiero', 'ayuda',
+            'ayudar', 'favor', 'por favor',
+        ];
+
+        $normalized = $this->stripAccentsAndPunctuation(mb_strtolower($query));
+
+        $tokens = collect(preg_split('/\s+/', $normalized))
+            ->filter(fn ($t) => mb_strlen($t) >= 3)
+            ->reject(fn ($t) => in_array($t, $stopwords, true))
             ->values();
 
         if ($tokens->isEmpty()) {
@@ -104,7 +117,7 @@ class RagService
 
         return $articles
             ->map(function (KbArticle $article) use ($tokens) {
-                $haystack = mb_strtolower($article->title.' '.$article->body);
+                $haystack = $this->stripAccentsAndPunctuation(mb_strtolower($article->title.' '.$article->body));
                 $hits = $tokens->filter(fn ($t) => str_contains($haystack, $t))->count();
 
                 return [
@@ -118,5 +131,17 @@ class RagService
             ->sortByDesc('similarity')
             ->take($topN)
             ->values();
+    }
+
+    /**
+     * Normaliza acentos y quita puntuación para matching robusto:
+     *   "Cómo configurar tu cuenta?" → "como configurar tu cuenta"
+     */
+    protected function stripAccentsAndPunctuation(string $text): string
+    {
+        $accents = ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u'];
+        $text = strtr($text, $accents);
+
+        return preg_replace('/[¿?¡!.,;:()\[\]{}"\']/', ' ', $text);
     }
 }

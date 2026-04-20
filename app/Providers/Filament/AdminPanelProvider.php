@@ -12,6 +12,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\MenuItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -70,6 +71,13 @@ class AdminPanelProvider extends PanelProvider
                 QuickCreatePlugin::make(),
                 GlobalSearchModalPlugin::make(),
                 FilamentSpatieLaravelBackupPlugin::make(),
+            ])
+            ->userMenuItems([
+                'role' => MenuItem::make()
+                    ->label(fn () => auth()->user()?->roleLabel() ?? 'Sin rol')
+                    ->icon('heroicon-o-identification')
+                    ->url('#')
+                    ->sort(-1),
             ])
             ->authMiddleware([
                 Authenticate::class,

@@ -79,27 +79,30 @@ class User extends Authenticatable implements FilamentUser, HasName
     }
 
     /**
-     * Nombre mostrado en el menú de usuario de Filament (esquina superior
-     * derecha). Incluye el rol entre paréntesis para que el agente/supervisor
-     * sepa rápidamente con qué rol está operando.
+     * Nombre mostrado en el menú de usuario de Filament.
+     * Debe retornar SOLO el nombre porque ui-avatars usa este string
+     * para generar las iniciales del círculo. Si aquí metiéramos
+     * "(rol)" las iniciales salen feas ("S(" en lugar de "SS").
      *
-     * Ej: "Agente Soporte (agente_soporte)"
+     * El rol se muestra separado vía Panel::userMenuItems().
      */
     public function getFilamentName(): string
     {
-        $role = $this->roles->first()?->name;
-
-        return $role
-            ? "{$this->name} ({$this->getRoleLabel($role)})"
-            : $this->name;
+        return $this->name;
     }
 
     /**
-     * Etiqueta legible del rol. Los nombres Spatie están en snake_case,
-     * aquí se normalizan para la UI.
+     * Etiqueta legible del rol actual del usuario para mostrar en la UI.
+     * Los nombres Spatie están en snake_case; aquí se normalizan.
      */
-    protected function getRoleLabel(string $role): string
+    public function roleLabel(): ?string
     {
+        $role = $this->roles->first()?->name;
+
+        if (! $role) {
+            return null;
+        }
+
         return match ($role) {
             'super_admin' => 'Super Admin',
             'admin' => 'Administrador',

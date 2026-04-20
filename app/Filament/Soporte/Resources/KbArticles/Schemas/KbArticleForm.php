@@ -62,7 +62,13 @@ class KbArticleForm
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->helperText('El artículo se asocia al departamento al que pertenece.'),
+                            // El agente NO puede cambiar el depto: siempre queda
+                            // fijado al suyo. Solo supervisor+ puede elegir.
+                            ->disabled(fn () => ! static::isSupervisor())
+                            ->dehydrated()
+                            ->helperText(fn () => static::isSupervisor()
+                                ? 'El artículo se asocia al departamento al que pertenece.'
+                                : 'Tu departamento se asigna automáticamente.'),
 
                         Select::make('visibility')
                             ->label('Visibilidad')

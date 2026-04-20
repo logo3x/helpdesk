@@ -76,4 +76,38 @@ class User extends Authenticatable implements FilamentUser
             ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
+
+    /**
+     * Nombre mostrado en el menú de usuario de Filament (esquina superior
+     * derecha). Incluye el rol entre paréntesis para que el agente/supervisor
+     * sepa rápidamente con qué rol está operando.
+     *
+     * Ej: "Agente Soporte (agente_soporte)"
+     */
+    public function getFilamentName(): string
+    {
+        $role = $this->roles->first()?->name;
+
+        return $role
+            ? "{$this->name} ({$this->getRoleLabel($role)})"
+            : $this->name;
+    }
+
+    /**
+     * Etiqueta legible del rol. Los nombres Spatie están en snake_case,
+     * aquí se normalizan para la UI.
+     */
+    protected function getRoleLabel(string $role): string
+    {
+        return match ($role) {
+            'super_admin' => 'Super Admin',
+            'admin' => 'Administrador',
+            'supervisor_soporte' => 'Supervisor',
+            'agente_soporte' => 'Agente',
+            'tecnico_campo' => 'Técnico',
+            'editor_kb' => 'Editor KB',
+            'usuario_final' => 'Usuario',
+            default => Str::of($role)->replace('_', ' ')->title()->toString(),
+        };
+    }
 }

@@ -66,11 +66,14 @@ class SoportePanelProvider extends PanelProvider
                 GlobalSearchModalPlugin::make(),
             ])
             ->userMenuItems([
+                'profile' => MenuItem::make()
+                    ->label(fn () => auth()->user()?->name ?? 'Perfil')
+                    ->icon('heroicon-o-user-circle'),
                 'role' => MenuItem::make()
                     ->label(fn () => auth()->user()?->roleLabel() ?? 'Sin rol')
                     ->icon('heroicon-o-identification')
                     ->url('#')
-                    ->sort(-1),
+                    ->sort(1),
             ])
             ->authMiddleware([
                 Authenticate::class,

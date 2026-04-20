@@ -73,11 +73,16 @@ class AdminPanelProvider extends PanelProvider
                 FilamentSpatieLaravelBackupPlugin::make(),
             ])
             ->userMenuItems([
+                // Sustituye el label por defecto "Perfil" por el nombre
+                // del usuario. Sigue llevando a la página de edición de perfil.
+                'profile' => MenuItem::make()
+                    ->label(fn () => auth()->user()?->name ?? 'Perfil')
+                    ->icon('heroicon-o-user-circle'),
                 'role' => MenuItem::make()
                     ->label(fn () => auth()->user()?->roleLabel() ?? 'Sin rol')
                     ->icon('heroicon-o-identification')
                     ->url('#')
-                    ->sort(-1),
+                    ->sort(1),
             ])
             ->authMiddleware([
                 Authenticate::class,

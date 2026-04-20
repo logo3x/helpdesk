@@ -8,6 +8,7 @@ use App\Filament\Widgets\TicketTrendChart;
 use Awcodes\QuickCreate\QuickCreatePlugin;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin;
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -77,7 +78,8 @@ class AdminPanelProvider extends PanelProvider
                 // del usuario. Sigue llevando a la página de edición de perfil.
                 'profile' => MenuItem::make()
                     ->label(fn () => auth()->user()?->name ?? 'Perfil')
-                    ->icon('heroicon-o-user-circle'),
+                    ->icon('heroicon-o-user-circle')
+                    ->url(fn () => Filament::getProfileUrl()),
                 'role' => MenuItem::make()
                     ->label(fn () => auth()->user()?->roleLabel() ?? 'Sin rol')
                     ->icon('heroicon-o-identification')

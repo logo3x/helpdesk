@@ -6,6 +6,7 @@ use App\Filament\Soporte\Widgets\TicketStatsWidget;
 use Awcodes\QuickCreate\QuickCreatePlugin;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin;
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -68,7 +69,8 @@ class SoportePanelProvider extends PanelProvider
             ->userMenuItems([
                 'profile' => MenuItem::make()
                     ->label(fn () => auth()->user()?->name ?? 'Perfil')
-                    ->icon('heroicon-o-user-circle'),
+                    ->icon('heroicon-o-user-circle')
+                    ->url(fn () => Filament::getProfileUrl()),
                 'role' => MenuItem::make()
                     ->label(fn () => auth()->user()?->roleLabel() ?? 'Sin rol')
                     ->icon('heroicon-o-identification')

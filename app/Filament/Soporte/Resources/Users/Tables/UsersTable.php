@@ -46,7 +46,9 @@ class UsersTable
             ->recordActions([
                 Impersonate::make()
                     ->label('Impersonar')
-                    ->visible(fn (User $record) => auth()->user()?->canImpersonateTarget($record)),
+                    ->visible(fn (User $record) => auth()->user()?->canImpersonateTarget($record))
+                    // Un supervisor solo impersona agentes → panel /soporte.
+                    ->redirectTo('/soporte'),
                 EditAction::make(),
             ])
             ->toolbarActions([

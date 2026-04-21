@@ -73,7 +73,14 @@ class UsersTable
             ->recordActions([
                 Impersonate::make()
                     ->label('Impersonar')
-                    ->visible(fn (User $record) => auth()->user()?->canImpersonateTarget($record)),
+                    ->visible(fn (User $record) => auth()->user()?->canImpersonateTarget($record))
+                    // Redirige al panel correcto según el rol del target,
+                    // no a la landing ni al dashboard.
+                    ->redirectTo(fn (User $record) => match (true) {
+                        $record->hasAnyRole(['super_admin', 'admin']) => '/admin',
+                        $record->hasAnyRole(['supervisor_soporte', 'agente_soporte', 'tecnico_campo', 'editor_kb']) => '/soporte',
+                        default => '/portal/tickets',
+                    }),
                 EditAction::make(),
             ])
             ->toolbarActions([

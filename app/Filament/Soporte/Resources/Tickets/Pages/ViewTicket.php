@@ -31,11 +31,35 @@ class ViewTicket extends ViewRecord
         return [
             EditAction::make(),
 
+            // ── Tomar este ticket (solo agentes/técnicos) ──────────────
+            // Acción self-assign sin dropdown: el agente que está
+            // revisando el ticket lo toma para sí mismo.
+            Action::make('claim')
+                ->label('Tomar este ticket')
+                ->icon('heroicon-o-hand-raised')
+                ->color('primary')
+                ->visible(fn () => $ticket->status->isOpen()
+                    && auth()->user()?->hasAnyRole(['agente_soporte', 'tecnico_campo'])
+                    && $ticket->assigned_to_id !== auth()->id())
+                ->requiresConfirmation()
+                ->modalHeading('¿Tomar este ticket?')
+                ->modalDescription('Se te asignará el ticket y cambiará a estado "Asignado".')
+                ->action(function () use ($ticket): void {
+                    $user = auth()->user();
+                    abort_unless($user?->can('update', $ticket), 403);
+                    app(TicketService::class)->assign($ticket, $user);
+                    Notification::make()->title('Ticket asignado a ti')->success()->send();
+                    $this->refreshFormData(['status', 'assigned_to_id']);
+                }),
+
+            // ── Asignar a otro agente (solo supervisor / admin) ────────
+            // Mantiene el dropdown para elegir a quién del equipo asignar.
             Action::make('assign')
                 ->label('Asignar')
                 ->icon('heroicon-o-user-plus')
                 ->color('primary')
-                ->visible(fn () => $ticket->status->isOpen())
+                ->visible(fn () => $ticket->status->isOpen()
+                    && auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']))
                 ->schema([
                     Select::make('assigned_to_id')
                         ->label('Asignar a')

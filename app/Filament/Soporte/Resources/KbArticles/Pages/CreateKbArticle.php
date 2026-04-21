@@ -3,6 +3,7 @@
 namespace App\Filament\Soporte\Resources\KbArticles\Pages;
 
 use App\Filament\Soporte\Resources\KbArticles\KbArticleResource;
+use App\Models\KbArticle;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateKbArticle extends CreateRecord
@@ -14,22 +15,33 @@ class CreateKbArticle extends CreateRecord
         $user = auth()->user();
         $isSupervisor = $user?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']) ?? false;
 
-        $data['author_id'] = $user?->id;
-
         // Agentes solo crean en Borrador y SIEMPRE en su propio departamento.
-        // El form tiene el campo deshabilitado pero validamos también aquí
-        // por seguridad (alguien podría bypass vía Livewire request).
+        // El form tiene el campo deshabilitado pero revalidamos aquí por
+        // seguridad — el payload podría reescribirse vía Livewire.
         if (! $isSupervisor) {
             $data['status'] = 'draft';
             $data['department_id'] = $user?->department_id;
         }
 
-        // Auto-asignar published_at si el supervisor publica directamente.
-        if (($data['status'] ?? null) === 'published' && empty($data['published_at'])) {
-            $data['published_at'] = now();
-        }
-
         return $data;
+    }
+
+    /**
+     * author_id y published_at NO están en $fillable por diseño
+     * (para prevenir mass assignment). Se setean vía forceFill después
+     * de que el form valida + se crea el registro.
+     */
+    protected function handleRecordCreation(array $data): KbArticle
+    {
+        /** @var KbArticle $record */
+        $record = static::getModel()::create($data);
+
+        $record->forceFill([
+            'author_id' => auth()->id(),
+            'published_at' => ($data['status'] ?? null) === 'published' ? now() : null,
+        ])->save();
+
+        return $record;
     }
 
     protected function getRedirectUrl(): string

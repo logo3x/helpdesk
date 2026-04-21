@@ -170,7 +170,12 @@ class Chatbot extends Component
 
     protected function resolveSession(): ChatSession
     {
-        $session = ChatSession::find($this->sessionId);
+        // SEGURIDAD: filtrar por user_id para que un usuario no pueda
+        // inyectar un $sessionId de otro user vía Livewire payload y
+        // escribir mensajes en esa transcripción ajena.
+        $session = ChatSession::where('id', $this->sessionId)
+            ->where('user_id', auth()->id())
+            ->first();
 
         if ($session === null || $session->status !== 'active') {
             $session = app(ChatbotService::class)->getOrCreateSession(auth()->user());
@@ -220,7 +225,7 @@ class Chatbot extends Component
     }
 
     /**
-     * Acepta "1" – "5" o el nombre exacto / slug del departamento.
+     * Acepta "1" – "N" o el nombre exacto / slug del departamento.
      */
     protected function parseDepartmentChoice(string $input): ?int
     {
@@ -234,7 +239,12 @@ class Chatbot extends Component
         if (ctype_digit($trimmed)) {
             $index = ((int) $trimmed) - 1;
 
-            return $departments[$index]?->id;
+            // Guard contra valores fuera de rango (0, negativos, > count).
+            if ($index < 0 || $index >= $departments->count()) {
+                return null;
+            }
+
+            return $departments[$index]->id;
         }
 
         $lower = mb_strtolower($trimmed);

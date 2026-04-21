@@ -40,10 +40,18 @@ class InventoryController extends Controller
      * POST /api/inventory/agent-scan
      *
      * Receives full inventory from the PowerShell agent.
-     * Authenticated via Sanctum token (Bearer token).
+     * Authenticated via Sanctum token (Bearer token) que DEBE tener
+     * la ability 'inventory:scan'. Un token general (sin ability) no
+     * puede disparar scans.
      */
     public function agentScan(AgentScanRequest $request): JsonResponse
     {
+        abort_unless(
+            $request->user()?->tokenCan('inventory:scan'),
+            403,
+            'Token sin permiso para enviar scans de inventario.'
+        );
+
         $asset = $this->inventory->processAgentScan(
             data: $request->validated(),
             ip: $request->ip(),

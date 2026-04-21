@@ -32,15 +32,26 @@ class TicketTransferredNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage)
-            ->subject("[{$this->ticket->number}] Tu ticket fue trasladado a {$this->toDepartment->name}")
-            ->greeting("Hola {$notifiable->name},")
-            ->line("Tu ticket **{$this->ticket->number}** — *{$this->ticket->subject}* fue trasladado al departamento correcto para ser atendido.")
-            ->line("De: {$this->fromDepartment->name}")
-            ->line("A: {$this->toDepartment->name}");
+        // Sanitizar textos de usuario (subject, reason) para evitar markdown
+        // injection en el email (links maliciosos, imágenes remotas para
+        // tracking, etc.). `->line()` interpreta Markdown por default.
+        $sanitize = fn (?string $s): string => trim(strip_tags((string) $s));
 
-        if ($this->reason) {
-            $mail->line("Motivo del traslado: {$this->reason}");
+        $subject = $sanitize($this->ticket->subject);
+        $reason = $this->reason ? $sanitize($this->reason) : null;
+        $ticketNumber = $this->ticket->number;
+        $fromName = $sanitize($this->fromDepartment->name);
+        $toName = $sanitize($this->toDepartment->name);
+
+        $mail = (new MailMessage)
+            ->subject("[{$ticketNumber}] Tu ticket fue trasladado a {$toName}")
+            ->greeting("Hola {$sanitize($notifiable->name)},")
+            ->line("Tu ticket **{$ticketNumber}** — *{$subject}* fue trasladado al departamento correcto para ser atendido.")
+            ->line("De: {$fromName}")
+            ->line("A: {$toName}");
+
+        if ($reason) {
+            $mail->line("Motivo del traslado: {$reason}");
         }
 
         return $mail

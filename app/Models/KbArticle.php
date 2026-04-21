@@ -16,10 +16,12 @@ class KbArticle extends Model
     /** @use HasFactory<KbArticleFactory> */
     use HasFactory, SoftDeletes;
 
+    // Campos controlados por el backend (author_id en Create page, counters
+    // por triggers/feedback, published_at auto en publish) se excluyen del
+    // fillable para que NO puedan inyectarse vía Livewire payload.
     protected $fillable = [
-        'title', 'slug', 'body', 'kb_category_id', 'department_id', 'author_id',
-        'status', 'visibility', 'views_count', 'helpful_count',
-        'not_helpful_count', 'published_at',
+        'title', 'slug', 'body', 'kb_category_id', 'department_id',
+        'status', 'visibility',
     ];
 
     protected function casts(): array

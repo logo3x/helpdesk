@@ -85,18 +85,21 @@ class KbArticleSeeder extends Seeder
         ];
 
         foreach ($articles as $data) {
-            KbArticle::updateOrCreate(
+            $article = KbArticle::updateOrCreate(
                 ['slug' => Str::slug($data['title'])],
                 [
                     'title' => $data['title'],
                     'body' => $data['body'],
                     'kb_category_id' => $data['category_id'],
-                    'author_id' => $author?->id,
                     'status' => 'published',
                     'visibility' => 'public',
-                    'published_at' => now(),
                 ],
             );
+
+            $article->forceFill([
+                'author_id' => $author?->id,
+                'published_at' => now(),
+            ])->save();
         }
     }
 }

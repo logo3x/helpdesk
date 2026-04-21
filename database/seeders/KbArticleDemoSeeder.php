@@ -73,18 +73,23 @@ class KbArticleDemoSeeder extends Seeder
             }
 
             foreach ($dept_articles as [$title, $body]) {
-                KbArticle::updateOrCreate(
+                $article = KbArticle::updateOrCreate(
                     ['slug' => Str::slug($title)],
                     [
                         'title' => $title,
                         'body' => str_replace('\\n', "\n", $body),
                         'department_id' => $dept->id,
-                        'author_id' => $author?->id,
                         'status' => 'published',
                         'visibility' => 'public',
-                        'published_at' => now()->subDays(rand(1, 30)),
                     ],
                 );
+
+                // author_id y published_at están fuera de $fillable por
+                // protección anti mass-assignment; se setean via forceFill.
+                $article->forceFill([
+                    'author_id' => $author?->id,
+                    'published_at' => now()->subDays(rand(1, 30)),
+                ])->save();
             }
         }
     }

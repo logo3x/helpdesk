@@ -9,7 +9,12 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 // ── Inventory endpoints ──────────────────────────────────────
-Route::middleware('auth:sanctum')->prefix('inventory')->group(function () {
-    Route::post('web-scan', [InventoryController::class, 'webScan']);
-    Route::post('agent-scan', [InventoryController::class, 'agentScan']);
-});
+// auth:sanctum + throttle estricto + el controller valida
+// tokenCan('inventory:scan') para que un token filtrado de un
+// usuario final NO pueda POSTear scans arbitrarios.
+Route::middleware(['auth:sanctum', 'throttle:60,1'])
+    ->prefix('inventory')
+    ->group(function () {
+        Route::post('web-scan', [InventoryController::class, 'webScan']);
+        Route::post('agent-scan', [InventoryController::class, 'agentScan']);
+    });

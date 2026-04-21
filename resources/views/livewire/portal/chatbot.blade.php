@@ -21,7 +21,7 @@
                              supervisor malicioso podría publicar un KB con
                              <img onerror=...> o el LLM devolver HTML). --}}
                         <div class="chat-bubble-bot max-w-[85%] rounded-2xl rounded-bl-sm bg-white px-5 py-4 text-sm leading-relaxed text-zinc-800 shadow-sm dark:bg-zinc-800 dark:text-zinc-200">
-                            {!! str($msg['content'])->markdown([], [
+                            {!! str($msg['content'])->markdown([
                                 'html_input' => 'strip',
                                 'allow_unsafe_links' => false,
                             ])->toHtmlString() !!}

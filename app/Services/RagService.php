@@ -70,18 +70,35 @@ class RagService
             return collect();
         }
 
-        return KbEmbedding::with('article:id,title,slug')
-            ->get()
-            ->map(fn (KbEmbedding $emb) => [
-                'content' => $emb->content,
-                'similarity' => $emb->cosineSimilarity($queryVector),
-                'article_id' => $emb->kb_article_id,
-                'article_title' => $emb->article?->title,
-            ])
-            ->filter(fn (array $item) => $item['similarity'] >= $threshold)
-            ->sortByDesc('similarity')
-            ->take($topN)
-            ->values();
+        // Chunk para no cargar miles de embeddings en memoria. Cada chunk
+        // calcula similitud y acumula los top-N. Escalable a decenas de
+        // miles de embeddings sin sobrecargar la RAM.
+        $heap = collect();
+
+        KbEmbedding::with('article:id,title,slug')
+            ->chunk(500, function ($embeddings) use (&$heap, $queryVector, $threshold, $topN): void {
+                foreach ($embeddings as $emb) {
+                    $sim = $emb->cosineSimilarity($queryVector);
+
+                    if ($sim < $threshold) {
+                        continue;
+                    }
+
+                    $heap->push([
+                        'content' => $emb->content,
+                        'similarity' => $sim,
+                        'article_id' => $emb->kb_article_id,
+                        'article_title' => $emb->article?->title,
+                    ]);
+
+                    // Mantener solo los top-N en memoria mientras iteramos.
+                    if ($heap->count() > $topN * 4) {
+                        $heap = $heap->sortByDesc('similarity')->take($topN * 2)->values();
+                    }
+                }
+            });
+
+        return $heap->sortByDesc('similarity')->take($topN)->values();
     }
 
     /**

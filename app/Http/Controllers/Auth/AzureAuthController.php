@@ -30,11 +30,32 @@ class AzureAuthController extends Controller
     {
         $azureUser = Socialite::driver('microsoft')->user();
 
+        $email = $azureUser->getEmail();
+
+        // CRÍTICO: validar que el tenant esté explícitamente configurado
+        // (NO 'common') y que el correo pertenezca al dominio corporativo.
+        // Sin esto, cualquier cuenta personal de Microsoft podría entrar.
+        $tenantId = config('services.azure.tenant_id');
+
+        if (blank($tenantId) || $tenantId === 'common') {
+            abort(403, 'Azure AD SSO no está configurado para un tenant específico.');
+        }
+
+        $allowedDomains = collect(
+            explode(',', (string) config('services.azure.allowed_domains', 'confipetrol.com'))
+        )->map(fn ($d) => trim(mb_strtolower($d)))->filter()->all();
+
+        $emailDomain = mb_strtolower((string) Str::after((string) $email, '@'));
+
+        if (! $email || ! in_array($emailDomain, $allowedDomains, true)) {
+            abort(403, 'Tu cuenta de Microsoft no pertenece a un dominio corporativo autorizado.');
+        }
+
         $user = User::updateOrCreate(
             ['azure_id' => $azureUser->getId()],
             [
                 'name' => $azureUser->getName(),
-                'email' => $azureUser->getEmail(),
+                'email' => $email,
                 'avatar_url' => $azureUser->getAvatar(),
                 'password' => Hash::make(Str::random(32)),
                 'email_verified_at' => now(),

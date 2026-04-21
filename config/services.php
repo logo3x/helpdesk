@@ -42,6 +42,14 @@ return [
         'tenant' => env('AZURE_TENANT_ID', 'common'),
     ],
 
+    'azure' => [
+        'tenant_id' => env('AZURE_TENANT_ID'),
+        // Dominios permitidos para login SSO. Si el correo no termina en
+        // uno de estos, el callback aborta con 403. Previene login con
+        // cuentas personales de Microsoft (outlook.com, hotmail.com).
+        'allowed_domains' => env('AZURE_ALLOWED_DOMAINS', 'confipetrol.com'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | LLM Provider (Chatbot / RAG)

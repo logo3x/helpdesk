@@ -28,6 +28,14 @@ class TicketsTable
     public static function configure(Table $table): Table
     {
         return $table
+            // Eager loading para evitar N+1 al renderizar las columnas
+            // que leen requester.name, assignee.name, department.name, category.name
+            ->modifyQueryUsing(fn (Builder $query) => $query->with([
+                'requester:id,name',
+                'assignee:id,name',
+                'department:id,name',
+                'category:id,name',
+            ]))
             ->columns([
                 TextColumn::make('number')
                     ->label('Número')

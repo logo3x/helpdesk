@@ -74,7 +74,10 @@ class TicketResource extends Resource
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        return parent::getRecordRouteBindingEloquentQuery()
+        // CRÍTICO: el route binding debe respetar el mismo scope que el
+        // listing. De lo contrario un agente podría abrir /soporte/tickets/{id}
+        // de otro depto conociendo el ID. Reutilizamos getEloquentQuery().
+        return static::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);

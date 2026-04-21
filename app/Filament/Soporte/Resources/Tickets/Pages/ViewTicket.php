@@ -49,6 +49,7 @@ class ViewTicket extends ViewRecord
                         ->required(),
                 ])
                 ->action(function (array $data) use ($ticket): void {
+                    abort_unless(auth()->user()?->can('update', $ticket), 403);
                     app(TicketService::class)->assign($ticket, User::findOrFail($data['assigned_to_id']));
                     Notification::make()->title('Ticket asignado')->success()->send();
                     $this->refreshFormData(['status', 'assigned_to_id']);
@@ -61,6 +62,7 @@ class ViewTicket extends ViewRecord
                 ->visible(fn () => $ticket->first_responded_at === null && $ticket->status->isOpen())
                 ->requiresConfirmation()
                 ->action(function () use ($ticket): void {
+                    abort_unless(auth()->user()?->can('update', $ticket), 403);
                     app(TicketService::class)->markFirstResponse($ticket);
                     Notification::make()->title('Primera respuesta registrada')->success()->send();
                     $this->refreshFormData(['status', 'first_responded_at']);
@@ -78,6 +80,7 @@ class ViewTicket extends ViewRecord
                 ], true))
                 ->requiresConfirmation()
                 ->action(function () use ($ticket): void {
+                    abort_unless(auth()->user()?->can('update', $ticket), 403);
                     app(TicketService::class)->resolve($ticket);
                     Notification::make()->title('Ticket resuelto')->success()->send();
                     $this->refreshFormData(['status', 'resolved_at']);
@@ -90,6 +93,7 @@ class ViewTicket extends ViewRecord
                 ->visible(fn () => $ticket->status === TicketStatus::Resuelto)
                 ->requiresConfirmation()
                 ->action(function () use ($ticket): void {
+                    abort_unless(auth()->user()?->can('update', $ticket), 403);
                     app(TicketService::class)->close($ticket);
                     Notification::make()->title('Ticket cerrado')->success()->send();
                     $this->refreshFormData(['status', 'closed_at']);
@@ -118,6 +122,7 @@ class ViewTicket extends ViewRecord
                         ->maxLength(500),
                 ])
                 ->action(function (array $data) use ($ticket): void {
+                    abort_unless(auth()->user()?->can('transfer', $ticket), 403);
                     $from = $ticket->department;
                     $to = Department::findOrFail($data['department_id']);
                     $reason = $data['reason'] ?? null;
@@ -148,6 +153,7 @@ class ViewTicket extends ViewRecord
                 ->visible(fn () => in_array($ticket->status, [TicketStatus::Resuelto, TicketStatus::Cerrado], true))
                 ->requiresConfirmation()
                 ->action(function () use ($ticket): void {
+                    abort_unless(auth()->user()?->can('update', $ticket), 403);
                     app(TicketService::class)->reopen($ticket);
                     Notification::make()->title('Ticket reabierto')->warning()->send();
                     $this->refreshFormData(['status', 'reopened_at', 'resolved_at', 'closed_at']);

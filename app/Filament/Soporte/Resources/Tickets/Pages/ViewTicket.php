@@ -103,8 +103,10 @@ class ViewTicket extends ViewRecord
                 ->label('Trasladar a otro depto.')
                 ->icon('heroicon-o-arrow-right-circle')
                 ->color('warning')
-                ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])
-                    && $ticket->status->isOpen())
+                // Usamos el Policy directamente para tener una sola fuente
+                // de verdad. La comprobación hasAnyRole anterior podía
+                // desincronizarse si alguien cambiaba el policy.
+                ->visible(fn () => auth()->user()?->can('transfer', $ticket) && $ticket->status->isOpen())
                 ->schema([
                     Select::make('department_id')
                         ->label('Nuevo departamento')

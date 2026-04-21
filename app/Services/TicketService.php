@@ -7,6 +7,7 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\TicketUrgency;
 use App\Jobs\SendSatisfactionSurveyJob;
+use App\Models\Category;
 use App\Models\Ticket;
 use App\Models\TicketCounter;
 use App\Models\User;
@@ -52,6 +53,22 @@ class TicketService
         $priority = TicketPriority::fromMatrix($impact, $urgency);
 
         $ticket = DB::transaction(function () use ($requester, $data, $impact, $urgency, $priority): Ticket {
+            // El depto del ticket se deriva de la categoría elegida
+            // (cada categoría pertenece a un depto). Fallback al depto
+            // explícito del payload, y luego al depto del solicitante.
+            // Esto asegura que un ticket con categoría "TI - Software"
+            // llegue a TI aunque el solicitante sea de otro depto.
+            $categoryId = $data['category_id'] ?? null;
+            $departmentId = $data['department_id'] ?? null;
+
+            if (! $departmentId && $categoryId) {
+                $departmentId = Category::where('id', $categoryId)->value('department_id');
+            }
+
+            if (! $departmentId) {
+                $departmentId = $requester->department_id;
+            }
+
             return Ticket::create([
                 'number' => $this->nextNumber(),
                 'subject' => $data['subject'],
@@ -62,8 +79,8 @@ class TicketService
                 'urgency' => $urgency,
                 'requester_id' => $requester->id,
                 'assigned_to_id' => $data['assigned_to_id'] ?? null,
-                'department_id' => $data['department_id'] ?? $requester->department_id,
-                'category_id' => $data['category_id'] ?? null,
+                'department_id' => $departmentId,
+                'category_id' => $categoryId,
             ]);
         });
 

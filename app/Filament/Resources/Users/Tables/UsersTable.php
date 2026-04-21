@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -9,6 +10,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Spatie\Permission\Models\Role;
+use STS\FilamentImpersonate\Tables\Actions\Impersonate;
 
 class UsersTable
 {
@@ -69,6 +71,9 @@ class UsersTable
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
+                Impersonate::make()
+                    ->label('Impersonar')
+                    ->visible(fn (User $record) => auth()->user()?->canImpersonateTarget($record)),
                 EditAction::make(),
             ])
             ->toolbarActions([

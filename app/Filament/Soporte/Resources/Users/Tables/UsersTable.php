@@ -2,11 +2,13 @@
 
 namespace App\Filament\Soporte\Resources\Users\Tables;
 
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use STS\FilamentImpersonate\Tables\Actions\Impersonate;
 
 class UsersTable
 {
@@ -42,6 +44,9 @@ class UsersTable
             ])
             ->defaultSort('name')
             ->recordActions([
+                Impersonate::make()
+                    ->label('Impersonar')
+                    ->visible(fn (User $record) => auth()->user()?->canImpersonateTarget($record)),
                 EditAction::make(),
             ])
             ->toolbarActions([

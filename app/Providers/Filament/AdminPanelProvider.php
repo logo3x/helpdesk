@@ -45,13 +45,10 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
-            // Grupos de navegación colapsados por default (se despliegan
-            // con un click). Mantiene el sidebar limpio en primera carga.
+            // Solo un grupo de navegación (Configuración) colapsado por
+            // default. El resto de items van al nivel raíz, como Escritorio.
             ->navigationGroups([
-                NavigationGroup::make('Operación')->collapsed(),
-                NavigationGroup::make('Gestión')->collapsed(),
                 NavigationGroup::make('Configuración')->collapsed(),
-                NavigationGroup::make('Reportes')->collapsed(),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -80,7 +77,10 @@ class AdminPanelProvider extends PanelProvider
                 FilamentShieldPlugin::make(),
                 QuickCreatePlugin::make(),
                 GlobalSearchModalPlugin::make(),
-                FilamentSpatieLaravelBackupPlugin::make(),
+                FilamentSpatieLaravelBackupPlugin::make()
+                    ->navigationGroup('Configuración')
+                    ->navigationLabel('Respaldos')
+                    ->navigationSort(100),
             ])
             ->userMenuItems([
                 // Sustituye el label por defecto "Perfil" por el nombre

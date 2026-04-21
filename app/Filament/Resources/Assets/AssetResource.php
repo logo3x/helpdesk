@@ -28,7 +28,7 @@ class AssetResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'hostname';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Gestión';
+    protected static string|\UnitEnum|null $navigationGroup = null;
 
     protected static ?int $navigationSort = 1;
 

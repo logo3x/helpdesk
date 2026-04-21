@@ -18,7 +18,7 @@ class SlaReport extends Page
 
     protected static ?string $title = 'Reporte de cumplimiento SLA';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Reportes';
+    protected static string|\UnitEnum|null $navigationGroup = null;
 
     protected static ?int $navigationSort = 50;
 

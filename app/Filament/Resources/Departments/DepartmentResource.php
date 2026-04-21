@@ -24,7 +24,7 @@ class DepartmentResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Departamentos';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Gestión';
+    protected static string|\UnitEnum|null $navigationGroup = null;
 
     protected static ?int $navigationSort = 10;
 

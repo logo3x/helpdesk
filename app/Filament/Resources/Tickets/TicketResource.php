@@ -39,7 +39,7 @@ class TicketResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'number';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Operación';
+    protected static string|\UnitEnum|null $navigationGroup = null;
 
     protected static ?int $navigationSort = 5;
 

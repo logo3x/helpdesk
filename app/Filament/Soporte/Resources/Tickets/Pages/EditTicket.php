@@ -16,6 +16,23 @@ class EditTicket extends EditRecord
     protected static string $resource = TicketResource::class;
 
     /**
+     * Solo supervisor+admin pueden llegar al form de edición completo.
+     * Los agentes que intenten acceder a /soporte/tickets/{id}/edit por
+     * URL directa reciben 403. Su flujo de trabajo es "Tomar ticket" +
+     * agregar comentarios, no editar el contenido original.
+     */
+    public function mount(int|string $record): void
+    {
+        abort_unless(
+            auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']),
+            403,
+            'Los agentes no pueden modificar el contenido de un ticket. Usa comentarios para responder.'
+        );
+
+        parent::mount($record);
+    }
+
+    /**
      * Recompute priority from impact × urgency on save so edits from the
      * admin form stay consistent with TicketService::create().
      */

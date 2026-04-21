@@ -29,7 +29,12 @@ class ViewTicket extends ViewRecord
         $ticket = $this->getRecord();
 
         return [
-            EditAction::make(),
+            // Edit solo para supervisor/admin. Los agentes no deben
+            // modificar el contenido del ticket (asunto, descripción,
+            // categoría, impacto, urgencia) — solo responden con
+            // comentarios. Si hay un error, lo arregla el supervisor.
+            EditAction::make()
+                ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])),
 
             // ── Tomar este ticket (solo agentes/técnicos) ──────────────
             // Acción self-assign sin dropdown: el agente que está
@@ -63,12 +68,26 @@ class ViewTicket extends ViewRecord
                 ->schema([
                     Select::make('assigned_to_id')
                         ->label('Asignar a')
-                        ->options(fn () => User::query()
-                            ->whereHas('roles', fn ($q) => $q->whereIn('name', [
-                                'super_admin', 'admin', 'supervisor_soporte', 'agente_soporte', 'tecnico_campo',
-                            ]))
-                            ->pluck('name', 'id')
-                            ->all())
+                        ->helperText('Solo agentes del departamento del ticket. Si el ticket está mal clasificado, usa "Trasladar a otro depto.".')
+                        ->options(function () use ($ticket) {
+                            $currentUser = auth()->user();
+
+                            // Super_admin y admin ven agentes de todos
+                            // los departamentos (no tienen scope).
+                            $query = User::query()
+                                ->whereHas('roles', fn ($q) => $q->whereIn('name', [
+                                    'agente_soporte', 'tecnico_campo',
+                                ]));
+
+                            // Supervisor: solo agentes del mismo depto
+                            // del ticket (que coincide con el suyo por
+                            // el scope de getEloquentQuery del Resource).
+                            if ($currentUser && ! $currentUser->hasAnyRole(['super_admin', 'admin'])) {
+                                $query->where('department_id', $ticket->department_id);
+                            }
+
+                            return $query->orderBy('name')->pluck('name', 'id')->all();
+                        })
                         ->searchable()
                         ->required(),
                 ])

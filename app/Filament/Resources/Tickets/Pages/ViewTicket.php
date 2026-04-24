@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Tickets\Pages;
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Models\Department;
 use App\Models\Ticket;
+use App\Models\User;
+use App\Notifications\TicketReceivedFromTransferNotification;
 use App\Notifications\TicketTransferredNotification;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -67,9 +69,23 @@ class ViewTicket extends ViewRecord
                         $ticket->requester->notify(new TicketTransferredNotification($ticket, $from, $to, $reason));
                     }
 
+                    $destinationSupervisors = User::query()
+                        ->where('department_id', $to->id)
+                        ->whereHas('roles', fn ($q) => $q->where('name', 'supervisor_soporte'))
+                        ->get();
+
+                    foreach ($destinationSupervisors as $supervisor) {
+                        $supervisor->notify(new TicketReceivedFromTransferNotification(
+                            ticket: $ticket,
+                            fromDepartment: $from,
+                            reason: $reason,
+                            transferredBy: auth()->user()?->name,
+                        ));
+                    }
+
                     Notification::make()
                         ->title("Ticket trasladado a {$to->name}")
-                        ->body('Se notificó al solicitante.')
+                        ->body('Se notificó al solicitante y a los supervisores del depto destino.')
                         ->success()
                         ->send();
 

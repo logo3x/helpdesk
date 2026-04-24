@@ -7,6 +7,7 @@ use App\Filament\Soporte\Resources\Tickets\TicketResource;
 use App\Models\Department;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Notifications\TicketReceivedFromTransferNotification;
 use App\Notifications\TicketTransferredNotification;
 use App\Services\TicketService;
 use Filament\Actions\Action;
@@ -182,9 +183,25 @@ class ViewTicket extends ViewRecord
                         $ticket->requester->notify(new TicketTransferredNotification($ticket, $from, $to, $reason));
                     }
 
+                    // Notificar a supervisores del departamento destino
+                    // para que sepan que tienen un ticket nuevo en su cola.
+                    $destinationSupervisors = User::query()
+                        ->where('department_id', $to->id)
+                        ->whereHas('roles', fn ($q) => $q->where('name', 'supervisor_soporte'))
+                        ->get();
+
+                    foreach ($destinationSupervisors as $supervisor) {
+                        $supervisor->notify(new TicketReceivedFromTransferNotification(
+                            ticket: $ticket,
+                            fromDepartment: $from,
+                            reason: $reason,
+                            transferredBy: auth()->user()?->name,
+                        ));
+                    }
+
                     Notification::make()
                         ->title("Ticket trasladado a {$to->name}")
-                        ->body('Se notificó al solicitante.')
+                        ->body('Se notificó al solicitante y a los supervisores del depto destino.')
                         ->success()
                         ->send();
 

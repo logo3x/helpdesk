@@ -175,6 +175,113 @@ class LlmService
     }
 
     /**
+     * Redactar un artículo KB a partir de una descripción en lenguaje
+     * natural. Retorna un array con `title` y `body` (Markdown) o null
+     * si el LLM falla.
+     *
+     * @return array{title: string, body: string}|null
+     */
+    public function draftKbArticle(string $naturalLanguageInput, string $tone = 'formal', ?string $departmentName = null): ?array
+    {
+        $toneDescription = match ($tone) {
+            'amigable' => 'amigable y cercano, usa "tú"',
+            'tecnico' => 'técnico y preciso, asumiendo audiencia técnica',
+            default => 'profesional y claro, apto para cualquier empleado',
+        };
+
+        $departmentLine = $departmentName
+            ? "El artículo pertenece al departamento **{$departmentName}**."
+            : '';
+
+        $systemPrompt = <<<PROMPT
+Eres un redactor técnico de la Base de Conocimiento interna de Confipetrol.
+
+Recibirás una descripción en lenguaje natural de un agente de soporte.
+Debes convertirla en un artículo KB bien estructurado en Markdown.
+
+{$departmentLine}
+
+TONO: {$toneDescription}
+
+REGLAS DE SALIDA (IMPORTANTE):
+Responde EXCLUSIVAMENTE con un objeto JSON válido con esta estructura exacta:
+
+{
+  "title": "Título corto y descriptivo (máx 80 chars, optimizado para búsqueda)",
+  "body": "Contenido en Markdown con la estructura indicada abajo"
+}
+
+NO uses bloques de código alrededor del JSON. NO agregues texto antes o después.
+
+ESTRUCTURA DEL BODY (Markdown):
+1. Párrafo inicial de 1-2 líneas que resume el problema o el objetivo.
+2. Sección ## Síntomas o ## Cuándo aplica (si es un problema).
+3. Sección ## Pasos a seguir (si es una guía) con **lista numerada**.
+4. Sección ## Si el problema persiste (si es diagnóstico) con qué hacer si no funciona.
+5. Sección ## Requisitos / Contactos / Notas adicionales (cuando aplique).
+
+CONVENCIONES:
+- Pon en **negrita** nombres de apps, botones, rutas, emails, teléfonos.
+- Usa listas numeradas para secuencias; viñetas para listas no ordenadas.
+- Usa `código inline` para paths, comandos, hostnames.
+- Líneas en blanco entre secciones para que respire el texto.
+- NO uses tablas ni HTML crudo, solo Markdown.
+- NO inventes datos específicos (emails, teléfonos, extensiones, URLs internas).
+  Si el agente no los proveyó, usa placeholders como [correo@confipetrol.com] o
+  indica "consulta con tu supervisor".
+- Idioma: español neutro.
+
+EJEMPLO DE BODY BIEN FORMATEADO:
+Para recibir correos corporativos en tu teléfono necesitas Microsoft Outlook.
+
+## Requisitos
+- Correo @confipetrol.com activo
+- Dispositivo iOS o Android reciente
+- Contraseña de Windows
+
+## Pasos a seguir (iOS)
+1. Descarga **Microsoft Outlook** desde la App Store.
+2. Abre la app y toca **"Agregar cuenta"**.
+3. Ingresa tu correo `tu_usuario@confipetrol.com`.
+4. Ingresa tu contraseña de Windows.
+5. Acepta los permisos de MDM.
+
+## Si el problema persiste
+Crea un ticket en la categoría **TI - Correo y Teams** indicando modelo del
+teléfono y sistema operativo.
+PROMPT;
+
+        $response = $this->chat(
+            [['role' => 'user', 'content' => $naturalLanguageInput]],
+            $systemPrompt,
+        );
+
+        if (blank($response)) {
+            return null;
+        }
+
+        // Limpiar code fences por si el modelo igual los agregó
+        $cleaned = trim($response);
+        $cleaned = preg_replace('/^```(?:json)?\s*/m', '', $cleaned);
+        $cleaned = preg_replace('/\s*```\s*$/m', '', $cleaned);
+
+        $parsed = json_decode($cleaned, true);
+
+        if (! is_array($parsed) || ! isset($parsed['title'], $parsed['body'])) {
+            Log::warning('LlmService draftKbArticle: respuesta no parseable', [
+                'raw' => mb_substr($response, 0, 500),
+            ]);
+
+            return null;
+        }
+
+        return [
+            'title' => (string) $parsed['title'],
+            'body' => (string) $parsed['body'],
+        ];
+    }
+
+    /**
      * @param  array<int, array{role: string, content: string}>  $messages
      * @return array<int, array{role: string, content: string}>
      */

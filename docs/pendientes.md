@@ -1,8 +1,38 @@
 # Pendientes — Helpdesk Confipetrol
 
-**Última actualización:** 2026-04-17 (v1.6)
+**Última actualización:** 2026-04-21 (v1.7)
 
 Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = prioridad sugerida.
+
+---
+
+## 🔴 P0 — Pre-producción (antes del go-live)
+
+### 0. Migrar LLM de OpenRouter a Claude API o Azure OpenAI
+
+**Estado hoy:** todas las llamadas LLM (chatbot RAG + redacción IA de KB) van a **OpenRouter** con modelos gratuitos (Llama 3.1). Esto está bien para pruebas pero tiene implicaciones de privacidad:
+
+- El input viaja a servidores de OpenRouter (US)
+- Los modelos gratuitos pueden registrar / usar para entrenamiento el contenido
+- No hay Data Processing Agreement (DPA) firmado con Confipetrol
+
+**Qué contenidos se envían actualmente:**
+- Mensajes del chatbot del usuario final (pueden incluir PII)
+- Descripción del ticket escalado desde chat
+- Cuerpo del KB que el agente redacta con IA (política interna, procedimientos, contactos, etc.)
+
+**Opciones de reemplazo:**
+1. **Anthropic Claude API directa** — ya soportada en `LlmService::chatAnthropic()`. Solo cambiar `LLM_PROVIDER=anthropic` y `LLM_API_KEY=sk-ant-...`. Requiere cuenta Anthropic + DPA.
+2. **Azure OpenAI** — modelos GPT-4 / GPT-4o en tenant corporativo. Requiere suscripción Azure. Garantiza que los datos no salen del tenant de Confipetrol.
+3. **Ollama self-hosted** — llama 3.1 en servidor interno. Cero datos a terceros. Requiere servidor con GPU.
+
+**Acciones mínimas para producción:**
+- [ ] Decidir proveedor (recomendado: Azure OpenAI por alineación con Azure AD ya usado en SSO)
+- [ ] Firmar DPA correspondiente
+- [ ] Rotar la API key actual de OpenRouter (expuesta durante pruebas)
+- [ ] Setear `LLM_API_KEY` real + `LLM_PROVIDER` + `LLM_MODEL` en `.env` de producción
+- [ ] Probar que el chatbot + la redacción IA siguen funcionando tras el switch
+- [ ] Documentar en el aviso de privacidad que las consultas al chatbot son procesadas por un LLM externo
 
 ---
 

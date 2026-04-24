@@ -66,6 +66,9 @@ return [
         'model' => env('LLM_MODEL', 'meta-llama/llama-3.1-8b-instruct:free'),
         'api_key' => env('LLM_API_KEY', ''),
         'embedding_model' => env('LLM_EMBEDDING_MODEL', 'nomic-ai/nomic-embed-text-v1.5'),
+        // Feature flag: habilita el botón "Redactar con IA" en el form
+        // de creación de KB. Se desactiva si no hay API key.
+        'kb_drafting_enabled' => env('ENABLE_AI_KB_DRAFT', true) && filled(env('LLM_API_KEY')),
     ],
 
 ];

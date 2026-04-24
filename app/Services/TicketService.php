@@ -9,6 +9,7 @@ use App\Enums\TicketUrgency;
 use App\Jobs\SendSatisfactionSurveyJob;
 use App\Models\Category;
 use App\Models\Ticket;
+use App\Models\TicketComment;
 use App\Models\TicketCounter;
 use App\Models\User;
 use App\Notifications\TicketAssignedNotification;
@@ -125,9 +126,17 @@ class TicketService
 
     /**
      * Assign a ticket to a user and move status to "asignado" if it was new.
+     *
+     * Cuando el assignee es un agente/técnico que toma el ticket, además
+     * se crea un comentario público automático para que el solicitante
+     * sepa que alguien se hizo cargo. Esto resuelve el gap de UX donde
+     * el usuario no tenía forma de enterarse hasta recibir un comentario
+     * manual.
      */
-    public function assign(Ticket $ticket, User $assignee): Ticket
+    public function assign(Ticket $ticket, User $assignee, bool $autoComment = true): Ticket
     {
+        $wasUnassigned = $ticket->assigned_to_id === null;
+
         $ticket->assigned_to_id = $assignee->id;
 
         if ($ticket->status === TicketStatus::Nuevo) {
@@ -136,6 +145,20 @@ class TicketService
 
         $ticket->save();
 
+        // Comentario público automático al asignar por primera vez
+        // (no al reasignar, para evitar ruido).
+        if ($autoComment && $wasUnassigned) {
+            TicketComment::create([
+                'ticket_id' => $ticket->id,
+                'user_id' => $assignee->id,
+                'body' => "Hola, he tomado tu ticket y lo voy a revisar. Te contacto en breve con novedades. — {$assignee->name}",
+                'is_private' => false,
+            ]);
+
+            // Este comentario público cuenta como primera respuesta para SLA.
+            $this->markFirstResponse($ticket);
+        }
+
         $assignee->notify(new TicketAssignedNotification($ticket));
 
         return $ticket;
@@ -143,16 +166,30 @@ class TicketService
 
     /**
      * Record that support has answered for the first time. Idempotent.
+     *
+     * Si el ticket no estaba asignado y se marca primera respuesta,
+     * se asume que quien marca lo está tomando implícitamente y se
+     * auto-asigna al $firstResponder (o a auth()->user() si no se pasa).
      */
-    public function markFirstResponse(Ticket $ticket, ?Carbon $at = null): Ticket
+    public function markFirstResponse(Ticket $ticket, ?Carbon $at = null, ?User $firstResponder = null): Ticket
     {
         if ($ticket->first_responded_at !== null) {
             return $ticket;
         }
 
+        // Auto-asignación: si el ticket no tiene agente, quien marca
+        // primera respuesta se vuelve el asignado.
+        if ($ticket->assigned_to_id === null) {
+            $responder = $firstResponder ?? auth()->user();
+            if ($responder instanceof User) {
+                $ticket->assigned_to_id = $responder->id;
+            }
+        }
+
         $ticket->first_responded_at = $at ?? now();
 
-        if ($ticket->status === TicketStatus::Asignado) {
+        // Transición de status: si estaba Nuevo o Asignado, pasa a En progreso.
+        if (in_array($ticket->status, [TicketStatus::Nuevo, TicketStatus::Asignado], true)) {
             $ticket->status = TicketStatus::EnProgreso;
         }
 

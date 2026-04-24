@@ -69,14 +69,30 @@ describe('create', function () {
 });
 
 describe('lifecycle transitions', function () {
-    it('moves from Nuevo to Asignado when assigned', function () {
+    it('moves from Nuevo to EnProgreso when assigned with auto-comment (default)', function () {
         $ticket = Ticket::factory()->create(['status' => TicketStatus::Nuevo]);
         $agent = User::factory()->create();
 
         $this->service->assign($ticket, $agent);
 
+        // El auto-comment cuenta como primera respuesta, así que pasa
+        // directamente a EnProgreso.
+        expect($ticket->fresh()->status)->toBe(TicketStatus::EnProgreso);
+        expect($ticket->fresh()->assigned_to_id)->toBe($agent->id);
+        expect($ticket->fresh()->first_responded_at)->not->toBeNull();
+        expect($ticket->fresh()->comments()->where('is_private', false)->count())->toBe(1);
+    });
+
+    it('moves from Nuevo to Asignado when assigned without auto-comment', function () {
+        $ticket = Ticket::factory()->create(['status' => TicketStatus::Nuevo]);
+        $agent = User::factory()->create();
+
+        $this->service->assign($ticket, $agent, autoComment: false);
+
         expect($ticket->fresh()->status)->toBe(TicketStatus::Asignado);
         expect($ticket->fresh()->assigned_to_id)->toBe($agent->id);
+        expect($ticket->fresh()->first_responded_at)->toBeNull();
+        expect($ticket->fresh()->comments()->count())->toBe(0);
     });
 
     it('promotes Asignado to EnProgreso on first response and is idempotent', function () {

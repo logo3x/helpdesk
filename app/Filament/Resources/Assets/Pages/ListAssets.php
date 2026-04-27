@@ -3,7 +3,12 @@
 namespace App\Filament\Resources\Assets\Pages;
 
 use App\Filament\Resources\Assets\AssetResource;
+use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 
 class ListAssets extends ListRecords
@@ -13,6 +18,73 @@ class ListAssets extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            // Modal con el comando one-liner que IT pega en cada PC.
+            // Reemplaza el "descargar .ps1 + crear tarea programada
+            // manualmente" por una sola línea de PowerShell.
+            Action::make('installInstructions')
+                ->label('Cómo instalar el agente')
+                ->icon('heroicon-o-command-line')
+                ->color('info')
+                ->modalWidth('3xl')
+                ->modalHeading('Desplegar el agente en una PC')
+                ->modalDescription('Pega esta línea en PowerShell (como administrador) en cada PC corporativa. Se descarga el agente, se crea una tarea programada semanal y se dispara un primer scan.')
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Cerrar')
+                ->modalContent(fn () => view('filament.modals.install-agent-instructions', [
+                    'installUrl' => route('agent.install'),
+                ])),
+
+            // Acceso directo al .ps1 raw (para auditoría manual antes
+            // de aprobar el script en GPO).
+            Action::make('downloadAgent')
+                ->label('Ver script .ps1')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->url(asset('downloads/inventory-agent.ps1'))
+                ->openUrlInNewTab(),
+
+            // ── Generar token Sanctum del agente ──────────────────
+            // Crea un token Bearer con la sola ability `inventory:scan`
+            // que IT pega en el script PowerShell de cada PC. El
+            // token plano se muestra UNA vez al crearlo (después
+            // queda hasheado en BD).
+            Action::make('generateAgentToken')
+                ->label('Generar token del agente')
+                ->icon('heroicon-o-key')
+                ->color('warning')
+                ->modalHeading('Generar token del agente de inventario')
+                ->modalDescription('Crea un token Bearer con permiso `inventory:scan` para usar en el script PowerShell. El token solo se mostrará una vez — copialo de inmediato.')
+                ->schema([
+                    Select::make('user_id')
+                        ->label('Usuario dueño del token')
+                        ->helperText('Recomendado: crear un usuario de servicio "agente-inventario" con rol técnico y emitir el token a su nombre.')
+                        ->options(fn () => User::orderBy('name')->pluck('name', 'id')->all())
+                        ->searchable()
+                        ->required(),
+                    TextInput::make('name')
+                        ->label('Nombre del token')
+                        ->placeholder('Ej: "Agente PC-RRHH-01" o "Tarea programada lunes"')
+                        ->required()
+                        ->maxLength(120),
+                ])
+                ->action(function (array $data): void {
+                    /** @var User $user */
+                    $user = User::findOrFail($data['user_id']);
+
+                    // Solo la ability inventory:scan — un token con esta
+                    // ability no puede hacer nada más en la app.
+                    $token = $user->createToken($data['name'], ['inventory:scan']);
+
+                    // El plainTextToken solo está disponible aquí; nunca
+                    // se vuelve a poder leer (queda hasheado).
+                    Notification::make()
+                        ->title('Token generado')
+                        ->body("Cópialo ahora — no se mostrará de nuevo:\n\n".$token->plainTextToken)
+                        ->persistent()
+                        ->success()
+                        ->send();
+                }),
+
             CreateAction::make(),
         ];
     }

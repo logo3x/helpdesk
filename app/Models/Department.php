@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\DepartmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Department extends Model
 {
-    /** @use HasFactory<\Database\Factories\DepartmentFactory> */
+    /** @use HasFactory<DepartmentFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -18,12 +19,14 @@ class Department extends Model
         'description',
         'parent_id',
         'is_active',
+        'can_access_inventory',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'can_access_inventory' => 'boolean',
         ];
     }
 

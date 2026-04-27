@@ -31,8 +31,15 @@ class SoportePanelProvider extends PanelProvider
         return $panel
             ->id('soporte')
             ->path('soporte')
-            ->login()
+            // Login unificado: usamos /login (Fortify) como único punto
+            // de entrada. Filament redirige a la ruta nombrada `login`
+            // automáticamente cuando el guard rechaza el request.
             ->profile()
+            // Campana de notificaciones persistente en la topbar.
+            // Lee de la tabla `notifications` (canal 'database' de las
+             // clases en app/Notifications). Polling cada 30s.
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s')
             ->brandName('Confipetrol Soporte')
             ->brandLogo(asset('images/logo-confipetrol-dark.png'))
             ->brandLogoHeight('2.5rem')

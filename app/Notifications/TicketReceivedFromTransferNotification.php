@@ -4,6 +4,9 @@ namespace App\Notifications;
 
 use App\Models\Department;
 use App\Models\Ticket;
+use App\Notifications\Concerns\BuildsFilamentDatabasePayload;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -17,6 +20,7 @@ use Illuminate\Notifications\Notification;
  */
 class TicketReceivedFromTransferNotification extends Notification implements ShouldQueue
 {
+    use BuildsFilamentDatabasePayload;
     use Queueable;
 
     public function __construct(
@@ -58,16 +62,23 @@ class TicketReceivedFromTransferNotification extends Notification implements Sho
     }
 
     /** @return array<string, mixed> */
-    public function toArray(object $notifiable): array
+    public function toDatabase(object $notifiable): array
     {
-        return [
-            'ticket_id' => $this->ticket->id,
-            'ticket_number' => $this->ticket->number,
-            'from_department_id' => $this->fromDepartment->id,
-            'from_department_name' => $this->fromDepartment->name,
-            'reason' => $this->reason,
-            'transferred_by' => $this->transferredBy,
-            'subject' => $this->ticket->subject,
-        ];
+        $sanitize = fn (?string $s): string => trim(strip_tags((string) $s));
+        $from = $sanitize($this->fromDepartment->name);
+        $by = $this->transferredBy ? $sanitize($this->transferredBy) : 'un supervisor';
+
+        return FilamentNotification::make()
+            ->title("Ticket {$this->ticket->number} trasladado a tu depto.")
+            ->body("Viene de {$from}, trasladado por {$by}. Aparece sin asignar en la cola.")
+            ->icon('heroicon-o-inbox-arrow-down')
+            ->iconColor('warning')
+            ->actions([
+                Action::make('view')
+                    ->label('Ver ticket')
+                    ->url($this->ticketUrlFor($notifiable, $this->ticket))
+                    ->markAsRead(),
+            ])
+            ->getDatabaseMessage();
     }
 }

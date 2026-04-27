@@ -13,5 +13,5 @@ test('authenticated users are redirected from dashboard to their panel', functio
 
     // Sin rol específico → portal del usuario final es el fallback.
     $response = $this->get(route('dashboard'));
-    $response->assertRedirect('/portal/tickets');
+    $response->assertRedirect('/portal');
 });

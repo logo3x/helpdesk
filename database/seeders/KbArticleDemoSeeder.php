@@ -80,7 +80,6 @@ class KbArticleDemoSeeder extends Seeder
                         'body' => str_replace('\\n', "\n", $body),
                         'department_id' => $dept->id,
                         'status' => 'published',
-                        'visibility' => 'public',
                     ],
                 );
 

@@ -62,7 +62,11 @@ class TicketResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getModel()::query()
+        // IMPORTANTE: usar getEloquentQuery() en lugar de Model::query()
+        // para que el badge respete el scope por depto/asignación. De lo
+        // contrario un supervisor de RRHH vería en el badge los tickets
+        // de TI (y viceversa).
+        return (string) static::getEloquentQuery()
             ->whereIn('status', [TicketStatus::Nuevo, TicketStatus::Reabierto])
             ->count();
     }

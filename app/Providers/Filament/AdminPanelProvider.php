@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Widgets\AdminStatsWidget;
+use App\Filament\Widgets\StaleAssetsWidget;
 use App\Filament\Widgets\TicketsByStatusChart;
 use App\Filament\Widgets\TicketTrendChart;
 use Awcodes\QuickCreate\QuickCreatePlugin;
@@ -36,8 +37,16 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            // Login unificado: usamos /login (Fortify) como único punto
+            // de entrada. Filament redirige a la ruta nombrada `login`
+            // automáticamente cuando el guard rechaza el request.
             ->profile()
+            // Campana de notificaciones persistente: lee de la tabla
+            // `notifications` (las que vienen del canal 'database' en
+             // cada Notification::via()). Polling cada 30s para no
+             // castigar al servidor pero mantener razonable el refresco.
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s')
             ->brandName('Confipetrol Helpdesk')
             ->brandLogo(asset('images/logo-confipetrol-dark.png'))
             ->brandLogoHeight('2.5rem')
@@ -60,6 +69,7 @@ class AdminPanelProvider extends PanelProvider
                 AdminStatsWidget::class,
                 TicketsByStatusChart::class,
                 TicketTrendChart::class,
+                StaleAssetsWidget::class,
                 AccountWidget::class,
             ])
             ->middleware([

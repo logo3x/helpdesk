@@ -14,6 +14,9 @@
             </flux:brand>
 
             <flux:navbar class="-mb-px max-lg:hidden">
+                <flux:navbar.item icon="home" :href="route('portal.home')" :current="request()->routeIs('portal.home')" wire:navigate>
+                    Inicio
+                </flux:navbar.item>
                 <flux:navbar.item icon="plus-circle" :href="route('portal.tickets.create')" :current="request()->routeIs('portal.tickets.create')" wire:navigate>
                     Crear ticket
                 </flux:navbar.item>
@@ -23,9 +26,16 @@
                 <flux:navbar.item icon="chat-bubble-left-right" :href="route('portal.chatbot')" :current="request()->routeIs('portal.chatbot')" wire:navigate>
                     Asistente
                 </flux:navbar.item>
+                <flux:navbar.item icon="book-open" :href="route('portal.kb.index')" :current="request()->routeIs('portal.kb.*')" wire:navigate>
+                    Centro de ayuda
+                </flux:navbar.item>
             </flux:navbar>
 
             <flux:spacer />
+
+            {{-- Campanita de notificaciones (lee de tabla `notifications`,
+                 polling 30s, mismo shape Filament que /soporte y /admin). --}}
+            <livewire:portal.notifications-bell />
 
             <flux:dropdown position="top" align="end">
                 <flux:profile
@@ -60,11 +70,17 @@
         {{-- Mobile nav --}}
         <flux:header class="lg:hidden border-b border-zinc-200 dark:border-zinc-700">
             <flux:navbar>
+                <flux:navbar.item icon="home" :href="route('portal.home')" :current="request()->routeIs('portal.home')" wire:navigate>
+                    Inicio
+                </flux:navbar.item>
                 <flux:navbar.item icon="plus-circle" :href="route('portal.tickets.create')" :current="request()->routeIs('portal.tickets.create')" wire:navigate>
                     Crear
                 </flux:navbar.item>
                 <flux:navbar.item icon="inbox" :href="route('portal.tickets.index')" :current="request()->routeIs('portal.tickets.index')" wire:navigate>
                     Mis tickets
+                </flux:navbar.item>
+                <flux:navbar.item icon="book-open" :href="route('portal.kb.index')" :current="request()->routeIs('portal.kb.*')" wire:navigate>
+                    Ayuda
                 </flux:navbar.item>
             </flux:navbar>
         </flux:header>

@@ -2,21 +2,21 @@
 
 namespace App\Filament\Soporte\Resources\Tickets\Pages;
 
-use App\Enums\TicketImpact;
-use App\Enums\TicketPriority;
-use App\Enums\TicketUrgency;
+use App\Filament\Soporte\Resources\Tickets\Schemas\EditTicketForm;
 use App\Filament\Soporte\Resources\Tickets\TicketResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 
 class EditTicket extends EditRecord
 {
     protected static string $resource = TicketResource::class;
 
     /**
-     * Solo supervisor+admin pueden llegar al form de edición completo.
+     * Solo supervisor+admin pueden llegar al form de edición.
      * Los agentes que intenten acceder a /soporte/tickets/{id}/edit por
      * URL directa reciben 403. Su flujo de trabajo es "Tomar ticket" +
      * agregar comentarios, no editar el contenido original.
@@ -33,22 +33,19 @@ class EditTicket extends EditRecord
     }
 
     /**
-     * Recompute priority from impact × urgency on save so edits from the
-     * admin form stay consistent with TicketService::create().
+     * El form de edición es reducido a propósito (asunto, descripción,
+     * categoría). Prioridad, asignación, traslado y workflow se hacen
+     * con las acciones del detalle para mantener una sola fuente de
+     * verdad (el servicio) y un audit trail consistente.
      */
-    protected function mutateFormDataBeforeSave(array $data): array
+    public function form(Schema $schema): Schema
     {
-        $impact = $data['impact'] instanceof TicketImpact
-            ? $data['impact']
-            : TicketImpact::from($data['impact']);
+        return EditTicketForm::configure($schema);
+    }
 
-        $urgency = $data['urgency'] instanceof TicketUrgency
-            ? $data['urgency']
-            : TicketUrgency::from($data['urgency']);
-
-        $data['priority'] = TicketPriority::fromMatrix($impact, $urgency)->value;
-
-        return $data;
+    public function getMaxContentWidth(): Width
+    {
+        return Width::Full;
     }
 
     protected function getHeaderActions(): array

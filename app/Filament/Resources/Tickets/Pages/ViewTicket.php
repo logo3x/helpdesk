@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\Tickets\Pages;
 
+use App\Enums\TicketImpact;
+use App\Enums\TicketUrgency;
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Models\Department;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Notifications\TicketReceivedFromTransferNotification;
 use App\Notifications\TicketTransferredNotification;
+use App\Services\TicketService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -90,6 +93,50 @@ class ViewTicket extends ViewRecord
                         ->send();
 
                     $this->refreshFormData(['department_id', 'assigned_to_id', 'category_id']);
+                }),
+
+            // Recalibrar prioridad también disponible en /admin para que
+            // super_admin/admin puedan corregir tickets mal clasificados
+            // sin tener que rebotar al panel de soporte.
+            Action::make('recalibratePriority')
+                ->label('Recalibrar prioridad')
+                ->icon('heroicon-o-scale')
+                ->color('warning')
+                ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin'])
+                    && $ticket->status->isOpen())
+                ->fillForm(fn () => [
+                    'impact' => $ticket->impact?->value,
+                    'urgency' => $ticket->urgency?->value,
+                ])
+                ->schema([
+                    Select::make('impact')
+                        ->label('Impacto')
+                        ->options(TicketImpact::class)
+                        ->required(),
+                    Select::make('urgency')
+                        ->label('Urgencia')
+                        ->options(TicketUrgency::class)
+                        ->required(),
+                    Textarea::make('reason')
+                        ->label('Motivo del ajuste')
+                        ->rows(2)
+                        ->required()
+                        ->maxLength(500)
+                        ->placeholder('Queda registrado en el historial del ticket.'),
+                ])
+                ->action(function (array $data) use ($ticket): void {
+                    abort_unless(auth()->user()?->can('update', $ticket), 403);
+                    app(TicketService::class)->recalibratePriority(
+                        $ticket,
+                        $data['impact'],
+                        $data['urgency'],
+                        $data['reason'] ?? null,
+                    );
+                    Notification::make()
+                        ->title('Prioridad recalibrada')
+                        ->success()
+                        ->send();
+                    $this->refreshFormData(['impact', 'urgency', 'priority', 'first_response_due_at', 'resolution_due_at']);
                 }),
 
             Action::make('open_in_soporte')

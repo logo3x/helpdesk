@@ -60,6 +60,11 @@ class DepartmentForm
                 Toggle::make('is_active')
                     ->label('Activo')
                     ->default(true),
+
+                Toggle::make('can_access_inventory')
+                    ->label('Acceso al módulo de Inventario')
+                    ->helperText('Si está activo, los usuarios de este depto podrán ver el inventario de equipos en /soporte. Útil para el área de TI.')
+                    ->default(false),
             ]);
     }
 }

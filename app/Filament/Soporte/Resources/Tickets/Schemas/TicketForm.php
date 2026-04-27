@@ -62,17 +62,25 @@ class TicketForm
                                     $set('category_id', $category->id);
                                     $set('department_id', $category->department_id);
                                 }
-                                if ($template->impact) {
-                                    $set('impact', $template->impact);
+                                // El modelo TicketTemplate puede tener
+                                // impact/urgency como string crudo o ya
+                                // casteado al enum, dependiendo de cómo
+                                // se haya hidratado. Normalizamos a enum.
+                                $impactEnum = $template->impact instanceof TicketImpact
+                                    ? $template->impact
+                                    : ($template->impact ? TicketImpact::from($template->impact) : null);
+                                $urgencyEnum = $template->urgency instanceof TicketUrgency
+                                    ? $template->urgency
+                                    : ($template->urgency ? TicketUrgency::from($template->urgency) : null);
+
+                                if ($impactEnum) {
+                                    $set('impact', $impactEnum->value);
                                 }
-                                if ($template->urgency) {
-                                    $set('urgency', $template->urgency);
+                                if ($urgencyEnum) {
+                                    $set('urgency', $urgencyEnum->value);
                                 }
-                                if ($template->impact && $template->urgency) {
-                                    $set('priority', TicketPriority::fromMatrix(
-                                        TicketImpact::from($template->impact),
-                                        TicketUrgency::from($template->urgency),
-                                    )->value);
+                                if ($impactEnum && $urgencyEnum) {
+                                    $set('priority', TicketPriority::fromMatrix($impactEnum, $urgencyEnum)->value);
                                 }
                             }),
                     ])
@@ -101,7 +109,14 @@ class TicketForm
                             ->toolbarButtons(['bold', 'italic', 'link', 'bulletList', 'orderedList', 'codeBlock', 'blockquote', 'heading', 'undo', 'redo'])
                             ->columnSpanFull(),
                     ])
-                    ->columns(2),
+                    ->columns(2)
+                    // "Identificación" contiene asunto y descripción —
+                    // el contenido principal del ticket. La dejamos
+                    // expandida en view para que el agente lea el
+                    // problema sin tener que abrir secciones; las
+                    // otras (Clasificación, Partes, Adjuntos) sí
+                    // arrancan colapsadas porque son metadata.
+                    ->collapsible(),
 
                 Section::make('Clasificación')
                     ->schema([
@@ -140,7 +155,9 @@ class TicketForm
                             ->required()
                             ->disabledOn('create'),
                     ])
-                    ->columns(2),
+                    ->columns(2)
+                    ->collapsible()
+                    ->collapsed(fn (string $operation) => $operation === 'view'),
 
                 Section::make('Partes y asignación')
                     ->schema([
@@ -183,7 +200,9 @@ class TicketForm
                             ->searchable()
                             ->live(),
                     ])
-                    ->columns(2),
+                    ->columns(2)
+                    ->collapsible()
+                    ->collapsed(fn (string $operation) => $operation === 'view'),
 
                 Section::make('Adjuntos')
                     ->schema([
@@ -203,7 +222,8 @@ class TicketForm
                             ])
                             ->columnSpanFull(),
                     ])
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(fn (string $operation) => $operation === 'view'),
 
                 Section::make('Tiempos')
                     ->schema([

@@ -70,20 +70,15 @@ class KbArticleForm
                                 ? 'El artículo se asocia al departamento al que pertenece.'
                                 : 'Tu departamento se asigna automáticamente.'),
 
-                        Select::make('visibility')
-                            ->label('Visibilidad')
-                            ->options([
-                                'public' => 'Pública (todos los usuarios)',
-                                'internal' => 'Interna (solo agentes)',
-                            ])
-                            ->default('public')
-                            ->required(),
-
                         // ── Estado: solo visible para supervisores+ ─────────
                         // Los agentes crean siempre en Borrador (se fuerza
-                        // en CreateKbArticle::mutateFormDataBeforeCreate).
+                        // en CreateKbArticle::mutateFormDataBeforeCreate)
+                        // y un supervisor debe aprobarlo pasándolo a
+                        // Publicado. Al estar Publicado, queda visible
+                        // en el chatbot (RagService) y en /portal.
                         Select::make('status')
                             ->label('Estado')
+                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Fase del ciclo de vida. · Borrador: en construcción, solo staff lo ve en /soporte. · Publicado: visible en el chatbot y en /portal para todos los empleados. · Archivado: ya no aplica, se conserva por histórico. Los agentes solo pueden dejarlo en Borrador; un supervisor debe Publicarlo.')
                             ->options([
                                 'draft' => 'Borrador',
                                 'published' => 'Publicado',
@@ -91,8 +86,7 @@ class KbArticleForm
                             ])
                             ->default('draft')
                             ->required()
-                            ->visible(fn () => static::isSupervisor())
-                            ->helperText('Como supervisor puedes publicar o archivar este artículo.'),
+                            ->visible(fn () => static::isSupervisor()),
 
                         // ── Publicado el: solo visible para supervisores+ ──
                         DateTimePicker::make('published_at')

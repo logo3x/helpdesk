@@ -10,6 +10,7 @@ use App\Models\TicketCounter;
 use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Support\Carbon;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     $this->service = app(TicketService::class);
@@ -108,6 +109,46 @@ describe('lifecycle transitions', function () {
         $this->service->markFirstResponse($ticket->fresh());
 
         expect($ticket->fresh()->first_responded_at->equalTo($firstStamp))->toBeTrue();
+    });
+
+    it('recalibrates priority from matrix and logs the reason', function () {
+        $ticket = Ticket::factory()->assigned()->create([
+            'impact' => TicketImpact::Bajo,
+            'urgency' => TicketUrgency::Baja,
+            'priority' => TicketPriority::Baja,
+        ]);
+
+        // Autenticamos para que el activity log capture al causante.
+        $supervisor = User::factory()->create();
+        $this->actingAs($supervisor);
+
+        $result = $this->service->recalibratePriority(
+            $ticket,
+            TicketImpact::Alto,
+            TicketUrgency::Alta,
+            'El solicitante subestimó el impacto; afecta a toda el área.',
+        );
+
+        expect($result->impact)->toBe(TicketImpact::Alto);
+        expect($result->urgency)->toBe(TicketUrgency::Alta);
+        expect($result->priority)->toBe(TicketPriority::Critica);
+
+        $fresh = $ticket->fresh();
+        expect($fresh->impact)->toBe(TicketImpact::Alto);
+        expect($fresh->priority)->toBe(TicketPriority::Critica);
+
+        $activity = Activity::query()
+            ->where('subject_type', Ticket::class)
+            ->where('subject_id', $ticket->id)
+            ->where('description', 'priority_recalibrated')
+            ->latest('id')
+            ->first();
+
+        expect($activity)->not->toBeNull();
+        expect($activity->causer_id)->toBe($supervisor->id);
+        expect($activity->properties['reason'])->toContain('subestimó');
+        expect($activity->properties['old']['priority'])->toBe(TicketPriority::Baja->value);
+        expect($activity->properties['new']['priority'])->toBe(TicketPriority::Critica->value);
     });
 
     it('resolve, close and reopen stamp the expected timestamps', function () {

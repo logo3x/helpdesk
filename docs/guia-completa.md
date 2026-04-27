@@ -1,7 +1,7 @@
 # Helpdesk Confipetrol — Guía Completa
 
-**Versión:** 1.6 (integración de plantillas + canned responses + 75 registros demo)  
-**Fecha:** 17 de abril de 2026  
+**Versión:** 1.9 — login unificado, dashboard del portal, flujo de aprobación KB, inventario configurable por depto, campanita en portal, despliegue del agente con un solo comando.
+**Fecha:** 25 de abril de 2026
 **Responsable:** Luis Oviedo (luis.oviedo@confipetrol.com)
 
 ---
@@ -123,23 +123,55 @@ Se detecta una vulnerabilidad crítica en cierta versión de Chrome. El admin de
 ### Doble mecanismo de captura
 
 **Web Scan (automático, limitado):**
-- Script JS que recolecta: OS, CPU cores, RAM estimada, GPU (WebGL), resolución, timezone.
-- Se ejecuta una vez al día al visitar el portal.
-- No requiere instalar nada.
+- Script JS [resources/js/inventory-collector.js](../resources/js/inventory-collector.js) compilado con Vite.
+- Se ejecuta una vez al día al visitar el portal (flag en localStorage).
+- Recolecta: OS aproximado, CPU cores (`navigator.hardwareConcurrency`), RAM estimada (`deviceMemory`), GPU (WebGL), resolución, timezone, user agent, IP.
+- No requiere instalar nada — es totalmente transparente para el usuario.
+- Endpoint: `POST /api/inventory/web-scan` (autenticación: cookie de sesión, requiere `statefulApi()` activado en `bootstrap/app.php`).
 
-**Agente PowerShell (completo):**
-- Script `.ps1` instalado en cada equipo.
-- Recolecta: hardware, BIOS, serial, discos, software instalado, actualizaciones.
-- Autenticado con token Sanctum Bearer.
-- Sincroniza la lista completa de software en cada scan.
+**Agente PowerShell (completo) — v1.9 simplificado:**
+- Script `.ps1` ([public/downloads/inventory-agent.ps1](../public/downloads/inventory-agent.ps1)) recolecta vía CIM/WMI: BIOS, serial, fabricante, modelo, CPU exacto, RAM real, discos, GPU, MAC. Más la lista completa de software desde el registry (HKLM, HKCU, WOW6432Node).
+- Autenticado con token Sanctum Bearer (ability `inventory:scan`).
+- Endpoint: `POST /api/inventory/agent-scan`.
+
+**Despliegue del agente con UN solo comando (v1.9):**
+
+1. Admin entra a `/admin → Inventario → "Generar token del agente"`. Elige usuario dueño (recomendado: usuario de servicio "agente-inventario") y nombre del token. Copia el token.
+2. Click en `"Cómo instalar el agente"` para ver el modal con el comando.
+3. En cada PC corporativa, IT pega en PowerShell (admin):
+
+   ```powershell
+   iex (irm "https://helpdesk.confipetrol.com/agent/install?token=PEGA_AQUI_TU_TOKEN")
+   ```
+
+4. Eso descarga el agente, lo guarda en `C:\ProgramData\HelpdeskConfipetrol\`, crea una tarea programada **lunes 9 AM como SYSTEM** y dispara un primer scan inmediato.
+
+Para flotas grandes (>50 PCs): el mismo comando se despliega como **GPO Startup Script**, **Intune** o **SCCM**. Un solo token compartido sirve para toda la flota.
 
 ### Datos almacenados
 
-- **Asset**: hostname, serial, fabricante, modelo, OS, CPU, RAM, disco, GPU, IP, MAC, estado.
+- **Asset**: hostname, serial, fabricante, modelo, OS, CPU, RAM, disco, GPU, IP, MAC, estado, `last_scan_at`.
 - **Software por activo**: nombre, versión, publisher, fecha de instalación.
 - **Componentes**: CPU, RAM, disco, GPU, periféricos (specs JSON).
-- **Historial**: cada cambio y scan registrado.
-- **Scans crudos**: payload JSON completo para auditoría.
+- **Historial**: cada cambio y scan registrado en `asset_history`.
+- **Scans crudos**: payload JSON completo en `asset_scans` para auditoría.
+
+### Acceso al módulo (v1.9 configurable por depto)
+
+Admin entra a **/admin → Departamentos → editar** y activa el toggle **"Acceso al módulo de Inventario"** por depto. Reglas:
+
+- **super_admin / admin**: ven y editan siempre (panel /admin).
+- **supervisor / agente / técnico** del depto con flag activo: ven y editan en `/soporte → Inventario` (panel /soporte).
+- **agente / técnico**: NO pueden borrar (solo cambiar status a "retirado"). El supervisor sí.
+- **Otros**: no acceden.
+
+Por defecto solo el depto con `slug='ti'` tiene el flag activado (migración auto-activa).
+
+### Widgets útiles
+
+- **Dashboard /admin → "Equipos sin scan reciente (>30 días)"**: tabla con equipos activos cuya `last_scan_at` es null o supera el umbral. Detecta tareas programadas caídas o equipos perdidos.
+- **AdminStatsWidget**: stat "Usuarios" muestra cuántos activos hay en inventario, clickeable a `/admin/users`.
+- **Botón "Exportar inventario"** en la tabla: descarga Excel/CSV con los filtros aplicados (depto, tipo, estado, sin scan reciente).
 
 ---
 
@@ -151,20 +183,35 @@ Reducir tickets repetitivos dándole a los usuarios artículos de auto-servicio 
 ### Caso real
 TI recibía 40 tickets al mes de "cómo configurar el correo en el celular". Se publicó UN artículo KB con los pasos. Los usuarios lo encuentran en el chatbot (vía RAG) o buscando directamente. Los tickets bajaron a 8 al mes (–80%).
 
-### Estructura (v1.5)
+### Estructura (v1.5 + v1.8 simplificado)
 
 - **Categoría = Departamento**: el artículo pertenece al depto responsable (TI, RRHH, etc.).
 - **Estados**: Borrador → Publicado → Archivado.
-- **Visibilidad**: Pública (usuarios finales) o Interna (solo agentes).
 - **Author**: quien lo crea.
 - **Contadores**: vistas, útil, no útil.
 
-### Flujo de aprobación
+> **v1.8 — eliminado el campo `visibility`**: redundante con `status`. Ahora solo importa el estado: **Publicado = visible** en el chatbot y en el centro de ayuda del portal. **Borrador y Archivado** nunca se exponen al usuario final. Migración aplicada en `2026_04_24_180640_drop_visibility_from_kb_articles`.
 
-1. El **agente** crea el artículo en status **"Borrador"** (no puede publicar directamente).
-2. El **supervisor** revisa y pasa a **"Publicado"**.
-3. El `published_at` se asigna automáticamente (campo readonly).
-4. Los usuarios finales solo ven artículos **Publicados + Públicos**.
+### Flujo de aprobación (v1.9 formalizado)
+
+1. El **agente** crea el artículo en **Borrador** (no puede publicar directamente). Puede usar el botón **"✨ Redactar con IA"** para que el LLM estructure el artículo a partir de lenguaje natural.
+2. Cuando termina, click **"Solicitar publicación"** → marca `pending_review_at = now()` y notifica a los supervisores del depto vía `KbArticleReviewRequestedNotification` (mail + campanita).
+3. El **supervisor** entra a `/soporte → Base de conocimiento` (badge muestra cuántos esperan revisión), abre el artículo y click **"Aprobar y publicar"**:
+   - `status = published`, `published_at = now()`, `pending_review_at = null`.
+   - El autor recibe `KbArticlePublishedNotification` con link directo al artículo.
+4. Si el agente edita un artículo ya publicado, vuelve a Borrador automáticamente y debe re-solicitar publicación.
+
+El agente puede **cancelar su propia solicitud** mientras esté pendiente. El supervisor puede publicar directo sin pasar por el flujo (atajo legacy).
+
+### Centro de ayuda en /portal (v1.9)
+
+Los usuarios finales acceden a **/portal/kb** con:
+- Buscador full-text en título y cuerpo.
+- Filtros por departamento y categoría.
+- Vista detallada en **/portal/kb/{slug}** con Markdown renderizado, contador de vistas (1 por sesión) y botones útil / no-útil.
+- Solo se listan artículos `status='published'` (gracias a `scopePublished`).
+
+Componentes: [App\Livewire\Portal\KbIndex](../app/Livewire/Portal/KbIndex.php) y [App\Livewire\Portal\KbShow](../app/Livewire/Portal/KbShow.php).
 
 ### Versionado
 
@@ -558,23 +605,77 @@ Tras `php artisan migrate:fresh --seed --force`:
 
 ---
 
-## 19. Pendientes / roadmap
+## 19. Hitos v1.7 — v1.9 (cambios desde v1.6)
 
-Ver [docs/pendientes.md](pendientes.md) para la lista priorizada. Destacados:
+### v1.7 — Asistente IA + auto-comentarios
 
-- **P1:** Envío real de correos SMTP (hoy todo va a `laravel.log`)
-- **P1:** Credenciales productivas de Azure AD
-- **P1:** Notificaciones en tiempo real en el portal (campanita)
-- **P2:** Flujo formal de aprobación de KB con notificaciones
-- **P2:** Búsqueda de KB desde el portal
-- **P3:** Bot de Teams, App móvil nativa
+- **Asistente IA para redactar KB** ([app/Services/LlmService.php](../app/Services/LlmService.php) `draftKbArticle`): el agente escribe la idea en lenguaje natural y el LLM (OpenRouter / Claude / Anthropic configurable) la estructura en Markdown con secciones limpias.
+- **Auto-comentario al asignar ticket**: cuando un agente toma un ticket, se genera un comentario público automático para que el solicitante sepa que está siendo atendido. Cuenta como "primera respuesta" para el SLA.
+- **Auto-asignación al marcar primera respuesta**: si nadie tiene asignado el ticket y un agente marca primera respuesta, se le asigna automáticamente.
+- **Notif a supervisores destino al trasladar ticket** ([TicketReceivedFromTransferNotification](../app/Notifications/TicketReceivedFromTransferNotification.php)): cuando un ticket cambia de depto, los supervisores del depto receptor reciben mail + campanita.
+
+### v1.8 — Limpieza, recalibración + database notifications
+
+- **Acción "Recalibrar prioridad"** en ticket: supervisor+ puede cambiar impacto/urgencia, recalcula prioridad y SLA preservando `created_at` como origen del reloj. Audit log con motivo en `activity_log.properties`.
+- **Edit de ticket reducido**: solo asunto, descripción y categoría. El resto se gestiona vía acciones del detalle (asignar, trasladar, recalibrar).
+- **Database notifications (campanita) en /admin y /soporte**: shape Filament unificado, polling 30s, URL automática según rol del receptor.
+- **KB simplificado**: eliminada columna `visibility` redundante. Solo `status` controla quién ve qué.
+
+### v1.9 — Portal completo + inventario configurable + login unificado
+
+**Portal del solicitante:**
+- **Dashboard de bienvenida** en `/portal` ([App\Livewire\Portal\Dashboard](../app/Livewire/Portal/Dashboard.php)): saludo, 4 stat cards, accesos rápidos, últimos tickets, KB destacados.
+- **Centro de ayuda KB** en `/portal/kb` con buscador, filtros y feedback útil/no-útil.
+- **Campanita de notificaciones** ([App\Livewire\Portal\NotificationsBell](../app/Livewire/Portal/NotificationsBell.php)): polling 30s, click marca como leída + redirige (con re-host automático ante cambios de APP_URL).
+- **Vista de ticket rediseñada**: thread tipo email con avatares y barra lateral coloreada (sky=solicitante, emerald=soporte), Markdown renderizado en cada burbuja.
+- **Stats del dashboard clickeables**: cada card lleva al filtro correspondiente.
+
+**Soporte:**
+- **Flujo formal de aprobación KB**: agente → "Solicitar publicación" → supervisor → "Aprobar y publicar". Notifs mail + campanita en cada paso. Badge en navegación con cuántos esperan revisión.
+- **Reporte SLA** disponible en /soporte (antes solo /admin). Scoped por depto para supervisores.
+- **Categorías administrables** por supervisor: solo ven y crean en su depto.
+- **TicketStatsWidget scoped**: admin → global, supervisor → su depto + stats extra ("Mi equipo" + "KB por aprobar"), agente → su cola.
+- **Vista de ticket con infolist organizado**: resumen → descripción → adjuntos → SLA → clasificación. Layout pensado para escaneo en 5 segundos.
+- **Form de creación de ticket** con secciones por pregunta natural (¿Plantilla? ¿Cuál es el problema? ¿Para quién? ¿Qué tan crítico?).
+- **Acción "Tomar este ticket"** abre modal con respuesta predefinida + textarea editable (no más saludo genérico fijo).
+- **Acción "Recalibrar prioridad"** disponible en /soporte y /admin.
+
+**Login unificado:**
+- Eliminados `/admin/login` y `/soporte/login`. Solo queda `/login` (Fortify) como puerta única.
+- Vista de login con branding Confipetrol (card layout, iconos, divisor "o continúa con", botón Azure AD si está configurado).
+- Después del login, redirección automática al panel correcto según rol.
+
+**Inventario:**
+- **Acceso configurable por depto**: admin habilita el módulo en Departamentos → toggle "Acceso al módulo de Inventario". Por default solo TI lo tiene activo.
+- **AssetPolicy** reescrita para no depender de Shield: la regla es rol + flag de depto.
+- **AssetForm** rediseñado con secciones colapsables: Identificación · Asignación · Hardware · SO · Red · Notas. Selects de usuario/depto con buscador.
+- **Generación de tokens del agente desde la UI**: ya no hace falta tinker.
+- **Despliegue del agente con un solo comando**: `iex (irm "/agent/install?token=...")` → descarga, configura task scheduler, primer scan.
+- **Widget "Equipos sin scan reciente (>30 días)"** en dashboard /admin.
+- **Exportación Excel/CSV** del inventario con filtros aplicados.
+
+**Calidad y mensajes:**
+- Mensajes de validación 100% en español ([lang/es/validation.php](../lang/es/validation.php), `auth.php`, `passwords.php`, `pagination.php`).
+- 91 tests Pest pasando, 239 assertions.
 
 ---
 
-## 20. Repositorio
+## 20. Pendientes / roadmap
+
+Ver [docs/pendientes.md](pendientes.md) para la lista priorizada. Destacados pendientes:
+
+- **P0:** Migrar LLM a Claude API o Azure OpenAI (DPA + privacidad)
+- **P1:** Envío real de correos SMTP (hoy `MAIL_MAILER=log`)
+- **P1:** Credenciales productivas de Azure AD
+- **P3:** Plantillas de tickets recurrentes (cron), Bot de Teams, App móvil nativa
+- **P3:** Optimizar despliegue del agente PowerShell (instalador `.msi`, integración GPO/Intune masivo)
+
+---
+
+## 21. Repositorio
 
 **GitHub:** https://github.com/logo3x/helpdesk
 
 ---
 
-*Documento actualizado 2026-04-17 — v1.6 con integración de plantillas y canned responses en los forms.*
+*Documento actualizado 2026-04-25 — v1.9 con login unificado, dashboard del portal, flujo de aprobación KB, inventario configurable por depto y despliegue de agente con un solo comando.*

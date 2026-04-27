@@ -7,10 +7,13 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class KbArticlesTable
 {
@@ -48,11 +51,17 @@ class KbArticlesTable
                         default => 'gray',
                     }),
 
-                TextColumn::make('visibility')
-                    ->label('Visibilidad')
-                    ->badge()
-                    ->formatStateUsing(fn (string $state) => $state === 'public' ? 'Pública' : 'Interna')
-                    ->color(fn (string $state) => $state === 'public' ? 'success' : 'gray'),
+                IconColumn::make('pending_review_at')
+                    ->label('Por revisar')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-paper-airplane')
+                    ->trueColor('info')
+                    ->falseIcon('heroicon-o-minus')
+                    ->falseColor('gray')
+                    ->getStateUsing(fn ($record) => $record->pending_review_at !== null)
+                    ->tooltip(fn ($record) => $record->pending_review_at
+                        ? 'Pendiente de aprobación desde '.$record->pending_review_at->diffForHumans()
+                        : null),
 
                 TextColumn::make('author.name')
                     ->label('Autor')
@@ -71,6 +80,11 @@ class KbArticlesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Filter::make('pending_review')
+                    ->label('Pendientes de revisión')
+                    ->query(fn (Builder $query) => $query->whereNotNull('pending_review_at')->where('status', 'draft'))
+                    ->toggle(),
+
                 SelectFilter::make('department_id')
                     ->label('Departamento')
                     ->relationship('department', 'name'),

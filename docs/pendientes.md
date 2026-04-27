@@ -1,6 +1,6 @@
 # Pendientes — Helpdesk Confipetrol
 
-**Última actualización:** 2026-04-21 (v1.7)
+**Última actualización:** 2026-04-25 (v1.9)
 
 Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = prioridad sugerida.
 
@@ -81,38 +81,29 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
 - Configurar redirect URI: `https://helpdesk.confipetrol.com/auth/azure/callback`.
 - Mapear grupos Azure → roles Spatie en `config/azure-roles.php`.
 
-### 3. Notificaciones en tiempo real (campanita en portal)
+### 3. ~~Notificaciones en tiempo real — campanita en /portal~~ ✅ **HECHO en v1.9**
 
-**Estado hoy:** notificaciones se guardan en tabla `notifications` pero no hay UI para verlas en `/portal`.
-
-**Qué hace falta:**
-- Agregar componente Livewire en el header del portal que muestre badge de no-leídas.
-- Dropdown con lista de notificaciones recientes.
-- Marcar como leída al hacer click.
-- Link directo al ticket relacionado.
+Componente `App\Livewire\Portal\NotificationsBell` agregado al header de `/portal` con polling 30s, lee shape Filament desde `data` JSON, click marca como leída + redirige según `actions[0].url` (con fallback a `ticket_id` para payload legacy), botón "Marcar todas como leídas".
 
 ---
 
 ## 🟢 P2 — Mejoras deseables
 
-### 4. Flujo de aprobación de KB articles
+### 4. ~~Flujo de aprobación de KB articles~~ ✅ **HECHO en v1.9**
 
-**Estado hoy:** agente crea en status="draft", supervisor puede publicar directamente. No hay workflow formal.
+- Migración añade columnas `pending_review_at` + `pending_review_by_id` (FK users).
+- Acción "Solicitar publicación" para agente → marca pending_review + notifica a supervisores del depto vía `KbArticleReviewRequestedNotification` (mail + database).
+- Acción "Cancelar solicitud" para que el autor se arrepienta antes de aprobación.
+- Acción "Aprobar y publicar" para supervisor → publica + notifica al autor con `KbArticlePublishedNotification`.
+- Filtro "Pendientes de revisión" + columna icono en la tabla KB del panel /soporte.
+- Badge en navegación: número de KB pendientes (solo visible para supervisor+).
+- Pendiente menor (no bloqueante): rechazo con motivo. Por ahora se cancela la solicitud o se devuelve a draft sin notif explícita.
 
-**Qué hace falta:**
-- Botón "Solicitar publicación" en edit de KB (para agente).
-- Notificación al supervisor cuando hay pendiente de aprobación.
-- Vista "KB pendientes de aprobar" para supervisor.
-- Log de aprobaciones con comentario opcional.
+### 5. ~~Centro de ayuda KB en /portal~~ ✅ **HECHO en v1.9**
 
-### 5. Búsqueda de KB desde el portal
-
-**Estado hoy:** el chatbot tiene RAG pero el usuario no puede buscar KB directamente.
-
-**Qué hace falta:**
-- Agregar `/portal/kb` con buscador y lista de KBs públicas.
-- Filtro por departamento / categoría.
-- Contador de vistas + botón "útil / no útil".
+- `App\Livewire\Portal\KbIndex` lista paginada con buscador (LIKE en title+body) y filtros por departamento + categoría, querystring sincronizado.
+- `App\Livewire\Portal\KbShow` detalle Markdown (mismo render que tickets/chatbot), 404 en draft/archived, contador de vistas (1 por sesión via session flag), feedback útil/no-útil con UPSERT atómico de contadores.
+- Rutas `/portal/kb` y `/portal/kb/{slug}` + link "Centro de ayuda" en navbar.
 
 ### 6. Reporte SLA exportable a PDF
 
@@ -123,14 +114,14 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
 - Diseño con logo Confipetrol + gráficas.
 - Programar envío automático el 1° de cada mes al buzón de Gerencia TI.
 
-### 7. Dashboard para supervisores
+### 7. ~~Dashboard para supervisores~~ ✅ **HECHO en v1.9**
 
-**Estado hoy:** todos los dashboards de `/soporte` muestran datos globales.
+`TicketStatsWidget` ahora respeta el rol del usuario:
+- super_admin/admin → totales globales (descripción "Todo el sistema").
+- supervisor_soporte → solo de su departamento + 2 stats extra: "Mi equipo" (agentes/técnicos del depto) y "KB por aprobar" (drafts con pending_review_at).
+- agente/técnico → solo su cola (asignados a él o sin asignar dentro de su depto).
 
-**Qué hace falta:**
-- Filtrar automáticamente los widgets por depto del supervisor logueado.
-- Stat adicional: "Agentes de mi depto" (activos / libres / saturados).
-- Ranking de agentes por productividad (tickets resueltos / CSAT / tiempo respuesta).
+Pendiente menor (no bloqueante): ranking de agentes por productividad (tickets resueltos / CSAT / tiempo respuesta) — se hará cuando haya datos reales en producción para definir el corte.
 
 ---
 
@@ -156,6 +147,19 @@ Puente bidireccional para sincronizar tickets con herramientas externas de clien
 
 El chatbot sugiere al agente humano soluciones basadas en tickets históricos similares resueltos.
 
+### 13. Optimizar despliegue del agente PowerShell de inventario
+
+**Estado hoy:** el script existe ([public/downloads/inventory-agent.ps1](public/downloads/inventory-agent.ps1)), el endpoint `/api/inventory/agent-scan` funciona y hay UI para generar tokens. El obstáculo es **operativo**: requiere acceso al ticker de la red corporativa (cada PC debe poder llamar a la URL del helpdesk), generar un token Sanctum por equipo o uno común, y desplegar el script + tarea programada en cada PC. Son demasiados pasos manuales para desplegar a >100 equipos.
+
+**Qué hace falta para optimizarlo (cuando se retome):**
+- Modo "auto-instalador": un único `.exe` o `.msi` firmado que IT despliegue por GPO y deje todo configurado (script + token + task scheduler).
+- O bien: un solo token compartido por la flota con rotación periódica desde el panel.
+- Documentar la URL pública del helpdesk para que las PCs puedan alcanzarla desde la red corporativa (¿debe estar dentro o fuera de la VPN?).
+- Añadir telemetría: que el panel marque qué equipos reportaron en las últimas 24/72/168h (el widget "Equipos sin scan reciente" ya cubre parte).
+- Considerar reemplazar el agente PowerShell por una integración con la herramienta de gestión existente (ManageEngine, Lansweeper, etc.) si ya tienen una.
+
+Por ahora solo se está usando el **web-scan** (ligero, automático al abrir el portal). Cubre el caso "saber qué usuarios usan qué OS/IP" pero no detalles de hardware ni software instalado.
+
 ---
 
 ## ✅ Ya implementado (no son pendientes)
@@ -177,6 +181,36 @@ Marcado para saber qué ya funciona:
 - [x] **v1.6:** Integración: selector de plantilla en crear-ticket
 - [x] **v1.6:** Integración: selector de canned response al comentar
 - [x] **v1.6:** 75 registros demo sembrados (25 KB + 25 plantillas + 25 canned)
+- [x] **v1.7:** Asistente IA para redactar KB en lenguaje natural (OpenRouter / Llama)
+- [x] **v1.7:** Auto-comentario público al asignar ticket (UX para solicitante)
+- [x] **v1.7:** Auto-asignación al marcar primera respuesta
+- [x] **v1.7:** Notificación a supervisores del depto destino al trasladar ticket
+- [x] **v1.8:** Acción "Recalibrar prioridad" con audit log (motivo en `activity_log.properties`)
+- [x] **v1.8:** Edit de ticket reducido (asunto/descripción/categoría) — el resto vía acciones del detalle
+- [x] **v1.8:** Database notifications (campanita) en /admin y /soporte con shape Filament + URL por rol
+- [x] **v1.8:** Eliminada columna `visibility` de KB — solo `status` controla quién ve qué
+- [x] **v1.9:** Centro de ayuda KB en /portal (lista, detalle, feedback, contador de vistas)
+- [x] **v1.9:** Campanita de notificaciones en /portal (Livewire, polling 30s)
+- [x] **v1.9:** Flujo de aprobación KB (solicitar publicación → notif supervisor → aprobar y publicar)
+- [x] **v1.9:** Stats del panel /soporte scoped por rol (admin global, supervisor depto, agente cola)
+- [x] **v1.9:** Login unificado — eliminados /admin/login y /soporte/login, todo pasa por /login (Fortify) con branding Confipetrol
+- [x] **v1.9:** Dashboard de bienvenida en /portal (saludo, stats personales, accesos rápidos, últimos tickets, KB destacados)
+- [x] **v1.9:** Vista del ticket en /portal rediseñada (thread tipo email con avatares y barra lateral coloreada)
+- [x] **v1.9:** Vista del ticket en /soporte con infolist organizado (resumen → descripción → adjuntos → SLA → clasificación)
+- [x] **v1.9:** Form de creación de ticket por preguntas naturales (¿Plantilla? ¿Cuál es el problema? ¿Para quién? ¿Qué tan crítico?)
+- [x] **v1.9:** Acción "Tomar este ticket" con respuesta predefinida + textarea editable (no más saludo genérico fijo)
+- [x] **v1.9:** Reporte SLA en /soporte (antes solo /admin), scoped por depto para supervisores
+- [x] **v1.9:** Categorías administrables por supervisor (solo de su depto)
+- [x] **v1.9:** Inventario configurable por departamento (toggle `can_access_inventory` en Departamentos)
+- [x] **v1.9:** AssetPolicy reescrita — derivada del rol + flag de depto, no de Shield permissions
+- [x] **v1.9:** AssetForm rediseñado con 6 secciones colapsables y selects con buscador
+- [x] **v1.9:** Generación de tokens del agente desde la UI (sin tinker)
+- [x] **v1.9:** Despliegue del agente PowerShell con un solo comando (`iex (irm /agent/install?token=...)`)
+- [x] **v1.9:** Widget "Equipos sin scan reciente (>30 días)" en dashboard /admin
+- [x] **v1.9:** Exportación Excel/CSV del inventario con filtros aplicados
+- [x] **v1.9:** Stats del dashboard /admin clickeables con filtros pre-aplicados
+- [x] **v1.9:** Mensajes de validación 100% en español (lang/es/{validation,auth,passwords,pagination}.php)
+- [x] **v1.9:** Sanctum statefulApi() activado para que web-scan funcione con cookies de sesión
 
 ---
 

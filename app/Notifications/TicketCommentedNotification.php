@@ -4,6 +4,9 @@ namespace App\Notifications;
 
 use App\Models\Ticket;
 use App\Models\TicketComment;
+use App\Notifications\Concerns\BuildsFilamentDatabasePayload;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -11,6 +14,7 @@ use Illuminate\Notifications\Notification;
 
 class TicketCommentedNotification extends Notification implements ShouldQueue
 {
+    use BuildsFilamentDatabasePayload;
     use Queueable;
 
     public function __construct(
@@ -37,14 +41,22 @@ class TicketCommentedNotification extends Notification implements ShouldQueue
     }
 
     /** @return array<string, mixed> */
-    public function toArray(object $notifiable): array
+    public function toDatabase(object $notifiable): array
     {
-        return [
-            'ticket_id' => $this->ticket->id,
-            'ticket_number' => $this->ticket->number,
-            'subject' => $this->ticket->subject,
-            'comment_by' => $this->comment->user->name,
-            'type' => 'ticket_commented',
-        ];
+        $author = $this->comment->user->name;
+        $preview = (string) str($this->comment->body)->limit(120);
+
+        return FilamentNotification::make()
+            ->title("Nuevo comentario en {$this->ticket->number}")
+            ->body("{$author}: {$preview}")
+            ->icon('heroicon-o-chat-bubble-left-right')
+            ->iconColor('info')
+            ->actions([
+                Action::make('view')
+                    ->label('Ver ticket')
+                    ->url($this->ticketUrlFor($notifiable, $this->ticket))
+                    ->markAsRead(),
+            ])
+            ->getDatabaseMessage();
     }
 }

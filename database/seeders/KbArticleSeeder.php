@@ -92,7 +92,6 @@ class KbArticleSeeder extends Seeder
                     'body' => $data['body'],
                     'kb_category_id' => $data['category_id'],
                     'status' => 'published',
-                    'visibility' => 'public',
                 ],
             );
 

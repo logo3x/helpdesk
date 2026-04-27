@@ -21,9 +21,9 @@ class TicketTemplateResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentDuplicate;
 
-    protected static ?string $modelLabel = 'Plantilla';
+    protected static ?string $modelLabel = 'Plantilla para Ticket';
 
-    protected static ?string $pluralModelLabel = 'Plantillas';
+    protected static ?string $pluralModelLabel = 'Plantillas para Tickets';
 
     protected static string|\UnitEnum|null $navigationGroup = 'Configuración';
 

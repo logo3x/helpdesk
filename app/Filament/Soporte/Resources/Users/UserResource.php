@@ -45,6 +45,22 @@ class UserResource extends Resource
         return static::shouldRegisterNavigation();
     }
 
+    /**
+     * Override explícito de canCreate. El plugin QuickCreate (botón "+"
+     * en la topbar) consulta `canCreate()` directamente sin pasar por
+     * `canAccess()`, así que sin esto un agente vería "Agente" como
+     * opción rápida pese a no poder navegar al resource.
+     */
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']) ?? false;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::canAccess();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return UserForm::configure($schema);

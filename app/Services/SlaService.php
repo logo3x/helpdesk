@@ -24,8 +24,13 @@ class SlaService
     /**
      * Attach the matching SLA config to a ticket and compute due dates.
      * Called from TicketService::create() after ticket is persisted.
+     *
+     * El parámetro $from permite recomputar el SLA tomando como origen
+     * una fecha distinta a now() — útil al recalibrar la prioridad de
+     * un ticket existente, donde el reloj SLA arrancó en created_at y
+     * no debe "reiniciarse" al recalcular.
      */
-    public function attachSla(Ticket $ticket): void
+    public function attachSla(Ticket $ticket, ?CarbonInterface $from = null): void
     {
         $sla = SlaConfig::findFor($ticket->department_id, $ticket->priority);
 
@@ -33,12 +38,12 @@ class SlaService
             return;
         }
 
-        $now = now();
+        $from ??= now();
 
         $ticket->update([
             'sla_config_id' => $sla->id,
-            'first_response_due_at' => $this->addBusinessMinutes($now, $sla->first_response_minutes),
-            'resolution_due_at' => $this->addBusinessMinutes($now, $sla->resolution_minutes),
+            'first_response_due_at' => $this->addBusinessMinutes($from, $sla->first_response_minutes),
+            'resolution_due_at' => $this->addBusinessMinutes($from, $sla->resolution_minutes),
         ]);
     }
 

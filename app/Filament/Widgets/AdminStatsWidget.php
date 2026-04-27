@@ -2,6 +2,9 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\Tickets\TicketResource;
+use App\Filament\Resources\Users\UserResource;
+use App\Filament\Soporte\Resources\KbArticles\KbArticleResource;
 use App\Models\Asset;
 use App\Models\KbArticle;
 use App\Models\SatisfactionSurvey;
@@ -26,26 +29,53 @@ class AdminStatsWidget extends StatsOverviewWidget
         $avgRating = SatisfactionSurvey::whereNotNull('responded_at')->avg('rating');
         $csat = $avgRating ? number_format($avgRating, 1).'/5' : '—';
 
+        // URLs base con el shape de tableFilters que Filament v5 espera.
+        $ticketsBase = TicketResource::getUrl('index');
+        $openStatuses = ['nuevo', 'asignado', 'en_progreso', 'pendiente_cliente', 'reabierto'];
+
         return [
             Stat::make('Tickets abiertos', $openTickets)
                 ->description($breached > 0 ? "{$breached} con SLA vencido" : 'Sin SLA vencidos')
                 ->descriptionIcon($breached > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
-                ->color($breached > 0 ? 'danger' : 'success'),
+                ->color($breached > 0 ? 'danger' : 'success')
+                // Si hay vencidos, llevamos a la vista filtrada por
+                // resolution_breached=true para que el admin vaya
+                // directo al problema.
+                ->url(
+                    $breached > 0
+                        ? $ticketsBase.'?'.http_build_query([
+                            'tableFilters' => [
+                                'status' => ['values' => $openStatuses],
+                                'resolution_breached' => ['value' => '1'],
+                            ],
+                        ])
+                        : $ticketsBase.'?'.http_build_query([
+                            'tableFilters' => ['status' => ['values' => $openStatuses]],
+                        ])
+                ),
 
             Stat::make('Total tickets', $totalTickets)
                 ->description('Histórico completo')
                 ->descriptionIcon('heroicon-m-ticket')
-                ->color('primary'),
+                ->color('primary')
+                ->url($ticketsBase),
 
             Stat::make('Usuarios', $totalUsers)
                 ->description("{$totalAssets} activos en inventario")
                 ->descriptionIcon('heroicon-m-users')
-                ->color('info'),
+                ->color('info')
+                ->url(UserResource::getUrl('index')),
 
             Stat::make('KB publicados', $kbArticles)
                 ->description('Artículos activos')
                 ->descriptionIcon('heroicon-m-book-open')
-                ->color('warning'),
+                ->color('warning')
+                // Cross-panel: el admin no tiene KB Resource propio,
+                // pero al ser admin puede entrar al panel /soporte sin
+                // restricción.
+                ->url(KbArticleResource::getUrl('index', panel: 'soporte').'?'.http_build_query([
+                    'tableFilters' => ['status' => ['value' => 'published']],
+                ])),
 
             Stat::make('Satisfacción (CSAT)', $csat)
                 ->description('Promedio de encuestas')

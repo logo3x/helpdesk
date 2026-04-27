@@ -3,6 +3,9 @@
 namespace App\Notifications;
 
 use App\Models\Ticket;
+use App\Notifications\Concerns\BuildsFilamentDatabasePayload;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -10,6 +13,7 @@ use Illuminate\Notifications\Notification;
 
 class TicketAssignedNotification extends Notification implements ShouldQueue
 {
+    use BuildsFilamentDatabasePayload;
     use Queueable;
 
     public function __construct(
@@ -36,13 +40,19 @@ class TicketAssignedNotification extends Notification implements ShouldQueue
     }
 
     /** @return array<string, mixed> */
-    public function toArray(object $notifiable): array
+    public function toDatabase(object $notifiable): array
     {
-        return [
-            'ticket_id' => $this->ticket->id,
-            'ticket_number' => $this->ticket->number,
-            'subject' => $this->ticket->subject,
-            'type' => 'ticket_assigned',
-        ];
+        return FilamentNotification::make()
+            ->title("Ticket {$this->ticket->number} asignado a ti")
+            ->body("{$this->ticket->subject} · Prioridad {$this->ticket->priority->getLabel()}")
+            ->icon('heroicon-o-user-plus')
+            ->iconColor('info')
+            ->actions([
+                Action::make('view')
+                    ->label('Atender ticket')
+                    ->url($this->ticketUrlFor($notifiable, $this->ticket))
+                    ->markAsRead(),
+            ])
+            ->getDatabaseMessage();
     }
 }

@@ -26,6 +26,21 @@ class CommentsRelationManager extends RelationManager
 
     protected static ?string $title = 'Comentarios';
 
+    /**
+     * Filament v5 marca los RelationManagers como read-only cuando se
+     * renderizan dentro de una ViewRecord (caso ViewTicket). Eso oculta
+     * el botón "Nuevo comentario" y bloquea EditAction/DeleteAction.
+     *
+     * Aquí queremos lo contrario: el flujo principal de un agente es
+     * comentar el ticket DESDE la vista (no desde edit), así que
+     * forzamos que sea editable. La autorización fina se sigue
+     * delegando a TicketCommentPolicy.
+     */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema

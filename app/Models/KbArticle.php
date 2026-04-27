@@ -21,7 +21,7 @@ class KbArticle extends Model
     // fillable para que NO puedan inyectarse vía Livewire payload.
     protected $fillable = [
         'title', 'slug', 'body', 'kb_category_id', 'department_id',
-        'status', 'visibility',
+        'status',
     ];
 
     protected function casts(): array
@@ -31,7 +31,26 @@ class KbArticle extends Model
             'helpful_count' => 'integer',
             'not_helpful_count' => 'integer',
             'published_at' => 'datetime',
+            'pending_review_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Artículos en Borrador que el autor marcó como listos para revisión
+     * por un supervisor. Diferente de scopePublished: aquí mostramos a
+     * los supervisores qué tienen pendiente aprobar.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopePendingReview(Builder $query): void
+    {
+        $query->where('status', 'draft')->whereNotNull('pending_review_at');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function pendingReviewBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pending_review_by_id');
     }
 
     /** @return BelongsTo<KbCategory, $this> */
@@ -70,16 +89,16 @@ class KbArticle extends Model
         return $this->hasMany(KbArticleFeedback::class);
     }
 
-    /** @param Builder<self> $query */
+    /**
+     * Artículos publicados — visibles en el chatbot (RagService) y en
+     * el portal del solicitante cuando se agregue el resource allá.
+     * Los Borrador y Archivado no se exponen nunca al usuario final.
+     *
+     * @param  Builder<self>  $query
+     */
     public function scopePublished(Builder $query): void
     {
         $query->where('status', 'published');
-    }
-
-    /** @param Builder<self> $query */
-    public function scopePubliclyVisible(Builder $query): void
-    {
-        $query->where('visibility', 'public')->published();
     }
 
     /**

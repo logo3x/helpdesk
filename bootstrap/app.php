@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Permite que /api/* lea la cookie de sesión cuando el dominio
+        // está en SANCTUM_STATEFUL_DOMAINS. Sin esto, el web-scan del
+        // portal (auth:sanctum) no encuentra al usuario logueado.
+        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

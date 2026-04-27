@@ -81,4 +81,30 @@ class KbArticleResource extends Resource
 
         return $query;
     }
+
+    /**
+     * Badge: número de KB pendientes de revisión visibles para el
+     * usuario actual (depende del scope por depto). Solo aparece para
+     * supervisores+; para los agentes lo ocultamos para no agobiar.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        $user = auth()->user();
+
+        if (! $user?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])) {
+            return null;
+        }
+
+        $count = static::getEloquentQuery()
+            ->where('status', 'draft')
+            ->whereNotNull('pending_review_at')
+            ->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
 }

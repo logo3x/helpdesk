@@ -4,6 +4,9 @@ namespace App\Notifications;
 
 use App\Models\Department;
 use App\Models\Ticket;
+use App\Notifications\Concerns\BuildsFilamentDatabasePayload;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -15,6 +18,7 @@ use Illuminate\Notifications\Notification;
  */
 class TicketTransferredNotification extends Notification implements ShouldQueue
 {
+    use BuildsFilamentDatabasePayload;
     use Queueable;
 
     public function __construct(
@@ -60,17 +64,23 @@ class TicketTransferredNotification extends Notification implements ShouldQueue
     }
 
     /** @return array<string, mixed> */
-    public function toArray(object $notifiable): array
+    public function toDatabase(object $notifiable): array
     {
-        return [
-            'ticket_id' => $this->ticket->id,
-            'ticket_number' => $this->ticket->number,
-            'from_department_id' => $this->fromDepartment->id,
-            'from_department_name' => $this->fromDepartment->name,
-            'to_department_id' => $this->toDepartment->id,
-            'to_department_name' => $this->toDepartment->name,
-            'reason' => $this->reason,
-            'subject' => $this->ticket->subject,
-        ];
+        $sanitize = fn (?string $s): string => trim(strip_tags((string) $s));
+        $to = $sanitize($this->toDepartment->name);
+        $from = $sanitize($this->fromDepartment->name);
+
+        return FilamentNotification::make()
+            ->title("Tu ticket {$this->ticket->number} fue trasladado a {$to}")
+            ->body("De {$from} a {$to}. Sigue abierto y será atendido por el nuevo equipo.")
+            ->icon('heroicon-o-arrow-right-circle')
+            ->iconColor('warning')
+            ->actions([
+                Action::make('view')
+                    ->label('Ver mi ticket')
+                    ->url($this->ticketUrlFor($notifiable, $this->ticket))
+                    ->markAsRead(),
+            ])
+            ->getDatabaseMessage();
     }
 }

@@ -198,6 +198,61 @@ class TicketService
         return $ticket;
     }
 
+    /**
+     * Recalibrate a ticket's priority by providing new impact/urgency
+     * values. Recomputes the ITIL matrix priority, re-attaches the SLA
+     * (preserving the original created_at as the SLA clock origin so the
+     * reloj no se "reinicia") y deja un registro en el activity log con
+     * el motivo del cambio.
+     *
+     * Usado por supervisores/admins cuando la clasificación inicial
+     * estaba mal y subestimaba/sobrestimaba la criticidad del ticket.
+     */
+    public function recalibratePriority(
+        Ticket $ticket,
+        TicketImpact|string $impact,
+        TicketUrgency|string $urgency,
+        ?string $reason = null,
+    ): Ticket {
+        $newImpact = $this->normaliseImpact($impact);
+        $newUrgency = $this->normaliseUrgency($urgency);
+        $newPriority = TicketPriority::fromMatrix($newImpact, $newUrgency);
+
+        $oldImpact = $ticket->impact;
+        $oldUrgency = $ticket->urgency;
+        $oldPriority = $ticket->priority;
+
+        $ticket->impact = $newImpact;
+        $ticket->urgency = $newUrgency;
+        $ticket->priority = $newPriority;
+        $ticket->save();
+
+        // Re-anclar SLA preservando el origen del reloj (created_at) para
+        // que recalibrar no "regale" tiempo adicional al ticket.
+        app(SlaService::class)->attachSla($ticket->fresh(), $ticket->created_at);
+        $ticket->refresh();
+
+        activity('tickets')
+            ->performedOn($ticket)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'reason' => $reason,
+                'old' => [
+                    'impact' => $oldImpact?->value,
+                    'urgency' => $oldUrgency?->value,
+                    'priority' => $oldPriority?->value,
+                ],
+                'new' => [
+                    'impact' => $newImpact->value,
+                    'urgency' => $newUrgency->value,
+                    'priority' => $newPriority->value,
+                ],
+            ])
+            ->log('priority_recalibrated');
+
+        return $ticket;
+    }
+
     public function resolve(Ticket $ticket): Ticket
     {
         $ticket->status = TicketStatus::Resuelto;

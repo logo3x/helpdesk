@@ -24,15 +24,20 @@ class AssetsTable
         return $table
             ->columns([
                 TextColumn::make('asset_tag')
-                    ->label('Etiqueta')
+                    ->label('TAG')
                     ->searchable(),
                 TextColumn::make('hostname')
                     ->label('Hostname')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('serial_number')
                     ->label('Serial')
                     ->searchable()
                     ->toggleable(),
+                TextColumn::make('sap_code')
+                    ->label('Código SAP')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('type')
                     ->label('Tipo')
                     ->badge()
@@ -46,14 +51,31 @@ class AssetsTable
                     ->searchable()
                     ->toggleable(),
                 TextColumn::make('user.name')
-                    ->label('Usuario')
+                    ->label('Custodio')
                     ->placeholder('Sin asignar')
                     ->searchable(),
                 TextColumn::make('department.name')
                     ->label('Depto')
                     ->badge()
                     ->color('gray')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
+                TextColumn::make('project.name')
+                    ->label('Proyecto')
+                    ->formatStateUsing(fn ($record) => $record->project ? "{$record->project->code} · {$record->project->name}" : '—')
+                    ->placeholder('—')
+                    ->searchable(['projects.code', 'projects.name'])
+                    ->toggleable(),
+                TextColumn::make('field')
+                    ->label('Campo')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(),
+                TextColumn::make('location_zone')
+                    ->label('Ubicación')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('os_name')
                     ->label('SO')
                     ->searchable()
@@ -94,26 +116,56 @@ class AssetsTable
                     ->badge()
                     ->color(fn (string $state) => match ($state) {
                         'active' => 'success',
+                        'fair' => 'info',
                         'in_repair' => 'warning',
                         'retired' => 'gray',
                         default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state) => match ($state) {
+                        'active' => 'Activo',
+                        'fair' => 'Regular',
+                        'in_repair' => 'En reparación',
+                        'retired' => 'Retirado',
+                        default => $state,
                     }),
+                TextColumn::make('next_maintenance_at')
+                    ->label('Próx. mantto.')
+                    ->date('d M Y')
+                    ->placeholder('—')
+                    ->sortable()
+                    ->color(fn ($record) => match ($record?->maintenance_status) {
+                        'vencido' => 'danger',
+                        'por vencer' => 'warning',
+                        'vigente' => 'success',
+                        default => 'gray',
+                    })
+                    ->description(fn ($record) => $record?->maintenance_status
+                        ? '· '.ucfirst((string) $record->maintenance_status)
+                        : null),
                 TextColumn::make('last_scan_at')
                     ->label('Último scan')
                     ->dateTime('d M Y H:i')
                     ->since()
                     ->placeholder('Nunca')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('department_id')
                     ->label('Departamento')
                     ->relationship('department', 'name'),
+                SelectFilter::make('project_id')
+                    ->label('Proyecto')
+                    ->relationship('project', 'name', fn ($query) => $query->where('is_active', true)->orderBy('name'))
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->code} · {$record->name}")
+                    ->searchable()
+                    ->preload(),
                 SelectFilter::make('type')
                     ->label('Tipo')
                     ->options([
                         'desktop' => 'Desktop',
                         'laptop' => 'Laptop',
+                        'all_in_one' => 'All-in-One',
                         'server' => 'Servidor',
                         'printer' => 'Impresora',
                         'phone' => 'Teléfono',
@@ -124,9 +176,20 @@ class AssetsTable
                     ->label('Estado')
                     ->options([
                         'active' => 'Activo',
+                        'fair' => 'Regular',
                         'in_repair' => 'En reparación',
                         'retired' => 'Retirado',
                     ]),
+                Filter::make('maintenance_due')
+                    ->label('Mantenimiento próx. (≤30 días)')
+                    ->query(fn (Builder $q) => $q->whereNotNull('next_maintenance_at')
+                        ->where('next_maintenance_at', '<=', now()->addDays(30)))
+                    ->toggle(),
+                Filter::make('maintenance_overdue')
+                    ->label('Mantenimiento vencido')
+                    ->query(fn (Builder $q) => $q->whereNotNull('next_maintenance_at')
+                        ->where('next_maintenance_at', '<', now()))
+                    ->toggle(),
                 Filter::make('stale_scan')
                     ->label('Sin scan en últimos 30 días')
                     ->query(fn (Builder $q) => $q->where(fn ($q) => $q

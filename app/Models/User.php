@@ -19,7 +19,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'azure_id', 'avatar_url', 'department_id', 'last_login_at', 'last_login_ip'])]
+#[Fillable(['name', 'email', 'password', 'azure_id', 'avatar_url', 'department_id', 'last_login_at', 'last_login_ip', 'identification', 'position', 'phone'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasName
 {

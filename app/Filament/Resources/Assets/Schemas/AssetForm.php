@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Assets\Schemas;
 
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -36,9 +37,14 @@ class AssetForm
                         Grid::make(['default' => 1, 'md' => 2])
                             ->schema([
                                 TextInput::make('asset_tag')
-                                    ->label('Etiqueta de inventario')
-                                    ->placeholder('Ej: CONF-LAP-0042')
+                                    ->label('TAG / Etiqueta de inventario')
+                                    ->placeholder('Ej: 11829')
                                     ->maxLength(50),
+
+                                TextInput::make('sap_code')
+                                    ->label('Código SAP')
+                                    ->placeholder('Ej: OECC1528050500003236')
+                                    ->maxLength(60),
 
                                 TextInput::make('hostname')
                                     ->label('Hostname')
@@ -47,6 +53,7 @@ class AssetForm
 
                                 TextInput::make('serial_number')
                                     ->label('Serial / Service Tag')
+                                    ->placeholder('9580WW3')
                                     ->maxLength(255),
 
                                 Select::make('type')
@@ -54,13 +61,26 @@ class AssetForm
                                     ->options([
                                         'desktop' => 'Desktop',
                                         'laptop' => 'Laptop',
+                                        'all_in_one' => 'All-in-One',
                                         'server' => 'Servidor',
                                         'printer' => 'Impresora',
-                                        'phone' => 'Teléfono',
+                                        'phone' => 'Teléfono / Celular',
                                         'tablet' => 'Tablet',
                                         'other' => 'Otro',
                                     ])
                                     ->default('desktop')
+                                    ->required()
+                                    ->native(false),
+
+                                Select::make('status')
+                                    ->label('Condición / Estado')
+                                    ->options([
+                                        'active' => 'Activo (bueno)',
+                                        'fair' => 'Regular',
+                                        'in_repair' => 'En reparación',
+                                        'retired' => 'Retirado',
+                                    ])
+                                    ->default('active')
                                     ->required()
                                     ->native(false),
                             ]),
@@ -69,18 +89,18 @@ class AssetForm
 
                 Section::make('Asignación')
                     ->icon('heroicon-o-user-circle')
-                    ->description('A quién pertenece el equipo y en qué estado se encuentra. Es lo que más se actualiza desde aquí.')
+                    ->description('Custodio del equipo, departamento y proyecto al que se carga.')
                     ->collapsible()
                     ->schema([
-                        Grid::make(['default' => 1, 'md' => 3])
+                        Grid::make(['default' => 1, 'md' => 2])
                             ->schema([
                                 Select::make('user_id')
-                                    ->label('Usuario asignado')
+                                    ->label('Custodio (usuario asignado)')
                                     ->relationship('user', 'name')
-                                    ->searchable(['name', 'email'])
+                                    ->searchable(['name', 'email', 'identification'])
                                     ->preload()
                                     ->placeholder('Sin asignar')
-                                    ->helperText('Busca por nombre o correo.')
+                                    ->helperText('Busca por nombre, correo o cédula.')
                                     ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->name} · {$record->email}"),
 
                                 Select::make('department_id')
@@ -90,15 +110,119 @@ class AssetForm
                                     ->preload()
                                     ->placeholder('Sin departamento'),
 
-                                Select::make('status')
-                                    ->label('Estado')
+                                Select::make('project_id')
+                                    ->label('Proyecto / Contrato')
+                                    ->relationship('project', 'name', fn ($query) => $query->where('is_active', true)->orderBy('name'))
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->code} · {$record->name}")
+                                    ->searchable(['code', 'name', 'client'])
+                                    ->preload()
+                                    ->placeholder('Sin proyecto')
+                                    ->helperText('Busca por código (ej: 499015105) o nombre del proyecto.'),
+
+                                TextInput::make('management_area')
+                                    ->label('Gerencia')
+                                    ->placeholder('Ej: HSEQ, Operaciones')
+                                    ->maxLength(120),
+
+                                TextInput::make('field')
+                                    ->label('Campo')
+                                    ->placeholder('Ej: PORE, SAN MARTIN, CARUPANA')
+                                    ->maxLength(100),
+
+                                TextInput::make('location_zone')
+                                    ->label('Ubicación / Zona')
+                                    ->placeholder('Ej: ZONA 4, Bodega central')
+                                    ->maxLength(100),
+                            ]),
+                    ])
+                    ->columnSpanFull(),
+
+                Section::make('Mantenimiento')
+                    ->icon('heroicon-o-wrench-screwdriver')
+                    ->description('Plan de mantenimiento físico. La fecha del próximo se calcula automáticamente.')
+                    ->collapsible()
+                    ->schema([
+                        Grid::make(['default' => 1, 'md' => 4])
+                            ->schema([
+                                DatePicker::make('last_maintenance_at')
+                                    ->label('Último mantenimiento')
+                                    ->displayFormat('d/m/Y')
+                                    ->native(false),
+
+                                TextInput::make('maintenance_interval_days')
+                                    ->label('Frecuencia (días)')
+                                    ->numeric()
+                                    ->minValue(1)
+                                    ->maxValue(3650)
+                                    ->placeholder('120')
+                                    ->helperText('120 = trimestral · 180 = semestral · 365 = anual'),
+
+                                DatePicker::make('next_maintenance_at')
+                                    ->label('Próximo mantenimiento')
+                                    ->displayFormat('d/m/Y')
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->native(false)
+                                    ->helperText('Se calcula automáticamente.'),
+
+                                Select::make('maintenance_responsible_id')
+                                    ->label('Responsable')
+                                    ->relationship(
+                                        'maintenanceResponsible',
+                                        'name',
+                                        fn ($query) => $query->whereHas('roles', fn ($q) => $q->whereIn('name', [
+                                            'super_admin', 'admin', 'supervisor_soporte', 'agente_soporte', 'tecnico_campo',
+                                        ])),
+                                    )
+                                    ->searchable(['name', 'email'])
+                                    ->preload()
+                                    ->placeholder('Sin asignar'),
+                            ]),
+                    ])
+                    ->columnSpanFull(),
+
+                Section::make('Compra y garantía')
+                    ->icon('heroicon-o-currency-dollar')
+                    ->collapsible()
+                    ->collapsed()
+                    ->schema([
+                        Grid::make(['default' => 1, 'md' => 3])
+                            ->schema([
+                                DatePicker::make('purchased_at')
+                                    ->label('Fecha de compra')
+                                    ->displayFormat('d/m/Y')
+                                    ->native(false),
+
+                                TextInput::make('purchase_cost')
+                                    ->label('Costo')
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->minValue(0)
+                                    ->step(0.01),
+
+                                Select::make('purchase_currency')
+                                    ->label('Moneda')
                                     ->options([
-                                        'active' => 'Activo',
-                                        'in_repair' => 'En reparación',
-                                        'retired' => 'Retirado',
+                                        'COP' => 'COP — Peso colombiano',
+                                        'USD' => 'USD — Dólar',
+                                        'EUR' => 'EUR — Euro',
                                     ])
-                                    ->default('active')
-                                    ->required()
+                                    ->default('COP')
+                                    ->native(false),
+
+                                TextInput::make('purchase_order')
+                                    ->label('Orden de compra')
+                                    ->placeholder('Ej: OC-2024-1234')
+                                    ->maxLength(80),
+
+                                TextInput::make('supplier')
+                                    ->label('Proveedor')
+                                    ->placeholder('Ej: Compumax, Dell Colombia')
+                                    ->maxLength(255),
+
+                                DatePicker::make('warranty_expires_at')
+                                    ->label('Vence garantía')
+                                    ->displayFormat('d/m/Y')
                                     ->native(false),
                             ]),
                     ])
@@ -174,7 +298,7 @@ class AssetForm
                     ])
                     ->columnSpanFull(),
 
-                Section::make('Red')
+                Section::make('Red y conectividad')
                     ->icon('heroicon-o-globe-alt')
                     ->collapsible()
                     ->collapsed()
@@ -190,6 +314,16 @@ class AssetForm
                                     ->label('MAC')
                                     ->placeholder('AA:BB:CC:DD:EE:FF')
                                     ->maxLength(17),
+
+                                TextInput::make('phone_line')
+                                    ->label('Línea telefónica')
+                                    ->placeholder('Solo para celulares')
+                                    ->maxLength(30),
+
+                                TextInput::make('imei')
+                                    ->label('IMEI')
+                                    ->placeholder('Solo para celulares')
+                                    ->maxLength(30),
                             ]),
                     ])
                     ->columnSpanFull(),

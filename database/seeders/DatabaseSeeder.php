@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             DepartmentSeeder::class,
             CategorySeeder::class,
+            ProjectSeeder::class,
             SlaConfigSeeder::class,
             ChatFlowSeeder::class,
             ShieldPermissionSeeder::class,

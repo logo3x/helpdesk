@@ -5,11 +5,14 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\TicketUrgency;
 use App\Models\Category;
+use App\Models\Department;
 use App\Models\Ticket;
+use App\Models\TicketComment;
 use App\Models\TicketCounter;
 use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
@@ -149,6 +152,50 @@ describe('lifecycle transitions', function () {
         expect($activity->properties['reason'])->toContain('subestimó');
         expect($activity->properties['old']['priority'])->toBe(TicketPriority::Baja->value);
         expect($activity->properties['new']['priority'])->toBe(TicketPriority::Critica->value);
+    });
+
+    it('transfers a ticket: creates system event comment, resets assignment and notifies', function () {
+        Notification::fake();
+
+        $deptFrom = Department::factory()->create(['name' => 'TI']);
+        $deptTo = Department::factory()->create(['name' => 'RRHH']);
+
+        $supervisorRrhh = User::factory()->create(['department_id' => $deptTo->id]);
+        $requester = User::factory()->create();
+        $supervisorTi = User::factory()->create(['department_id' => $deptFrom->id]);
+        $this->actingAs($supervisorTi);
+
+        $ticket = Ticket::factory()->create([
+            'department_id' => $deptFrom->id,
+            'requester_id' => $requester->id,
+            'assigned_to_id' => User::factory()->create()->id,
+            'category_id' => Category::factory()->create(['department_id' => $deptFrom->id])->id,
+        ]);
+
+        $this->service->transfer(
+            ticket: $ticket,
+            toDepartment: $deptTo,
+            reason: 'Estaba mal clasificado',
+            transferredBy: $supervisorTi,
+        );
+
+        $fresh = $ticket->fresh();
+        expect($fresh->department_id)->toBe($deptTo->id);
+        expect($fresh->assigned_to_id)->toBeNull();
+        expect($fresh->category_id)->toBeNull();
+
+        $event = TicketComment::where('ticket_id', $ticket->id)
+            ->where('is_system_event', true)
+            ->where('event_type', 'transferred')
+            ->latest('id')
+            ->first();
+
+        expect($event)->not->toBeNull();
+        expect($event->user_id)->toBe($supervisorTi->id);
+        expect($event->is_private)->toBeFalse();
+        expect($event->body)->toContain('TI');
+        expect($event->body)->toContain('RRHH');
+        expect($event->body)->toContain('Estaba mal clasificado');
     });
 
     it('resolve, close and reopen stamp the expected timestamps', function () {

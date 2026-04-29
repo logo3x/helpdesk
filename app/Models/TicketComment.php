@@ -21,12 +21,15 @@ class TicketComment extends Model implements HasMedia
         'user_id',
         'body',
         'is_private',
+        'is_system_event',
+        'event_type',
     ];
 
     protected function casts(): array
     {
         return [
             'is_private' => 'boolean',
+            'is_system_event' => 'boolean',
         ];
     }
 

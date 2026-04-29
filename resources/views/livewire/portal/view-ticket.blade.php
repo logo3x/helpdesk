@@ -85,35 +85,56 @@
 
         {{-- Comentarios subsiguientes --}}
         @forelse ($comments as $comment)
-            @php
-                $isMine = $comment->user_id === auth()->id();
-                $isRequester = $comment->user_id === $ticket->requester_id;
-                $bubbleClasses = $isRequester
-                    ? 'border-sky-500 bg-sky-50 dark:border-sky-400 dark:bg-sky-950/40'
-                    : 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/40';
-                $avatarColor = $isRequester ? 'bg-sky-500' : 'bg-emerald-600';
-                $roleLabel = $isRequester ? 'Solicitante' : 'Soporte';
-                $roleBadgeColor = $isRequester ? 'sky' : 'emerald';
-            @endphp
-
-            <div class="flex gap-3">
-                <div class="flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white shadow {{ $avatarColor }}">
-                    {{ $comment->user?->initials() ?? '?' }}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="mb-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                        <span class="font-semibold text-zinc-800 dark:text-zinc-200">
-                            {{ $isMine ? 'Tú' : $comment->user?->name }}
+            {{-- Eventos del sistema (traslado, etc.): divisor de timeline
+                 en lugar de burbuja, para distinguirlos visualmente de
+                 una respuesta humana. --}}
+            @if ($comment->is_system_event)
+                <div class="flex items-center gap-3 py-2">
+                    <span class="h-px flex-1 bg-zinc-200 dark:bg-zinc-700"></span>
+                    <div class="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-600 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                        <span class="ticket-msg-system">
+                            {!! str($comment->body)->markdown()->toHtmlString() !!}
                         </span>
-                        <flux:badge size="sm" :color="$roleBadgeColor">{{ $roleLabel }}</flux:badge>
-                        <span>·</span>
-                        <span>{{ $comment->created_at->diffForHumans() }}</span>
+                        <span class="text-zinc-300 dark:text-zinc-600">·</span>
+                        @if ($comment->user)
+                            <span class="text-zinc-500 dark:text-zinc-500">{{ $comment->user->name }}</span>
+                            <span class="text-zinc-300 dark:text-zinc-600">·</span>
+                        @endif
+                        <span class="text-zinc-400">{{ $comment->created_at->diffForHumans() }}</span>
                     </div>
-                    <div class="ticket-msg rounded-lg border-l-4 px-4 py-3 text-sm text-zinc-800 shadow-sm dark:text-zinc-100 {{ $bubbleClasses }}">
-                        {!! str($comment->body)->markdown()->toHtmlString() !!}
+                    <span class="h-px flex-1 bg-zinc-200 dark:bg-zinc-700"></span>
+                </div>
+            @else
+                @php
+                    $isMine = $comment->user_id === auth()->id();
+                    $isRequester = $comment->user_id === $ticket->requester_id;
+                    $bubbleClasses = $isRequester
+                        ? 'border-sky-500 bg-sky-50 dark:border-sky-400 dark:bg-sky-950/40'
+                        : 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/40';
+                    $avatarColor = $isRequester ? 'bg-sky-500' : 'bg-emerald-600';
+                    $roleLabel = $isRequester ? 'Solicitante' : 'Soporte';
+                    $roleBadgeColor = $isRequester ? 'sky' : 'emerald';
+                @endphp
+
+                <div class="flex gap-3">
+                    <div class="flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white shadow {{ $avatarColor }}">
+                        {{ $comment->user?->initials() ?? '?' }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="mb-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                            <span class="font-semibold text-zinc-800 dark:text-zinc-200">
+                                {{ $isMine ? 'Tú' : $comment->user?->name }}
+                            </span>
+                            <flux:badge size="sm" :color="$roleBadgeColor">{{ $roleLabel }}</flux:badge>
+                            <span>·</span>
+                            <span>{{ $comment->created_at->diffForHumans() }}</span>
+                        </div>
+                        <div class="ticket-msg rounded-lg border-l-4 px-4 py-3 text-sm text-zinc-800 shadow-sm dark:text-zinc-100 {{ $bubbleClasses }}">
+                            {!! str($comment->body)->markdown()->toHtmlString() !!}
+                        </div>
                     </div>
                 </div>
-            </div>
+            @endif
         @empty
             <div class="rounded-lg border border-dashed border-zinc-300 py-6 text-center dark:border-zinc-600">
                 <flux:text class="text-zinc-500">Sin respuestas aún. Cuando un agente comente verás su mensaje aquí.</flux:text>
@@ -123,6 +144,18 @@
 
     {{-- Estilos para el markdown dentro de las burbujas --}}
     <style>
+        /* Eventos del sistema renderizan inline (sin saltos de párrafo) */
+        .ticket-msg-system > :first-child,
+        .ticket-msg-system p { display: inline; margin: 0; }
+        .ticket-msg-system strong { font-weight: 600; }
+        .ticket-msg-system code {
+            background: rgba(0, 0, 0, 0.06);
+            padding: 0.05rem 0.3rem;
+            border-radius: 0.2rem;
+            font-size: 0.85em;
+        }
+        .dark .ticket-msg-system code { background: rgba(255, 255, 255, 0.08); }
+
         .ticket-msg > :first-child { margin-top: 0 !important; }
         .ticket-msg > :last-child { margin-bottom: 0 !important; }
         .ticket-msg p { margin: 0.4rem 0; line-height: 1.55; }

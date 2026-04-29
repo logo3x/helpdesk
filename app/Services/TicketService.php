@@ -8,12 +8,15 @@ use App\Enums\TicketStatus;
 use App\Enums\TicketUrgency;
 use App\Jobs\SendSatisfactionSurveyJob;
 use App\Models\Category;
+use App\Models\Department;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Models\TicketCounter;
 use App\Models\User;
 use App\Notifications\TicketAssignedNotification;
 use App\Notifications\TicketCreatedNotification;
+use App\Notifications\TicketReceivedFromTransferNotification;
+use App\Notifications\TicketTransferredNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -251,6 +254,102 @@ class TicketService
             ->log('priority_recalibrated');
 
         return $ticket;
+    }
+
+    /**
+     * Traslado de un ticket a otro departamento.
+     *
+     * Centraliza toda la lógica del traslado para que las acciones de
+     * /soporte y /admin pasen por aquí y mantengan el mismo
+     * comportamiento:
+     *
+     *   - Reset de asignación y categoría (el equipo destino debe
+     *     re-triagear).
+     *   - Comentario público "de sistema" en el thread con texto
+     *     estandarizado (is_system_event=true) que en la UI se
+     *     renderiza como un divisor de timeline en lugar de burbuja.
+     *   - Notif al solicitante (TicketTransferredNotification).
+     *   - Notif a supervisores del depto destino
+     *     (TicketReceivedFromTransferNotification).
+     *
+     * `$transferredBy` es opcional: si se omite, intenta usar
+     * auth()->user() para que el comentario tenga autor.
+     */
+    public function transfer(
+        Ticket $ticket,
+        Department $toDepartment,
+        ?string $reason = null,
+        ?User $transferredBy = null,
+    ): Ticket {
+        $from = $ticket->department;
+        $by = $transferredBy ?? (auth()->user() instanceof User ? auth()->user() : null);
+
+        $ticket->forceFill([
+            'department_id' => $toDepartment->id,
+            'assigned_to_id' => null,
+            'category_id' => null,
+        ])->save();
+
+        // Comentario "de sistema" en el thread con autor = quien
+        // hizo el traslado. Se marca is_system_event=true para que la
+        // UI lo dibuje como divisor en vez de burbuja de chat.
+        $body = $this->buildTransferEventBody($from, $toDepartment, $reason);
+        TicketComment::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $by?->id,
+            'body' => $body,
+            'is_private' => false,
+            'is_system_event' => true,
+            'event_type' => 'transferred',
+        ]);
+
+        // Notif al solicitante.
+        if ($ticket->requester) {
+            $ticket->requester->notify(new TicketTransferredNotification(
+                $ticket->refresh(),
+                $from,
+                $toDepartment,
+                $reason,
+            ));
+        }
+
+        // Notif a supervisores del depto destino.
+        $supervisors = User::query()
+            ->where('department_id', $toDepartment->id)
+            ->whereHas('roles', fn ($q) => $q->where('name', 'supervisor_soporte'))
+            ->get();
+
+        foreach ($supervisors as $supervisor) {
+            $supervisor->notify(new TicketReceivedFromTransferNotification(
+                ticket: $ticket,
+                fromDepartment: $from,
+                reason: $reason,
+                transferredBy: $by?->name,
+            ));
+        }
+
+        return $ticket;
+    }
+
+    /**
+     * Construye el cuerpo Markdown del comentario "de sistema" para
+     * un traslado. Usa nombres de departamento sanitizados para que
+     * no se rompa el render si alguien meta caracteres raros.
+     */
+    protected function buildTransferEventBody(?Department $from, Department $to, ?string $reason): string
+    {
+        $sanitize = fn (?string $s): string => trim(strip_tags((string) $s));
+
+        $fromName = $from ? $sanitize($from->name) : 'depto desconocido';
+        $toName = $sanitize($to->name);
+
+        $body = "🔄 **Ticket trasladado** de `{$fromName}` → `{$toName}`.";
+
+        if ($reason) {
+            $body .= "\n\nMotivo: {$sanitize($reason)}";
+        }
+
+        return $body;
     }
 
     public function resolve(Ticket $ticket): Ticket

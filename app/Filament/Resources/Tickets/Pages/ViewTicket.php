@@ -7,9 +7,6 @@ use App\Enums\TicketUrgency;
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Models\Department;
 use App\Models\Ticket;
-use App\Models\User;
-use App\Notifications\TicketReceivedFromTransferNotification;
-use App\Notifications\TicketTransferredNotification;
 use App\Services\TicketService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -58,37 +55,15 @@ class ViewTicket extends ViewRecord
                 ->action(function (array $data) use ($ticket): void {
                     abort_unless(auth()->user()?->can('transfer', $ticket), 403);
 
-                    $from = $ticket->department;
-                    $to = Department::findOrFail($data['department_id']);
-                    $reason = $data['reason'] ?? null;
-
-                    $ticket->forceFill([
-                        'department_id' => $to->id,
-                        'assigned_to_id' => null,
-                        'category_id' => null,
-                    ])->save();
-
-                    if ($ticket->requester) {
-                        $ticket->requester->notify(new TicketTransferredNotification($ticket, $from, $to, $reason));
-                    }
-
-                    $destinationSupervisors = User::query()
-                        ->where('department_id', $to->id)
-                        ->whereHas('roles', fn ($q) => $q->where('name', 'supervisor_soporte'))
-                        ->get();
-
-                    foreach ($destinationSupervisors as $supervisor) {
-                        $supervisor->notify(new TicketReceivedFromTransferNotification(
-                            ticket: $ticket,
-                            fromDepartment: $from,
-                            reason: $reason,
-                            transferredBy: auth()->user()?->name,
-                        ));
-                    }
+                    app(TicketService::class)->transfer(
+                        ticket: $ticket,
+                        toDepartment: Department::findOrFail($data['department_id']),
+                        reason: $data['reason'] ?? null,
+                    );
 
                     Notification::make()
-                        ->title("Ticket trasladado a {$to->name}")
-                        ->body('Se notificó al solicitante y a los supervisores del depto destino.')
+                        ->title("Ticket trasladado a {$ticket->fresh()->department?->name}")
+                        ->body('Se notificó al solicitante, a los supervisores destino y queda registrado en el historial del ticket.')
                         ->success()
                         ->send();
 

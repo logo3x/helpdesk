@@ -56,7 +56,8 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
   MAIL_FROM_NAME="Helpdesk Confipetrol"
   ```
 - Queue worker corriendo en producción (`php artisan queue:work --queue=default`).
-- Supervisord o systemd para mantenerlo activo.
+- En **Windows Server**: registrarlo como servicio con NSSM siguiendo [docs/queue-worker-windows.md](queue-worker-windows.md). Scripts listos en `tools/queue-worker.bat` + `tools/after-deploy.bat`.
+- En Linux: usar Supervisord o systemd.
 
 **Notificaciones que esperan esto:**
 - `TicketCreatedNotification` — se envía al solicitante al crear ticket.
@@ -113,6 +114,126 @@ Componente `App\Livewire\Portal\NotificationsBell` agregado al header de `/porta
 - Botón "Exportar a PDF" que genere un informe ejecutivo mensual.
 - Diseño con logo Confipetrol + gráficas.
 - Programar envío automático el 1° de cada mes al buzón de Gerencia TI.
+
+### 6a. Hoja de vida del activo (inventario)
+
+**Estado hoy:** existen las tablas `asset_history` y `asset_scans` (el modelo `AssetHistory` registra cada acción), pero **no hay UI** para verlas. El historial está disponible solo en la BD.
+
+**Qué hace falta:**
+- Tab/sección "Hoja de vida" en la vista del Asset (`/admin/assets/{id}` y `/soporte/assets/{id}`).
+- Timeline cronológico que muestre:
+  - **Asignaciones**: a quién se entregó, cuándo, por quién, motivo.
+  - **Devoluciones / cambios de usuario**.
+  - **Mantenimientos / reparaciones**: tipo, costo, proveedor externo, fechas inicio/fin.
+  - **Cambios de hardware** (RAM ampliada, disco cambiado, etc.).
+  - **Scans automáticos** (web-scan + agente PowerShell): qué cambió respecto al anterior.
+  - **Bajas / retiros**: razón, destino (donación, scrap, transferencia).
+- Action "Registrar evento manual" para que el técnico anote cosas que el scan no detecta (cambios físicos, traslados de oficina, etc.).
+- Exportable a PDF para entrega del equipo al usuario o auditoría.
+
+### 6b. Ampliar campos del inventario al modelo real Confipetrol
+
+**Estado hoy:** la tabla `assets` tiene 25 columnas (etiqueta, hostname, serial, hardware, OS, red, asignación, status), suficiente para identificación + diagnóstico técnico, pero **falta toda la info administrativa que IT Confipetrol maneja hoy en Excel**.
+
+**Campos faltantes según `Libro1.pdf` (inventario actual real):**
+
+| Campo Excel actual | Tipo sugerido en BD | Notas |
+|---|---|---|
+| **TAG** | string (ya existe como `asset_tag`) | Mantener |
+| **Serial** | string (ya existe `serial_number`) | Mantener |
+| **Fabricante / Modelo** | strings (ya existen) | Mantener |
+| **Código SAP** | string nuevo | Identificador contable, único cuando existe (ej: `OECC1528050500002662`) |
+| **Tipo Activo** | enum / string (ya existe `type`) | Ampliar enum: laptop, desktop, all-in-one, server, printer, phone, tablet, other |
+| **Estado / Condición** | string (ya existe `status`) | Renombrar valores: bueno, regular, malo, en mantenimiento, retirado |
+| **Custodio** | FK `user_id` (ya existe) | Mantener |
+| **Identificación** | derivado de `users.identification` | Agregar columna a `users` si no existe |
+| **Cargo** | derivado de `users.position` | Agregar columna a `users` |
+| **Proyecto (código)** | FK `project_id` o string libre | **Tabla nueva `projects`** con código + nombre |
+| **Nombre Proyecto** | derivado de `projects.name` | — |
+| **Campo** | string nuevo | Ubicación operativa (ej: PORE, SAN MARTIN, CARUPANA) |
+| **Ubicación** | string nuevo | Zona dentro del campo (ej: ZONA 4) |
+| **Observación** | text (ya existe `notes`) | Mantener, puede crecer |
+| **Acta** | FK a `asset_handovers.id` (tabla nueva) | Última acta de entrega que aplica al equipo |
+| **Línea / IMEI** | string nuevo | Solo para teléfonos celulares — usar nullable |
+| **Gerencia** | string nuevo | Gerencia organizacional (ej: HSEQ, Operaciones) |
+| **Correo** | derivado de `users.email` | Ya existe |
+| **Último Mtto** | date nuevo `last_maintenance_at` | Fecha del último mantenimiento físico |
+| **Próx Mtto** | computed o date `next_maintenance_at` | Calculado: `last_maintenance_at + maintenance_interval_days` |
+| **Mtto (DIAS)** | int `maintenance_interval_days` | Frecuencia en días (típicamente 120 = trimestral) |
+| **Estado Mantenimiento** | computed enum | `vigente / por vencer (≤30d) / vencido` |
+| **Responsable** | FK `maintenance_responsible_id` → users | Técnico encargado de mantenimientos |
+
+**Adicionales que conviene agregar (no están en el Excel pero son estándar):**
+- **Compra**: fecha de compra, costo, moneda, número de orden de compra, proveedor.
+- **Garantía**: fecha de inicio, fecha de vencimiento, tipo (extendida/estándar), contacto.
+- **Adjuntos**: factura, certificado de garantía, foto del equipo (Spatie MediaLibrary).
+- **Periféricos asociados**: monitor adicional, teclado, mouse, dock — relación 1:N a `asset_peripherals`.
+
+**Implicación técnica:**
+- Migración con ~12 columnas nuevas en `assets` + tablas nuevas `projects`, `asset_handovers`, `asset_peripherals`.
+- Columnas nuevas en `users`: `identification`, `position`, `phone` (si no existen).
+- Update del `AssetForm` agregando secciones "Asignación administrativa" (proyecto, campo, ubicación, gerencia) y "Mantenimiento" (último, frecuencia, próximo, responsable).
+- Widget en dashboard /admin: "Equipos con mantenimiento vencido" (cruzando `next_maintenance_at < now()` con `status = active`).
+- Importador desde Excel: comando Artisan `inventory:import-from-xlsx` para cargar el inventario actual (`Libro1.pdf` se origina en un xlsx).
+
+### 6e. Acta de entrega de activo (PDF)
+
+**Formato oficial Confipetrol:** `IT-ADM1-F-5 versión 3 (2024-07-24)` — ver [11829_JOSE RONALDO BARRIO TELLEZ.pdf](Libro1.pdf) como referencia.
+
+**Estado hoy:** las actas se llenan a mano (Word/PDF editable) y se almacenan dispersas. No hay link entre el acta y el activo en BD, ni quién hizo la entrega, ni cuándo, ni quién recibe.
+
+**Qué hace falta:**
+
+1. **Tabla `asset_handovers`** con:
+   - `asset_id` (FK)
+   - `acta_number` (ej: 1432, secuencial autogenerado)
+   - `delivered_by_user_id` (entrega — quien firma de IT)
+   - `received_by_user_id` (custodio — quien recibe el equipo)
+   - `delivered_at` (fecha)
+   - `condition_at_delivery` (bueno / regular)
+   - `project_id`, `field` (campo), `location` (ubicación)
+   - `observations` (texto libre — ej. "Acta #: 1432 --- CON CARGADOR")
+   - `pdf_path` (ruta al PDF generado, si se quiere persistir)
+   - `signed_pdf_path` (ruta al PDF ya firmado/escaneado, si se sube después)
+
+2. **Acción "📄 Generar acta de entrega"** en el detalle del activo (`/admin/assets/{id}` y `/soporte/assets/{id}`):
+   - Modal pidiendo: usuario receptor (Select buscable, default = `user_id` actual del activo), proyecto, campo, ubicación, condición de entrega, observaciones extra.
+   - Al confirmar: crea fila en `asset_handovers` y genera el PDF replicando el formato oficial (logo Confipetrol, código IT-ADM1-F-5 v3, todos los datos del equipo y del receptor, los párrafos legales tal cual el formato).
+   - Botón en el modal "Descargar PDF" tras generar.
+   - Opcionalmente: enviar el PDF al correo del receptor automáticamente para que lo firme y lo devuelva.
+
+3. **Subir acta firmada** (acción complementaria): el técnico escanea el PDF firmado y lo sube → se guarda en `signed_pdf_path` con Spatie MediaLibrary.
+
+4. **Historial de actas en la "Hoja de vida"** (#6a): la sección timeline lista todas las actas del activo en orden cronológico — muestra entrega inicial, devolución, re-asignación, etc. Cada fila tiene link al PDF.
+
+**Stack sugerido:** `barryvdh/laravel-dompdf` o `spatie/browsershot` (mejor renderizado de Tailwind/CSS para coincidir con el formato oficial). Plantilla Blade en `resources/views/pdfs/asset-handover.blade.php` con el layout exacto del formato.
+
+**Consideración legal:** el texto de los párrafos de responsabilidad/devolución debe respetarse al pie de la letra del formato oficial — copiar directo del PDF de referencia. Si el formato oficial de Confipetrol cambia, IT actualiza la plantilla Blade y la columna `acta_template_version` permite saber qué versión usó cada acta histórica.
+
+### 6c. Verificación de calidad de respuestas IA contra los KB
+
+**Estado hoy:** el chatbot usa `RagService` que busca en KB articles con `status='published'` y los pasa como contexto al LLM. **No hay forma de medir** si las respuestas son fieles al KB o si "alucina" (inventa info que no está en los artículos).
+
+**Qué hace falta:**
+- **Tab "Conversaciones del chatbot"** en /admin → revisar historial de chat sessions reales.
+- **Sistema de feedback** del usuario sobre cada respuesta del bot (👍/👎 + motivo opcional). Ya existe la idea en `kb_article_feedback`; replicar el patrón para `chat_messages`.
+- **Métrica**: % de respuestas marcadas como útiles por mes/depto.
+- **Test automatizado periódico**: un set de preguntas de referencia con su respuesta esperada (cargado desde `tests/Fixtures/chatbot-qa.yaml`). Job programado que ejecute cada pregunta, compare la respuesta con la esperada usando similitud semántica (embeddings) y reporte regresiones.
+- **Trazabilidad**: cada respuesta del bot debe citar qué artículos KB consultó (ya hay info en `chat_messages.context_kb_ids` posiblemente). Mostrar las fuentes al usuario para que pueda verificar.
+- **Acción supervisor**: marcar una respuesta como "incorrecta" → genera automáticamente un ticket interno para revisar el KB que la causó.
+
+### 6d. Asistentes IA para Plantillas de ticket y Respuestas predefinidas
+
+**Estado hoy:** existe el botón "✨ Redactar con IA" en KB articles ([CreateKbArticle](app/Filament/Soporte/Resources/KbArticles/Pages/CreateKbArticle.php) → `LlmService::draftKbArticle()`). El mismo patrón sirve para acelerar la creación de:
+
+- **TicketTemplates**: el agente describe el caso ("plantilla para solicitud de equipo nuevo, debe pedir nombre, cargo, periféricos, fecha de inicio, software requerido") y el LLM genera asunto + descripción estructurada con la checklist.
+- **CannedResponses**: el agente describe la respuesta ("respuesta para cuando un usuario pide reset de contraseña en pleno fin de semana") y el LLM la redacta con el tono apropiado (formal/amigable/técnico).
+
+**Qué hace falta:**
+- Agregar `LlmService::draftTicketTemplate()` y `LlmService::draftCannedResponse()` con prompts específicos.
+- Botón "✨ Redactar con IA" en `CreateTicketTemplate` y `CreateCannedResponse` (mismo modal con textarea + tono).
+- Reutilizar la infraestructura de feature flag `services.llm.kb_drafting_enabled` (renombrar a `services.llm.drafting_enabled` ya que cubre 3 casos).
+- Tests del happy path en cada caso.
 
 ### 7. ~~Dashboard para supervisores~~ ✅ **HECHO en v1.9**
 

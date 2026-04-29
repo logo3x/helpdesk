@@ -98,18 +98,39 @@ class CommentsRelationManager extends RelationManager
                 TextColumn::make('user.name')
                     ->label('Autor')
                     ->badge()
-                    ->color('primary'),
+                    ->color(fn ($record) => $record->is_system_event ? 'gray' : 'primary')
+                    ->formatStateUsing(fn ($record, $state) => $record->is_system_event
+                        ? '⚙ Sistema'
+                        : ($state ?? '—')
+                    ),
                 TextColumn::make('body')
                     ->label('Comentario')
                     ->wrap()
-                    ->limit(140),
+                    ->limit(140)
+                    ->color(fn ($record) => $record->is_system_event ? 'gray' : null)
+                    ->fontFamily(fn ($record) => $record->is_system_event ? 'mono' : null),
                 IconColumn::make('is_private')
                     ->label('Interno')
                     ->boolean()
                     ->trueIcon('heroicon-o-lock-closed')
                     ->falseIcon('heroicon-o-eye')
                     ->trueColor('warning')
-                    ->falseColor('success'),
+                    ->falseColor('success')
+                    ->visible(fn ($record) => ! ($record?->is_system_event ?? false)),
+                TextColumn::make('event_type')
+                    ->label('Evento')
+                    ->badge()
+                    ->color('warning')
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'transferred' => '🔄 Trasladado',
+                        'assigned' => '👤 Asignado',
+                        'resolved' => '✓ Resuelto',
+                        'reopened' => '↩ Reabierto',
+                        'recalibrated' => '⚖ Recalibrado',
+                        default => $state,
+                    })
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('created_at')
                     ->label('Cuándo')
                     ->since()
@@ -138,10 +159,12 @@ class CommentsRelationManager extends RelationManager
                     }),
             ])
             ->recordActions([
+                // Los eventos del sistema no se pueden editar ni borrar:
+                // son traza de auditoría, su valor está en quedar fijos.
                 EditAction::make()
-                    ->visible(fn ($record) => $record->user_id === auth()->id()),
+                    ->visible(fn ($record) => ! $record->is_system_event && $record->user_id === auth()->id()),
                 DeleteAction::make()
-                    ->visible(fn ($record) => $record->user_id === auth()->id()),
+                    ->visible(fn ($record) => ! $record->is_system_event && $record->user_id === auth()->id()),
             ]);
     }
 }

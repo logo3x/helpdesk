@@ -4,6 +4,7 @@ namespace App\Filament\Soporte\Resources\Assets;
 
 use App\Filament\Resources\Assets\Schemas\AssetForm;
 use App\Filament\Resources\Assets\Tables\AssetsTable;
+use App\Filament\Soporte\Resources\Assets\Pages\AssetLifecycle;
 use App\Filament\Soporte\Resources\Assets\Pages\CreateAsset;
 use App\Filament\Soporte\Resources\Assets\Pages\EditAsset;
 use App\Filament\Soporte\Resources\Assets\Pages\ListAssets;
@@ -86,6 +87,7 @@ class AssetResource extends Resource
             'index' => ListAssets::route('/'),
             'create' => CreateAsset::route('/create'),
             'edit' => EditAsset::route('/{record}/edit'),
+            'lifecycle' => AssetLifecycle::route('/{record}/lifecycle'),
         ];
     }
 

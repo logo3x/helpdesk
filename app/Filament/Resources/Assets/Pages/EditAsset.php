@@ -25,6 +25,13 @@ class EditAsset extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            // ── Ver hoja de vida (timeline del activo) ──────────────
+            Action::make('viewLifecycle')
+                ->label('📋 Hoja de vida')
+                ->icon('heroicon-o-clock')
+                ->color('info')
+                ->url(fn () => AssetResource::getUrl('lifecycle', ['record' => $this->record])),
+
             // ── Generar acta de entrega (formato IT-ADM1-F-5 v3) ──
             // Crea un AssetHandover con snapshot, genera el PDF y lo
             // descarga inmediatamente. Si el receptor es distinto al

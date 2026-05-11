@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Assets;
 
+use App\Filament\Resources\Assets\Pages\AssetLifecycle;
 use App\Filament\Resources\Assets\Pages\CreateAsset;
 use App\Filament\Resources\Assets\Pages\EditAsset;
 use App\Filament\Resources\Assets\Pages\ListAssets;
@@ -55,6 +56,7 @@ class AssetResource extends Resource
             'index' => ListAssets::route('/'),
             'create' => CreateAsset::route('/create'),
             'edit' => EditAsset::route('/{record}/edit'),
+            'lifecycle' => AssetLifecycle::route('/{record}/lifecycle'),
         ];
     }
 

@@ -21,6 +21,12 @@ class EditAsset extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('viewLifecycle')
+                ->label('📋 Hoja de vida')
+                ->icon('heroicon-o-clock')
+                ->color('info')
+                ->url(fn () => AssetResource::getUrl('lifecycle', ['record' => $this->record])),
+
             Action::make('generateHandover')
                 ->label('📄 Generar acta de entrega')
                 ->icon('heroicon-o-document-text')

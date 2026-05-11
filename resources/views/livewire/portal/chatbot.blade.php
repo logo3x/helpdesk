@@ -20,11 +20,47 @@
                              XSS desde contenido de KB o del LLM externo (un
                              supervisor malicioso podría publicar un KB con
                              <img onerror=...> o el LLM devolver HTML). --}}
-                        <div class="chat-bubble-bot max-w-[85%] rounded-2xl rounded-bl-sm bg-white px-5 py-4 text-sm leading-relaxed text-zinc-800 shadow-sm dark:bg-zinc-800 dark:text-zinc-200">
-                            {!! str($msg['content'])->markdown([
-                                'html_input' => 'strip',
-                                'allow_unsafe_links' => false,
-                            ])->toHtmlString() !!}
+                        <div class="flex max-w-[85%] flex-col gap-1">
+                            <div class="chat-bubble-bot rounded-2xl rounded-bl-sm bg-white px-5 py-4 text-sm leading-relaxed text-zinc-800 shadow-sm dark:bg-zinc-800 dark:text-zinc-200">
+                                {!! str($msg['content'])->markdown([
+                                    'html_input' => 'strip',
+                                    'allow_unsafe_links' => false,
+                                ])->toHtmlString() !!}
+                            </div>
+
+                            {{-- Feedback solo para mensajes IA persistidos
+                                 (no para el saludo inicial ni mensajes de
+                                 sistema/escalación). --}}
+                            @php
+                                $sourceKind = $msg['source_kind'] ?? null;
+                                $canRate = ($msg['id'] ?? null) !== null
+                                    && in_array($sourceKind, ['kb_high', 'kb_medium', 'llm'], true);
+                            @endphp
+                            @if ($canRate)
+                                <div class="ml-2 flex items-center gap-1 text-xs text-zinc-400">
+                                    @if ($msg['helpful'] === null)
+                                        <span>¿Te sirvió?</span>
+                                        <button
+                                            type="button"
+                                            wire:click="rateMessage({{ $msg['id'] }}, true)"
+                                            class="rounded p-1 hover:bg-zinc-100 hover:text-emerald-600 dark:hover:bg-zinc-700"
+                                            title="Sí, me sirvió">
+                                            👍
+                                        </button>
+                                        <button
+                                            type="button"
+                                            wire:click="rateMessage({{ $msg['id'] }}, false)"
+                                            class="rounded p-1 hover:bg-zinc-100 hover:text-rose-600 dark:hover:bg-zinc-700"
+                                            title="No me sirvió">
+                                            👎
+                                        </button>
+                                    @elseif ($msg['helpful'] === true)
+                                        <span class="font-medium text-emerald-600">👍 Gracias por tu feedback</span>
+                                    @else
+                                        <span class="font-medium text-rose-600">👎 Tomamos nota — escribe "crear ticket" si necesitas un agente.</span>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     @endif
                 </div>

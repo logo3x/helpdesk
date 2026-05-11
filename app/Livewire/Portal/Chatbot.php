@@ -42,15 +42,54 @@ class Chatbot extends Component
 
         $this->history = $session->messages()
             ->orderBy('created_at')
-            ->get(['role', 'content'])
-            ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])
+            ->get(['id', 'role', 'content', 'helpful', 'source_kind'])
+            ->map(fn ($m) => [
+                'id' => $m->id,
+                'role' => $m->role,
+                'content' => $m->content,
+                'helpful' => $m->helpful,
+                'source_kind' => $m->source_kind,
+            ])
             ->all();
 
         if (empty($this->history)) {
             $this->history[] = [
+                'id' => null,
                 'role' => 'assistant',
                 'content' => '¡Hola! Soy el asistente virtual de Confipetrol. ¿En qué puedo ayudarte? Puedo guiarte con reset de contraseña, VPN, impresoras y más. Si necesitas crear un ticket, escribe **"crear ticket"**.',
+                'helpful' => null,
+                'source_kind' => null,
             ];
+        }
+    }
+
+    /**
+     * Registra el feedback 👍/👎 sobre una respuesta del asistente.
+     * Solo se permite votar respuestas del propio usuario (chequeo de
+     * ownership vía session).
+     */
+    public function rateMessage(int $messageId, bool $helpful): void
+    {
+        $message = ChatMessage::query()
+            ->whereHas('session', fn ($q) => $q->where('user_id', auth()->id()))
+            ->where('role', 'assistant')
+            ->find($messageId);
+
+        if ($message === null) {
+            return;
+        }
+
+        $message->update([
+            'helpful' => $helpful,
+            'feedback_at' => now(),
+        ]);
+
+        // Reflejar en el historial en pantalla sin recargar la página.
+        foreach ($this->history as $i => $item) {
+            if (($item['id'] ?? null) === $messageId) {
+                $this->history[$i]['helpful'] = $helpful;
+                break;
+            }
         }
     }
 
@@ -107,14 +146,29 @@ class Chatbot extends Component
             return;
         }
 
-        // Flujo normal (KB, flows, LLM)
-        $response = app(ChatbotService::class)->handleMessage($session, $message);
+        // Flujo normal (KB, flows, LLM). handleMessage persiste ambos
+        // ChatMessage; los recuperamos para mostrar id/source_kind en UI.
+        app(ChatbotService::class)->handleMessage($session, $message);
 
-        $this->history[] = ['role' => 'user', 'content' => $message];
-        $this->history[] = ['role' => 'assistant', 'content' => $response];
+        $latest = $session->messages()
+            ->orderBy('created_at')
+            ->skip(max(0, $session->messages()->count() - 2))
+            ->take(2)
+            ->get(['id', 'role', 'content', 'helpful', 'source_kind']);
 
-        // Si la respuesta es el prompt inicial de escalación, entrar al flujo guiado
-        if (str_contains($response, 'Cuéntame **brevemente**')) {
+        foreach ($latest as $row) {
+            $this->history[] = [
+                'id' => $row->id,
+                'role' => $row->role,
+                'content' => $row->content,
+                'helpful' => $row->helpful,
+                'source_kind' => $row->source_kind,
+            ];
+        }
+
+        $assistantContent = $latest->last()?->content ?? '';
+
+        if (str_contains($assistantContent, 'Cuéntame **brevemente**')) {
             $this->escalationState = 'awaiting_subject';
         }
 
@@ -139,10 +193,7 @@ class Chatbot extends Component
             $subject,
         );
 
-        $this->history[] = [
-            'role' => 'assistant',
-            'content' => $this->successMessage($ticket->number, null),
-        ];
+        $this->appendAssistant($session, $this->successMessage($ticket->number, null), 'system');
 
         $this->resetEscalation();
         $this->dispatch('chat-updated');
@@ -187,24 +238,37 @@ class Chatbot extends Component
 
     protected function appendUser(ChatSession $session, string $content): void
     {
-        ChatMessage::create([
+        $message = ChatMessage::create([
             'chat_session_id' => $session->id,
             'role' => 'user',
             'content' => $content,
         ]);
 
-        $this->history[] = ['role' => 'user', 'content' => $content];
+        $this->history[] = [
+            'id' => $message->id,
+            'role' => 'user',
+            'content' => $content,
+            'helpful' => null,
+            'source_kind' => null,
+        ];
     }
 
-    protected function appendAssistant(ChatSession $session, string $content): void
+    protected function appendAssistant(ChatSession $session, string $content, ?string $sourceKind = 'system'): void
     {
-        ChatMessage::create([
+        $message = ChatMessage::create([
             'chat_session_id' => $session->id,
             'role' => 'assistant',
             'content' => $content,
+            'source_kind' => $sourceKind,
         ]);
 
-        $this->history[] = ['role' => 'assistant', 'content' => $content];
+        $this->history[] = [
+            'id' => $message->id,
+            'role' => 'assistant',
+            'content' => $content,
+            'helpful' => null,
+            'source_kind' => $sourceKind,
+        ];
     }
 
     protected function departmentPrompt(): string

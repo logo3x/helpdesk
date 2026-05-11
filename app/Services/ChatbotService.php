@@ -28,6 +28,10 @@ class ChatbotService
 
     /**
      * Process a user message and return the assistant's response.
+     *
+     * Devuelve solo el string para retrocompatibilidad con el componente
+     * Livewire; el ChatMessage del asistente queda persistido con
+     * `source_kind`, `kb_article_id` y `similarity` para análisis posterior.
      */
     public function handleMessage(ChatSession $session, string $userMessage): string
     {
@@ -38,16 +42,45 @@ class ChatbotService
             'content' => $userMessage,
         ]);
 
-        $response = $this->generateResponse($session, $userMessage);
+        [$response, $meta] = $this->generateResponseWithMeta($session, $userMessage);
 
-        // Store assistant response
         ChatMessage::create([
             'chat_session_id' => $session->id,
             'role' => 'assistant',
             'content' => $response,
+            'source_kind' => $meta['source_kind'] ?? null,
+            'kb_article_id' => $meta['kb_article_id'] ?? null,
+            'similarity' => $meta['similarity'] ?? null,
         ]);
 
         return $response;
+    }
+
+    /**
+     * Variante para tests / debugging que expone el metadata completo.
+     *
+     * @return array{0: string, 1: array{source_kind: string, kb_article_id: ?int, similarity: ?float}}
+     */
+    public function handleMessageWithMeta(ChatSession $session, string $userMessage): array
+    {
+        ChatMessage::create([
+            'chat_session_id' => $session->id,
+            'role' => 'user',
+            'content' => $userMessage,
+        ]);
+
+        [$response, $meta] = $this->generateResponseWithMeta($session, $userMessage);
+
+        ChatMessage::create([
+            'chat_session_id' => $session->id,
+            'role' => 'assistant',
+            'content' => $response,
+            'source_kind' => $meta['source_kind'],
+            'kb_article_id' => $meta['kb_article_id'],
+            'similarity' => $meta['similarity'],
+        ]);
+
+        return [$response, $meta];
     }
 
     /**
@@ -135,30 +168,43 @@ class ChatbotService
 
     protected function generateResponse(ChatSession $session, string $userMessage): string
     {
+        return $this->generateResponseWithMeta($session, $userMessage)[0];
+    }
+
+    /**
+     * Variante que también devuelve metadata para tracking (source_kind,
+     * artículo KB usado, score de similitud). El método "string" original
+     * delega aquí para no duplicar la cadena de decisión.
+     *
+     * @return array{0: string, 1: array{source_kind: string, kb_article_id: ?int, similarity: ?float}}
+     */
+    protected function generateResponseWithMeta(ChatSession $session, string $userMessage): array
+    {
         // 1. Check if user wants to escalate.
-        //    El estado de escalación (awaiting_subject / awaiting_department)
-        //    se maneja en el componente Livewire (Portal\Chatbot). Aquí solo
-        //    detectamos el disparador inicial.
         if ($this->wantsEscalation($userMessage)) {
             $this->abandonActiveFlow($session);
 
-            return "Claro, te ayudo a crear un ticket. 🎫\n\n"
+            return [
+                "Claro, te ayudo a crear un ticket. 🎫\n\n"
                 .'Cuéntame **brevemente** de qué se trata tu problema o solicitud '
-                .'(ej: "Mi impresora no imprime" o "Necesito resetear mi correo").';
+                .'(ej: "Mi impresora no imprime" o "Necesito resetear mi correo").',
+                $this->meta('system'),
+            ];
         }
 
         // 2. Comando explícito para cancelar el flow en curso.
         if ($this->wantsCancel($userMessage)) {
             $abandoned = $this->abandonActiveFlow($session);
 
-            return $abandoned
-                ? 'Listo, cancelé el flujo en curso. ¿En qué más puedo ayudarte?'
-                : 'No hay ningún flujo activo para cancelar. ¿En qué puedo ayudarte?';
+            return [
+                $abandoned
+                    ? 'Listo, cancelé el flujo en curso. ¿En qué más puedo ayudarte?'
+                    : 'No hay ningún flujo activo para cancelar. ¿En qué puedo ayudarte?',
+                $this->meta('system'),
+            ];
         }
 
-        // 3. Búsqueda KB de alta confianza — si la nueva pregunta tiene match
-        //    fuerte con un artículo (>= 0.70), se interpreta como cambio de
-        //    tema y se abandona cualquier flujo en curso para servir la KB.
+        // 3. KB de alta confianza.
         $ragResults = $this->rag->search($userMessage, topN: 1, threshold: 0.5);
         $topKb = $ragResults->first();
         $topSimilarity = $topKb['similarity'] ?? 0;
@@ -166,41 +212,42 @@ class ChatbotService
         if ($topKb !== null && $topSimilarity >= 0.70) {
             $this->abandonActiveFlow($session);
 
-            return $this->formatKbResponse($topKb);
+            return [
+                $this->formatKbResponse($topKb),
+                $this->meta('kb_high', $topKb['article_id'] ?? null, $topSimilarity),
+            ];
         }
 
-        // 4. Check if there's an active flow in progress — continuar el
-        //    flujo solo si la nueva entrada no fue reconocida como una
-        //    nueva consulta (paso 3 ya habría salido).
+        // 4. Continuar flujo activo si lo hay.
         $activeFlow = $this->flowEngine->getActiveFlow($session);
 
         if ($activeFlow !== null) {
             $next = $this->flowEngine->advance($session, $activeFlow, $userMessage);
 
-            if ($next === null) {
-                return '¡Listo! El flujo se completó. ¿Hay algo más en lo que pueda ayudarte?';
-            }
-
-            return $next;
+            return [
+                $next ?? '¡Listo! El flujo se completó. ¿Hay algo más en lo que pueda ayudarte?',
+                $this->meta('flow'),
+            ];
         }
 
-        // 5. KB con confianza media (0.55-0.70) como respuesta principal
-        //    cuando no hay flujo activo.
+        // 5. KB con confianza media.
         if ($topKb !== null && $topSimilarity >= 0.55) {
-            return $this->formatKbResponse($topKb);
+            return [
+                $this->formatKbResponse($topKb),
+                $this->meta('kb_medium', $topKb['article_id'] ?? null, $topSimilarity),
+            ];
         }
 
-        // 6. Si la KB no tiene match fuerte, clasificar intent y lanzar flujo.
+        // 6. Clasificar intent y lanzar flujo si aplica.
         $intent = $this->classifier->classify($userMessage);
 
         if ($intent['flow'] !== null) {
             $firstStep = $this->flowEngine->start($session, $intent['flow']);
 
-            return $firstStep;
+            return [$firstStep, $this->meta('flow')];
         }
 
-        // 5. LLM con contexto KB (si hay API key). Se reutiliza el top-match
-        //    aunque no haya llegado al umbral de respuesta directa.
+        // 7. LLM con contexto KB (si hay API key).
         $context = $topKb !== null
             ? "[Artículo: {$topKb['article_title']}]\n{$topKb['content']}"
             : '';
@@ -218,13 +265,35 @@ class ChatbotService
         $llmResponse = $this->llm->chat($chatHistory, $systemPrompt);
 
         if (filled($llmResponse)) {
-            return $llmResponse;
+            return [
+                $llmResponse,
+                $this->meta(
+                    'llm',
+                    $topKb['article_id'] ?? null,
+                    $topKb !== null ? $topSimilarity : null,
+                ),
+            ];
         }
 
-        // 6. Fallback final
-        return 'No encontré información específica para tu consulta. '
+        // 8. Fallback final.
+        return [
+            'No encontré información específica para tu consulta. '
             .'Puedo ayudarte a crear un ticket de soporte — solo escribe **"crear ticket"** '
-            .'o **"hablar con un agente"** y te conecto con alguien del equipo.';
+            .'o **"hablar con un agente"** y te conecto con alguien del equipo.',
+            $this->meta('fallback'),
+        ];
+    }
+
+    /**
+     * @return array{source_kind: string, kb_article_id: ?int, similarity: ?float}
+     */
+    protected function meta(string $sourceKind, ?int $kbArticleId = null, ?float $similarity = null): array
+    {
+        return [
+            'source_kind' => $sourceKind,
+            'kb_article_id' => $kbArticleId,
+            'similarity' => $similarity,
+        ];
     }
 
     /**

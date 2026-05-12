@@ -149,6 +149,28 @@ class AssetsTable
                     ->placeholder('Nunca')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('agent_version')
+                    ->label('Agente')
+                    ->badge()
+                    ->color(fn (?string $state) => match (true) {
+                        $state === null => 'gray',
+                        str_starts_with($state, '2.') => 'success',
+                        default => 'warning',
+                    })
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('last_scan_status')
+                    ->label('Status scan')
+                    ->badge()
+                    ->color(fn (?string $state) => match ($state) {
+                        'ok' => 'success',
+                        'partial' => 'warning',
+                        'error' => 'danger',
+                        default => 'gray',
+                    })
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('department_id')
@@ -196,6 +218,18 @@ class AssetsTable
                         ->whereNull('last_scan_at')
                         ->orWhere('last_scan_at', '<', now()->subDays(30))
                     ))
+                    ->toggle(),
+                Filter::make('agent_outdated')
+                    ->label('Agente desactualizado (no v2)')
+                    ->query(fn (Builder $q) => $q->whereNotNull('last_scan_at')
+                        ->where(fn ($qq) => $qq
+                            ->whereNull('agent_version')
+                            ->orWhere('agent_version', 'not like', '2.%')
+                        ))
+                    ->toggle(),
+                Filter::make('scan_problems')
+                    ->label('Scan con errores parciales')
+                    ->query(fn (Builder $q) => $q->whereIn('last_scan_status', ['partial', 'error']))
                     ->toggle(),
                 TrashedFilter::make(),
             ])

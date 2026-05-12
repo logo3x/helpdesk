@@ -49,6 +49,8 @@ class Asset extends Model
         'status',
         'notes',
         'last_scan_at',
+        'agent_version',
+        'last_scan_status',
         // Mantenimiento
         'last_maintenance_at',
         'maintenance_interval_days',
@@ -170,6 +172,24 @@ class Asset extends Model
     {
         $query->whereNotNull('next_maintenance_at')
             ->where('next_maintenance_at', '<=', now()->addDays($daysAhead));
+    }
+
+    /**
+     * Equipos con agente que han dejado de reportar (last_scan_at más
+     * viejo que el umbral, o nunca reportaron). Útil para el widget
+     * "PCs sin reportar" — implica que el agente está caído, el equipo
+     * apagado por días, o se perdió conectividad.
+     *
+     * Solo aplica a activos que YA han reportado al menos una vez —
+     * si nunca reportaron es que aún no se instaló el agente.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeStaleAgent(Builder $query, int $daysSilent = 14): void
+    {
+        $query->whereNotNull('last_scan_at')
+            ->where('last_scan_at', '<', now()->subDays($daysSilent))
+            ->where('status', '!=', 'retired');
     }
 
     /**

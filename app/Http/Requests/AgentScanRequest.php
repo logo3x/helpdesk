@@ -35,6 +35,11 @@ class AgentScanRequest extends FormRequest
             'software.*.version' => ['nullable', 'string', 'max:100'],
             'software.*.publisher' => ['nullable', 'string', 'max:255'],
             'software.*.install_date' => ['nullable', 'date'],
+            // v2+: el agente reporta su propia versión y el status de
+            // recolección. Ambos son opcionales para no romper agentes v1.
+            'agent_version' => ['nullable', 'string', 'max:20'],
+            'scan_status' => ['nullable', 'string', 'in:ok,partial,error'],
+            'scanned_at' => ['nullable', 'date'],
         ];
     }
 }

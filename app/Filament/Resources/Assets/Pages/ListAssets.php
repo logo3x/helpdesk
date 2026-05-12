@@ -121,6 +121,7 @@ class ListAssets extends ListRecords
                 ->modalCancelActionLabel('Cerrar')
                 ->modalContent(fn () => view('filament.modals.install-agent-instructions', [
                     'installUrl' => route('agent.install'),
+                    'uninstallUrl' => route('agent.uninstall'),
                 ])),
 
             // Acceso directo al .ps1 raw (para auditoría manual antes

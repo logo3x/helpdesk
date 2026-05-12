@@ -64,6 +64,31 @@ class StaleAssetsWidget extends BaseWidget
                     ->since()
                     ->color('warning'),
 
+                TextColumn::make('agent_version')
+                    ->label('Agente')
+                    ->badge()
+                    ->color(fn (?string $state) => match (true) {
+                        $state === null => 'gray',
+                        str_starts_with($state, '2.') => 'success',
+                        default => 'warning',
+                    })
+                    ->placeholder('—')
+                    ->tooltip(fn (?string $state) => $state === null
+                        ? 'Sin agente PowerShell o nunca reportó'
+                        : "Versión {$state} del agente"),
+
+                TextColumn::make('last_scan_status')
+                    ->label('Status')
+                    ->badge()
+                    ->color(fn (?string $state) => match ($state) {
+                        'ok' => 'success',
+                        'partial' => 'warning',
+                        'error' => 'danger',
+                        default => 'gray',
+                    })
+                    ->placeholder('—')
+                    ->toggleable(),
+
                 TextColumn::make('os_name')
                     ->label('SO')
                     ->placeholder('—')

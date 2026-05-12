@@ -83,6 +83,11 @@ class InventoryService
             'ip_address' => $ip ?? $data['ip_address'] ?? $asset->ip_address,
             'mac_address' => $data['mac_address'] ?? $asset->mac_address,
             'last_scan_at' => now(),
+            // v2+: el agente reporta su propia versión y status de recolección.
+            // Para PCs con agente v1 estos campos no vienen — array_filter
+            // los descarta y el activo queda con su valor previo.
+            'agent_version' => $data['agent_version'] ?? null,
+            'last_scan_status' => $data['scan_status'] ?? null,
         ], fn ($v) => $v !== null));
 
         // Sync software list (replace all)

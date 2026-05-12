@@ -44,6 +44,7 @@ Route::get('auth/azure/callback', [AzureAuthController::class, 'callback'])->nam
 // query string al instalador y NO se loguea). El controller
 // rehúsa tokens con formato inválido.
 Route::get('agent/install', [InventoryAgentController::class, 'install'])->name('agent.install');
+Route::get('agent/uninstall', [InventoryAgentController::class, 'uninstall'])->name('agent.uninstall');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // /dashboard es el destino por defecto de Fortify tras login; aquí

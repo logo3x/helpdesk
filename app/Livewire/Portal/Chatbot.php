@@ -56,7 +56,7 @@ class Chatbot extends Component
             $this->history[] = [
                 'id' => null,
                 'role' => 'assistant',
-                'content' => '¡Hola! Soy el asistente virtual de Confipetrol. ¿En qué puedo ayudarte? Puedo guiarte con reset de contraseña, VPN, impresoras y más. Si necesitas crear un ticket, escribe **"crear ticket"**.',
+                'content' => '👋 ¡Hola! Soy el asistente virtual de Confipetrol. ¿En qué puedo ayudarte? Puedo guiarte con reset de contraseña, VPN, impresoras y más. Si necesitas crear un ticket, escribe **"crear ticket"**.',
                 'helpful' => null,
                 'source_kind' => null,
             ];

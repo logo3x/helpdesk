@@ -150,7 +150,7 @@ class SlaReport extends Page
             ->whereNotNull('resolution_due_at')
             ->whereIn('status', $openStatuses)
             ->where('resolution_due_at', '<=', $threshold)
-            ->with('department:id,name', 'requester:id,name', 'assignedTo:id,name')
+            ->with('department:id,name', 'requester:id,name', 'assignee:id,name')
             ->orderBy('resolution_due_at')
             ->limit(25)
             ->get();

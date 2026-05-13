@@ -3,7 +3,7 @@ REM ============================================================
 REM  Helpdesk Confipetrol — Deploy completo (one-shot)
 REM ============================================================
 REM
-REM  Uso (PowerShell o cmd como Administrator):
+REM  Uso (PowerShell o cmd, NO requiere Administrator):
 REM    cd C:\inetpub\wwwroot\helpdesk
 REM    tools\deploy.bat
 REM
@@ -13,9 +13,16 @@ REM    2. Hace git pull para traer el ultimo codigo del repo.
 REM    3. Instala dependencias PHP (composer) sin dev y optimizadas.
 REM    4. Instala dependencias JS (npm) y compila assets (Vite/Tailwind).
 REM    5. Llama a after-deploy.bat para migraciones + caches + queue.
-REM    6. Reinicia el pool de IIS para que tome el nuevo bytecode.
+REM    6. Toca public/web.config para forzar a IIS a reload del App Pool
+REM     (sin admin: appcmd recycle requiere privilegios elevados,
+REM     pero tocar web.config es escritura normal sobre la carpeta).
 REM
 REM  Aborta inmediatamente si cualquier paso falla.
+REM
+REM  El usuario que corra este script solo necesita:
+REM    - Permiso de lectura/escritura sobre la carpeta del proyecto.
+REM    - PHP, Composer, npm y git en el PATH.
+REM    - NO necesita ser Administrator del server.
 REM ============================================================
 
 setlocal EnableDelayedExpansion
@@ -25,7 +32,6 @@ set PHP_BIN=php
 set COMPOSER_BIN=composer
 set NPM_BIN=npm
 set GIT_BIN=git
-set IIS_APP_POOL=DefaultAppPool
 
 echo.
 echo === [Paso 1/5] Verificando estado del repositorio ===
@@ -98,12 +104,18 @@ if errorlevel 1 (
 )
 
 echo.
-echo === Reiniciando IIS App Pool "%IIS_APP_POOL%" ===
-%windir%\system32\inetsrv\appcmd.exe recycle apppool /apppool.name:%IIS_APP_POOL%
-if errorlevel 1 (
-    echo.
-    echo ADVERTENCIA: No se pudo reciclar el App Pool. Hazlo manualmente
-    echo desde IIS Manager o ajusta IIS_APP_POOL al nombre correcto.
+echo === Forzando reload del App Pool ===
+REM Tocar public\web.config cambia su mtime; IIS detecta el cambio y
+REM recicla el App Pool sin necesidad de privilegios elevados (no es
+REM 'appcmd recycle', es escritura normal sobre la carpeta del proyecto).
+REM El truco 'copy /b file +,, file' actualiza la fecha sin alterar
+REM el contenido del archivo.
+if exist "public\web.config" (
+    copy /b "public\web.config" +,, "public\web.config" >nul
+    echo Reload del App Pool disparado vía web.config touch.
+) else (
+    echo ADVERTENCIA: public\web.config no existe. Crea uno o reinicia
+    echo manualmente el App Pool desde IIS Manager.
 )
 
 echo.

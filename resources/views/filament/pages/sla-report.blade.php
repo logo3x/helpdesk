@@ -85,7 +85,7 @@
                                     {{ $t->department?->name ?? '—' }}
                                 </td>
                                 <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">
-                                    {{ $t->assignedTo?->name ?? '— Sin asignar —' }}
+                                    {{ $t->assignee?->name ?? '— Sin asignar —' }}
                                 </td>
                                 <td class="px-3 py-2 text-center">
                                     <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium

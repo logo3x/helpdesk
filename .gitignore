@@ -30,3 +30,10 @@ yarn-error.log
 /testsprite_tests
 /.playwright-mcp
 /.ai
+
+# Web server config local — específico de cada server (IIS / Apache).
+# Cada despliegue ajusta su web.config / .htaccess según el setup, así
+# que no los versionamos para que `git pull` no quiera sobrescribirlos.
+/web.config
+/.htaccess
+/public/web.config

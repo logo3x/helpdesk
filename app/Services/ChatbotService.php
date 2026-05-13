@@ -205,11 +205,17 @@ class ChatbotService
         }
 
         // 3. KB de alta confianza.
+        //    Umbrales calibrados para la búsqueda con stemming en español:
+        //      - >= 0.55 (alta) → responde directo con el artículo, abandona flujo.
+        //      - >= 0.30 (media) → responde con el artículo si no hay flujo activo.
+        //    Con stemming, un query como "instalo teams en mi pc" devuelve
+        //    similarity ~0.66 contra "Cómo instalar Microsoft Teams" — antes
+        //    daba 0.50 (sin stem) y caía bajo el threshold viejo de 0.55.
         $ragResults = $this->rag->search($userMessage, topN: 1, threshold: 0.5);
         $topKb = $ragResults->first();
         $topSimilarity = $topKb['similarity'] ?? 0;
 
-        if ($topKb !== null && $topSimilarity >= 0.70) {
+        if ($topKb !== null && $topSimilarity >= 0.55) {
             $this->abandonActiveFlow($session);
 
             return [
@@ -231,7 +237,7 @@ class ChatbotService
         }
 
         // 5. KB con confianza media.
-        if ($topKb !== null && $topSimilarity >= 0.55) {
+        if ($topKb !== null && $topSimilarity >= 0.30) {
             return [
                 $this->formatKbResponse($topKb),
                 $this->meta('kb_medium', $topKb['article_id'] ?? null, $topSimilarity),

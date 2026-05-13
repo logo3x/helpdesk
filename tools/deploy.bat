@@ -34,7 +34,7 @@ set NPM_BIN=npm
 set GIT_BIN=git
 
 echo.
-echo === [Paso 1/5] Verificando estado del repositorio ===
+echo === [Paso 1/5] Verificando rama y traendo cambios ===
 
 %GIT_BIN% rev-parse --abbrev-ref HEAD > "%TEMP%\helpdesk_branch.txt"
 set /p CURRENT_BRANCH=<"%TEMP%\helpdesk_branch.txt"
@@ -47,23 +47,29 @@ if /I not "%CURRENT_BRANCH%"=="main" (
     exit /b 1
 )
 
-%GIT_BIN% diff-index --quiet HEAD --
+echo Rama main. OK.
+
+echo.
+echo === [Paso 2/5] git fetch + reset --hard origin/main ===
+REM En produccion usamos reset --hard en vez de pull para garantizar
+REM estado limpio: cualquier cambio local (assets publicados por
+REM filament:upgrade, edits manuales accidentales, etc.) se pisa con
+REM la version EXACTA de origin/main. Esto evita drifts entre deploys
+REM y elimina los "working tree dirty" intermitentes.
+REM
+REM Los archivos en .gitignore (.env, storage, vendor, node_modules,
+REM public/web.config, etc.) NO se tocan — solo lo versionado.
+%GIT_BIN% fetch origin main
 if errorlevel 1 (
     echo.
-    echo ERROR: Hay cambios sin commitear en el working tree.
-    echo Resuelvelos antes de desplegar:
-    %GIT_BIN% status --short
+    echo ERROR: git fetch fallo. Revisa la salida arriba.
     exit /b 1
 )
 
-echo Rama main, working tree limpio. OK.
-
-echo.
-echo === [Paso 2/5] git pull origin main ===
-%GIT_BIN% pull origin main
+%GIT_BIN% reset --hard origin/main
 if errorlevel 1 (
     echo.
-    echo ERROR: git pull fallo. Revisa la salida arriba.
+    echo ERROR: git reset --hard fallo.
     exit /b 1
 )
 

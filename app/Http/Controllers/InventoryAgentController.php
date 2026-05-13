@@ -42,7 +42,11 @@ class InventoryAgentController extends Controller
     {
         $token = (string) $request->query('token', '');
         $apiUrl = url('/api/inventory/agent-scan');
-        $scriptUrl = url('/downloads/inventory-agent.ps1');
+        // Servimos el .ps1 desde Laravel (no como static file) para que
+        // IIS no lo bloquee con 404.3 — los .ps1 no están en el MIME
+        // map por defecto y agregarlos requiere config server-side
+        // que se pierde entre redeployments.
+        $scriptUrl = url('/agent/script');
 
         if ($token !== '' && ! preg_match('/^\d+\|[A-Za-z0-9]+$/', $token)) {
             return response('# Token inválido. Genera uno desde /admin → Inventario → Generar token del agente.', 400)
@@ -165,6 +169,33 @@ PS1;
 
         return response($script, 200)
             ->header('Content-Type', 'text/plain; charset=utf-8');
+    }
+
+    /**
+     * GET /agent/script
+     *
+     * Devuelve el contenido de `public/downloads/inventory-agent.ps1`
+     * con Content-Type `text/plain` para que IIS no lo bloquee como
+     * extensión desconocida y los browsers no lo intenten "abrir" como
+     * descarga arbitraria.
+     *
+     * El instalador (`/agent/install`) referencia ESTA URL y no la
+     * static, así no dependemos del MIME map de IIS.
+     */
+    public function script(): Response
+    {
+        $path = public_path('downloads/inventory-agent.ps1');
+
+        if (! is_file($path)) {
+            return response('# Agente no disponible. Verifica el deploy.', 404)
+                ->header('Content-Type', 'text/plain; charset=utf-8');
+        }
+
+        $content = (string) file_get_contents($path);
+
+        return response($content, 200)
+            ->header('Content-Type', 'text/plain; charset=utf-8')
+            ->header('Cache-Control', 'no-store, must-revalidate');
     }
 
     /**

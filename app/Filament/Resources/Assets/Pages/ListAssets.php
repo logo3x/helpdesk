@@ -14,6 +14,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ListAssets extends ListRecords
@@ -70,17 +71,25 @@ class ListAssets extends ListRecords
                         ->default(false),
                 ])
                 ->action(function (array $data): void {
+                    // FileUpload->disk('local') guarda con la ruta relativa
+                    // dentro del disk. En Laravel 11+ el disk `local` tiene
+                    // root = storage/app/private/, así que NO se puede
+                    // construir el path absoluto a mano con storage_path().
+                    // Hay que pedírselo al filesystem manager.
                     $relative = (string) $data['file'];
-                    $absolute = storage_path('app/'.$relative);
+                    $disk = Storage::disk('local');
 
-                    if (! is_file($absolute)) {
+                    if (! $disk->exists($relative)) {
                         Notification::make()
                             ->title('No se pudo leer el archivo subido.')
+                            ->body("Ruta esperada: {$relative}")
                             ->danger()
                             ->send();
 
                         return;
                     }
+
+                    $absolute = $disk->path($relative);
 
                     $report = app(InventoryImportService::class)
                         ->importFromFile($absolute, (bool) ($data['dry_run'] ?? false));
@@ -130,7 +139,7 @@ class ListAssets extends ListRecords
                 ->label('Ver script .ps1')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
-                ->url(asset('downloads/inventory-agent.ps1'))
+                ->url(fn () => route('agent.script'))
                 ->openUrlInNewTab(),
 
             // ── Generar token Sanctum del agente ──────────────────

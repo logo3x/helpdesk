@@ -37,3 +37,8 @@ yarn-error.log
 /web.config
 /.htaccess
 /public/web.config
+
+# Claude Code — settings.local.json es config PERSONAL del developer
+# (permisos pre-aprobados, env vars). El archivo compartido es
+# .claude/settings.json (si existe).
+/.claude/settings.local.json

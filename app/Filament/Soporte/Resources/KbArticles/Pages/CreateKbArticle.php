@@ -18,6 +18,27 @@ class CreateKbArticle extends CreateRecord
     protected static string $resource = KbArticleResource::class;
 
     /**
+     * Acepta ?title=... en la URL para pre-rellenar el campo título.
+     * Usado por el botón "Crear KB con esta pregunta" del reporte de
+     * métricas del chatbot — cuando un gap (fallback) aparece muchas
+     * veces, el admin lo convierte en artículo con 1 click.
+     */
+    public function mount(): void
+    {
+        parent::mount();
+
+        $prefillTitle = request()->query('title');
+        if ($prefillTitle) {
+            $clean = mb_strimwidth(trim((string) $prefillTitle), 0, 255);
+            $this->form->fill([
+                ...$this->form->getRawState(),
+                'title' => $clean,
+                'slug' => Str::slug($clean),
+            ]);
+        }
+    }
+
+    /**
      * Botón "Redactar con IA" en el header de la página de creación.
      * Abre modal con textarea en lenguaje natural + selector de tono;
      * al enviar, llama al LlmService y rellena title + body del form.

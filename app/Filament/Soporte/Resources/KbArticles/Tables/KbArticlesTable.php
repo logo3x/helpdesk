@@ -67,6 +67,49 @@ class KbArticlesTable
                     ->label('Autor')
                     ->toggleable(),
 
+                TextColumn::make('helpful_count')
+                    ->label('👍')
+                    ->alignCenter()
+                    ->sortable()
+                    ->color('success')
+                    ->toggleable(),
+
+                TextColumn::make('not_helpful_count')
+                    ->label('👎')
+                    ->alignCenter()
+                    ->sortable()
+                    ->color('danger')
+                    ->toggleable(),
+
+                TextColumn::make('csat')
+                    ->label('CSAT')
+                    ->alignCenter()
+                    ->state(function ($record) {
+                        $total = $record->helpful_count + $record->not_helpful_count;
+                        if ($total === 0) {
+                            return null;
+                        }
+
+                        return round(($record->helpful_count / $total) * 100, 1).'%';
+                    })
+                    ->placeholder('—')
+                    ->color(function ($record) {
+                        $total = $record->helpful_count + $record->not_helpful_count;
+                        if ($total === 0) {
+                            return 'gray';
+                        }
+                        $pct = ($record->helpful_count / $total) * 100;
+
+                        return $pct >= 80 ? 'success' : ($pct >= 50 ? 'warning' : 'danger');
+                    })
+                    ->toggleable(),
+
+                TextColumn::make('views_count')
+                    ->label('Vistas')
+                    ->alignCenter()
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('published_at')
                     ->label('Publicado el')
                     ->dateTime('d/m/Y')

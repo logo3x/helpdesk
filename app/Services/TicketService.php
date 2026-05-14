@@ -16,6 +16,8 @@ use App\Models\User;
 use App\Notifications\TicketAssignedNotification;
 use App\Notifications\TicketCreatedNotification;
 use App\Notifications\TicketReceivedFromTransferNotification;
+use App\Notifications\TicketReopenedNotification;
+use App\Notifications\TicketResolvedNotification;
 use App\Notifications\TicketTransferredNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -358,6 +360,12 @@ class TicketService
         $ticket->resolved_at = now();
         $ticket->save();
 
+        // Avisar al solicitante para que pueda confirmar o reabrir.
+        $ticket->loadMissing('requester');
+        if ($ticket->requester) {
+            $ticket->requester->notify(new TicketResolvedNotification($ticket));
+        }
+
         return $ticket;
     }
 
@@ -379,6 +387,28 @@ class TicketService
         $ticket->resolved_at = null;
         $ticket->closed_at = null;
         $ticket->save();
+
+        // Avisar al agente asignado (si hay) y supervisores del depto
+        // para que retomen el trabajo. Si no hay asignado, solo
+        // supervisor se entera.
+        $ticket->loadMissing('assignee', 'department.users.roles');
+        $notified = collect();
+
+        if ($ticket->assignee) {
+            $ticket->assignee->notify(new TicketReopenedNotification($ticket));
+            $notified->push($ticket->assignee->id);
+        }
+
+        $supervisors = $ticket->department?->users
+            ?->filter(fn (User $u) => $u->hasRole('supervisor_soporte'))
+            ?? collect();
+
+        foreach ($supervisors as $supervisor) {
+            if ($notified->contains($supervisor->id)) {
+                continue;
+            }
+            $supervisor->notify(new TicketReopenedNotification($ticket));
+        }
 
         return $ticket;
     }

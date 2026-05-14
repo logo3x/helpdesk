@@ -57,7 +57,22 @@ class KbArticleForm
                     ->schema([
                         Select::make('department_id')
                             ->label('Departamento')
-                            ->relationship('department', 'name', fn ($query) => $query->where('is_active', true))
+                            ->relationship(
+                                name: 'department',
+                                titleAttribute: 'name',
+                                // Filtramos el dropdown a nivel query: para agentes
+                                // mostramos SOLO su departamento, para supervisores+
+                                // todos los activos. El backend igual valida en
+                                // mutateFormDataBeforeCreate, pero esto evita que
+                                // el agente vea opciones que no puede elegir.
+                                modifyQueryUsing: function ($query) {
+                                    $user = auth()->user();
+                                    $query->where('is_active', true);
+                                    if ($user && ! static::isSupervisor() && $user->department_id) {
+                                        $query->where('id', $user->department_id);
+                                    }
+                                },
+                            )
                             ->default(fn () => auth()->user()?->department_id)
                             ->required()
                             ->searchable()

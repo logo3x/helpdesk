@@ -45,6 +45,15 @@ class CreateTicket extends CreateRecord
         /** @var User $requester */
         $requester = User::findOrFail($data['requester_id']);
 
+        // Defensa backend: si el usuario NO puede crear cross-departamentos
+        // (no es admin/super_admin/supervisor), forzamos el department_id
+        // al suyo aunque alguien haya manipulado el payload Livewire.
+        $user = auth()->user();
+        $canCrossDepartments = $user?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']) ?? false;
+        if (! $canCrossDepartments && $user?->department_id) {
+            $data['department_id'] = $user->department_id;
+        }
+
         // El service ya normaliza TicketImpact|string y TicketUrgency|string,
         // así que pasamos el valor tal cual venga del form (puede ser enum
         // hidratado por Filament o string crudo según versión).

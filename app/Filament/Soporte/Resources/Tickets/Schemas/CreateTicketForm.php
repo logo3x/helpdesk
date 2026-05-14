@@ -156,11 +156,31 @@ class CreateTicketForm
 
                                 Select::make('department_id')
                                     ->label('Departamento')
-                                    ->relationship('department', 'name')
+                                    ->relationship(
+                                        name: 'department',
+                                        titleAttribute: 'name',
+                                        // Scope por rol: agente_soporte / tecnico_campo / editor_kb
+                                        // solo pueden crear tickets en SU depto.
+                                        // Supervisor+, admin y super_admin pueden elegir
+                                        // cualquiera (toman llamadas cross-departamento).
+                                        modifyQueryUsing: function ($query) {
+                                            $user = auth()->user();
+                                            $query->where('is_active', true);
+                                            if ($user && ! static::canCrossDepartments() && $user->department_id) {
+                                                $query->where('id', $user->department_id);
+                                            }
+                                        },
+                                    )
+                                    ->default(fn () => static::canCrossDepartments() ? null : auth()->user()?->department_id)
+                                    ->disabled(fn () => ! static::canCrossDepartments())
+                                    ->dehydrated()
                                     ->searchable()
                                     ->preload()
                                     ->live()
-                                    ->placeholder('Selecciona depto'),
+                                    ->placeholder('Selecciona depto')
+                                    ->helperText(fn () => static::canCrossDepartments()
+                                        ? null
+                                        : 'Solo podés crear tickets en tu departamento.'),
 
                                 Select::make('category_id')
                                     ->label('Categoría')
@@ -231,5 +251,15 @@ class CreateTicketForm
             $impact instanceof TicketImpact ? $impact : TicketImpact::from($impact),
             $urgency instanceof TicketUrgency ? $urgency : TicketUrgency::from($urgency),
         )->value);
+    }
+
+    /**
+     * El usuario puede crear tickets de otros departamentos. Solo
+     * super_admin/admin/supervisor_soporte tienen esa flexibilidad —
+     * los agentes/técnicos/editores quedan amarrados a su propio depto.
+     */
+    protected static function canCrossDepartments(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']) ?? false;
     }
 }

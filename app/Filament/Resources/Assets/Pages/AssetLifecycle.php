@@ -171,12 +171,33 @@ class AssetLifecycle extends Page
     {
         return match ($action) {
             'created' => 'Activo creado',
-            'updated' => $field ? "Campo «{$field}» actualizado" : 'Activo actualizado',
+            'updated' => $field ? "Campo «{$this->labelForField($field)}» actualizado" : 'Activo actualizado',
             'assigned' => 'Custodio asignado',
             'unassigned' => 'Custodio retirado',
             'maintenance' => 'Mantenimiento registrado',
             'retired' => 'Activo dado de baja',
             default => $action ? ucfirst($action) : 'Cambio registrado',
+        };
+    }
+
+    protected function labelForField(string $field): string
+    {
+        return match ($field) {
+            'user_id' => 'Custodio',
+            'department_id' => 'Departamento',
+            'project_id' => 'Proyecto',
+            'maintenance_responsible_id' => 'Responsable de mantenimiento',
+            'asset_tag' => 'TAG',
+            'serial_number' => 'Serial',
+            'sap_code' => 'Código SAP',
+            'location_zone' => 'Ubicación',
+            'management_area' => 'Gerencia',
+            'last_maintenance_at' => 'Último mantenimiento',
+            'maintenance_interval_days' => 'Frecuencia de mtto (días)',
+            'purchased_at' => 'Fecha de compra',
+            'purchase_cost' => 'Costo de compra',
+            'warranty_expires_at' => 'Vencimiento de garantía',
+            default => $field,
         };
     }
 }

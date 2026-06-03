@@ -59,7 +59,11 @@ class AssetHandoverService
         ]);
 
         // Si el receptor cambió, actualizar la asignación del activo.
+        // skipAutoHistory porque el AssetHandover ya es el evento que
+        // aparece en la hoja de vida (no queremos un "updated user_id"
+        // adicional).
         if ($asset->user_id !== $receivedBy->id) {
+            $asset->skipAutoHistory = true;
             $asset->forceFill([
                 'user_id' => $receivedBy->id,
                 'department_id' => $receivedBy->department_id ?? $asset->department_id,

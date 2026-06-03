@@ -292,13 +292,15 @@ class AssetsTable
                         $newUser = User::findOrFail($data['user_id']);
                         $oldUserId = $record->user_id;
 
+                        // Skip auto-history: el observer del modelo Asset
+                        // registraría un evento "updated" genérico; aquí
+                        // creamos uno específico con label "Custodio asignado".
+                        $record->skipAutoHistory = true;
                         $record->forceFill([
                             'user_id' => $newUser->id,
                             'department_id' => $newUser->department_id ?? $record->department_id,
                         ])->save();
 
-                        // Registro en histórico para que aparezca en la
-                        // hoja de vida del activo.
                         $record->histories()->create([
                             'user_id' => auth()->id(),
                             'action' => 'assigned',
@@ -341,6 +343,9 @@ class AssetsTable
                             ->maxLength(500),
                     ])
                     ->action(function (Asset $record, array $data): void {
+                        // Skip auto-history: el evento "maintenance" se
+                        // crea con su label propio, no como "updated".
+                        $record->skipAutoHistory = true;
                         $record->forceFill([
                             'last_maintenance_at' => $data['done_at'],
                             'maintenance_interval_days' => $data['interval'] ?? $record->maintenance_interval_days,
@@ -385,6 +390,7 @@ class AssetsTable
 
                             foreach ($records as $asset) {
                                 $oldUserId = $asset->user_id;
+                                $asset->skipAutoHistory = true;
                                 $asset->forceFill([
                                     'user_id' => $newUser->id,
                                     'department_id' => $newUser->department_id ?? $asset->department_id,

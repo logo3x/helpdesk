@@ -15,6 +15,29 @@ class Asset extends Model
     /** @use HasFactory<AssetFactory> */
     use HasFactory, SoftDeletes;
 
+    /**
+     * Campos cuyos cambios se registran automáticamente en la hoja de
+     * vida del activo. Excluye campos volátiles (last_scan_at, ip_address,
+     * mac_address, agent_version, last_scan_status) que los scans del
+     * agente sobrescriben cada hora y generarían ruido.
+     */
+    public const TRACKED_FIELDS = [
+        'asset_tag', 'hostname', 'serial_number', 'sap_code', 'type',
+        'manufacturer', 'model',
+        'user_id', 'department_id', 'project_id', 'field', 'location_zone',
+        'management_area',
+        'status', 'notes',
+        'last_maintenance_at', 'maintenance_interval_days', 'maintenance_responsible_id',
+        'purchased_at', 'purchase_cost', 'warranty_expires_at',
+    ];
+
+    /**
+     * Bandera de instancia para que las acciones que ya crean histories
+     * manuales (transferCustodian, markMaintenance, generateHandover,
+     * etc.) eviten que el observer registre un evento duplicado.
+     */
+    public bool $skipAutoHistory = false;
+
     protected $fillable = [
         // Identificación
         'asset_tag',
@@ -98,6 +121,34 @@ class Asset extends Model
                 $asset->next_maintenance_at = $asset->last_maintenance_at
                     ->copy()
                     ->addDays($asset->maintenance_interval_days);
+            }
+        });
+
+        // Auto-tracking de cambios en la hoja de vida. Se ejecuta tras
+        // updated() para tener acceso a getOriginal() y getChanges().
+        // Las acciones que ya crean historias específicas (con label
+        // amigable como "Custodio asignado") setean skipAutoHistory=true
+        // para no duplicar.
+        static::updated(function (self $asset): void {
+            if ($asset->skipAutoHistory) {
+                return;
+            }
+
+            $tracked = array_intersect_key(
+                $asset->getChanges(),
+                array_flip(self::TRACKED_FIELDS),
+            );
+
+            foreach ($tracked as $field => $newValue) {
+                $original = $asset->getOriginal($field);
+
+                $asset->histories()->create([
+                    'user_id' => auth()->id(),
+                    'action' => 'updated',
+                    'field' => $field,
+                    'old_value' => $original !== null ? (string) $original : null,
+                    'new_value' => $newValue !== null ? (string) $newValue : null,
+                ]);
             }
         });
     }

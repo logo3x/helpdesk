@@ -267,6 +267,18 @@ class AssetsTable
             ])
             ->recordActions([
                 // ── Acciones rápidas por activo ────────────────────────
+                // Acceso directo a la hoja de vida del activo. Se resuelve
+                // por panel actual (admin o soporte) usando el nombre de
+                // ruta registrado por Filament en cada AssetResource.
+                Action::make('viewLifecycle')
+                    ->label('Hoja de vida')
+                    ->icon('heroicon-o-clock')
+                    ->color('gray')
+                    ->url(fn (Asset $record) => route(
+                        'filament.'.(filament()->getCurrentPanel()?->getId() ?? 'admin').'.resources.assets.lifecycle',
+                        ['record' => $record],
+                    )),
+
                 // Cambiar custodio sin abrir el form de edit completo.
                 Action::make('transferCustodian')
                     ->label('Transferir')

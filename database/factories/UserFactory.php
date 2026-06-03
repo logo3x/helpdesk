@@ -33,7 +33,17 @@ class UserFactory extends Factory
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
+            'asl_accepted_at' => now(),
         ];
+    }
+
+    /**
+     * Usuario que aún no aceptó el ASL — para probar el flujo de
+     * aceptación inicial.
+     */
+    public function aslPending(): static
+    {
+        return $this->state(fn () => ['asl_accepted_at' => null]);
     }
 
     /**

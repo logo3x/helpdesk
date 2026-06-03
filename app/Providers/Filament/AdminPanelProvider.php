@@ -6,6 +6,7 @@ use App\Filament\Widgets\AdminStatsWidget;
 use App\Filament\Widgets\StaleAssetsWidget;
 use App\Filament\Widgets\TicketsByStatusChart;
 use App\Filament\Widgets\TicketTrendChart;
+use App\Http\Middleware\EnsureAslAccepted;
 use Awcodes\QuickCreate\QuickCreatePlugin;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin;
@@ -107,6 +108,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                EnsureAslAccepted::class,
             ]);
     }
 }

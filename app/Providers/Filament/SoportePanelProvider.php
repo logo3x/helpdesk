@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Soporte\Widgets\TicketStatsWidget;
+use App\Http\Middleware\EnsureAslAccepted;
 use Awcodes\QuickCreate\QuickCreatePlugin;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin;
@@ -86,6 +87,7 @@ class SoportePanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                EnsureAslAccepted::class,
             ]);
     }
 }

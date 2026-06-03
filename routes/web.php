@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\AslController;
 use App\Http\Controllers\Auth\AzureAuthController;
 use App\Http\Controllers\InventoryAgentController;
+use App\Http\Middleware\EnsureAslAccepted;
 use App\Livewire\Portal\Chatbot;
 use App\Livewire\Portal\CreateTicket;
 use App\Livewire\Portal\Dashboard as PortalDashboard;
@@ -47,7 +49,16 @@ Route::get('agent/install', [InventoryAgentController::class, 'install'])->name(
 Route::get('agent/uninstall', [InventoryAgentController::class, 'uninstall'])->name('agent.uninstall');
 Route::get('agent/script', [InventoryAgentController::class, 'script'])->name('agent.script');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+// Aceptación del Acuerdo de Servicio (ASL). El middleware
+// EnsureAslAccepted redirige aquí a los usuarios autenticados con
+// asl_accepted_at = null. Estas rutas NO usan el middleware (para
+// evitar loop) pero sí requieren sesión iniciada.
+Route::middleware('auth')->group(function () {
+    Route::get('asl/accept', [AslController::class, 'show'])->name('asl.show');
+    Route::post('asl/accept', [AslController::class, 'accept'])->name('asl.accept');
+});
+
+Route::middleware(['auth', 'verified', EnsureAslAccepted::class])->group(function () {
     // /dashboard es el destino por defecto de Fortify tras login; aquí
     // lo redirigimos al panel que corresponde al rol del usuario para
     // que nadie aterrice en una pantalla genérica.

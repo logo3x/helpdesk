@@ -9,6 +9,7 @@ use App\Services\ChatbotService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Layout('layouts.portal')]
@@ -16,6 +17,13 @@ use Livewire\Component;
 class Chatbot extends Component
 {
     public string $message = '';
+
+    /**
+     * Pregunta inicial enviada via ?q= desde el widget del dashboard.
+     * Tras procesarla, se limpia para no re-enviar al refrescar.
+     */
+    #[Url(as: 'q')]
+    public string $initialQuery = '';
 
     public ?int $sessionId = null;
 
@@ -60,6 +68,14 @@ class Chatbot extends Component
                 'helpful' => null,
                 'source_kind' => null,
             ];
+        }
+
+        // Si vinimos del widget del dashboard con ?q=..., pre-rellenar
+        // el input y enviar automáticamente la pregunta.
+        if ($this->initialQuery !== '') {
+            $this->message = $this->initialQuery;
+            $this->initialQuery = '';
+            $this->send();
         }
     }
 

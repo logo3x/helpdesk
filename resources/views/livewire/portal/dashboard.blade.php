@@ -68,6 +68,36 @@
         </a>
     </div>
 
+    {{-- Asistente IA destacado --}}
+    <form method="GET" action="{{ route('portal.chatbot') }}"
+          class="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 via-white to-sky-50 p-5 dark:border-purple-800 dark:from-purple-950/40 dark:via-zinc-900 dark:to-sky-950/30">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div class="flex shrink-0">
+                @if (file_exists(public_path('images/robotconfipetrol.png')))
+                    <img src="{{ asset('images/robotconfipetrol.png') }}" alt="Asistente Confipetrol"
+                         class="size-20 rounded-full bg-white object-contain ring-2 ring-purple-200 dark:bg-zinc-800 dark:ring-purple-700" />
+                @else
+                    <div class="flex size-20 items-center justify-center rounded-full bg-purple-100 text-purple-600 ring-2 ring-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:ring-purple-700">
+                        <flux:icon name="cpu-chip" class="size-10" />
+                    </div>
+                @endif
+            </div>
+            <div class="flex-1">
+                <flux:heading size="md">
+                    Hola {{ explode(' ', (string) $user?->name)[0] ?? '' }}, soy tu asistente Confipetrol
+                </flux:heading>
+                <flux:text size="sm" class="mt-1 text-zinc-500">
+                    Pregúntame sobre reset de contraseña, VPN, impresoras, software y más. Si no encuentro respuesta, te ayudo a crear un ticket.
+                </flux:text>
+                <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input type="text" name="q" placeholder="Escribe tu pregunta..."
+                           class="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:border-zinc-700 dark:bg-zinc-900" />
+                    <flux:button type="submit" variant="primary" icon="sparkles">Preguntar</flux:button>
+                </div>
+            </div>
+        </div>
+    </form>
+
     {{-- Accesos rápidos --}}
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <a href="{{ route('portal.tickets.create') }}" wire:navigate class="group rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-sky-400 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-sky-500">
@@ -78,12 +108,12 @@
             <flux:text size="sm" class="mt-1 text-zinc-500">¿Tienes un problema o necesitas ayuda? Crea una solicitud y un agente te atenderá.</flux:text>
         </a>
 
-        <a href="{{ route('portal.chatbot') }}" wire:navigate class="group rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-purple-400 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-purple-500">
-            <div class="mb-3 inline-flex size-10 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400">
-                <flux:icon name="chat-bubble-left-right" class="size-6" />
+        <a href="{{ route('portal.assets.index') }}" wire:navigate class="group rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-amber-400 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-amber-500">
+            <div class="mb-3 inline-flex size-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
+                <flux:icon name="computer-desktop" class="size-6" />
             </div>
-            <flux:heading size="sm">Asistente IA</flux:heading>
-            <flux:text size="sm" class="mt-1 text-zinc-500">Haz preguntas en lenguaje natural. El asistente busca respuestas en la base de conocimiento.</flux:text>
+            <flux:heading size="sm">Mis activos</flux:heading>
+            <flux:text size="sm" class="mt-1 text-zinc-500">Consulta los equipos asignados a tu custodia y confirma la recepción de actas pendientes.</flux:text>
         </a>
 
         <a href="{{ route('portal.kb.index') }}" wire:navigate class="group rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-emerald-400 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-emerald-500">

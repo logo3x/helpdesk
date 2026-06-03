@@ -128,6 +128,17 @@ class LlmService
             ]);
         } catch (ConnectionException $e) {
             Log::error('LlmService OpenRouter error', ['error' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            // Captura excepciones inesperadas: modelo inexistente (404),
+            // API key revocada (401), rate limit con retries agotados, o
+            // RequestException que Http::retry() lanza cuando agota
+            // intentos. Devolvemos null para que el caller (asistente IA,
+            // RAG fallback) muestre un mensaje amigable en lugar de
+            // tirarle 500 al usuario.
+            Log::error('LlmService OpenRouter unexpected error', [
+                'error' => $e->getMessage(),
+                'class' => $e::class,
+            ]);
         }
 
         return null;
@@ -169,6 +180,11 @@ class LlmService
             Log::warning('LlmService Anthropic failed', ['status' => $response->status()]);
         } catch (ConnectionException $e) {
             Log::error('LlmService Anthropic error', ['error' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            Log::error('LlmService Anthropic unexpected error', [
+                'error' => $e->getMessage(),
+                'class' => $e::class,
+            ]);
         }
 
         return null;

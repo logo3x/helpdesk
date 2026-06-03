@@ -1,8 +1,48 @@
 # Pendientes — Helpdesk Confipetrol
 
-**Última actualización:** 2026-04-25 (v1.9)
+**Última actualización:** 2026-06-03 (v1.22 deployed)
 
 Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = prioridad sugerida.
+
+---
+
+## 🆕 Pendientes tras testeo en producción v1.21/v1.22 (reportados 2026-06-03)
+
+### Tanda 1 — Bugs críticos (próxima v1.23)
+
+1. **Inventario: cédula falta en asignación de custodio** — al transferir/asignar custodio, el dropdown muestra solo nombre+email. Agregar `identification` para distinguir homónimos.
+2. **Hoja de vida del activo no se refresca** — tras editar/transferir/marcar mtto, la timeline no muestra el cambio. Falta refresh post-action.
+3. **Hoja de vida no se muestra (en algunos casos)** — clarificar qué condición falla. Investigar AssetLifecycle Soporte.
+4. **Agente IT no ve módulo inventario** — verificar `can_access_inventory=true` en BD prod (migración `enable_inventory_access_for_ti` de v1.17).
+
+### Tanda 2 — Features simples (v1.24)
+
+5. **Auto-cierre de ticket sin respuesta** — Job scheduled diario que cierre Resueltos sin actividad por X días (default sugerido: 3).
+6. **Encuesta de satisfacción auto-positiva** — si el cliente no responde en N días, marcar 5 estrellas automático.
+7. **Acta de entrega en UNA hoja** — refactor PDF para que no ocupe 2+ páginas.
+8. **Verificar timezone del server** — confirmar `America/Bogota`.
+
+### Tanda 3 — Features con UX (v1.25)
+
+9. **Modal de ASL al primer login** — términos de uso con botón "Aceptar". Persist en `users.asl_accepted_at`.
+10. **Portal: ver mis activos asignados** — nueva sección en `/portal` que liste `assets.user_id = auth()->id()`.
+11. **Portal: check de aceptación de activo entregado** — confirmar recepción en `asset_handovers.received_confirmed_at` con feedback visual.
+12. **Asistente IA en home del portal** — colocar chatbot en `/portal` con avatar "robotconfipetrol".
+
+### Pendientes con bloqueo externo
+
+13. **Habilitar correo SMTP** — coordinar credenciales con John (sysadmin). Notifications ya implementadas (Created/Assigned/Commented/Resolved/Reopened).
+14. **Reorganizar UI respuesta de tickets** — esperar mockup de Yury (formato Protexa).
+15. **Definir "tiempo pausado"** — ¿cuándo se pausa el SLA? ¿estado pendiente_cliente? ¿manual?
+16. **Definir "tiempo Resuelto → Cerrado"** — métrica + dónde mostrarla.
+17. **Definir "tiempo de solución"** — `resolved_at - created_at` menos pausas. Dónde se visualiza.
+18. **Integración Kactus API** — hablar con Hermes (Kactus admin) para credenciales y docs.
+
+### Operación (no es código)
+
+- **Configurar CA bundle de SSL en PHP** ✅ resuelto 2026-06-03 (descargar cacert.pem + setear `curl.cainfo` y `openssl.cafile` en php.ini del server).
+- **Configurar `LLM_API_KEY` en .env de prod** ✅ resuelto 2026-06-03 (OpenRouter free tier).
+- **7 sitios IIS con handler PHP83 huérfano** — pendiente decidir si dejarlos en PHP 8.5 o reinstalar PHP 8.3 para legacy.
 
 ---
 

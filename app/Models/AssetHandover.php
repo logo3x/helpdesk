@@ -25,6 +25,7 @@ class AssetHandover extends Model
         'delivered_by_user_id',
         'received_by_user_id',
         'delivered_at',
+        'received_confirmed_at',
         'asset_tag_snapshot',
         'asset_type_snapshot',
         'manufacturer_snapshot',
@@ -45,6 +46,7 @@ class AssetHandover extends Model
     {
         return [
             'delivered_at' => 'datetime',
+            'received_confirmed_at' => 'datetime',
             'acta_number' => 'integer',
         ];
     }

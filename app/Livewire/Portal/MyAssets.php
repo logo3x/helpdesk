@@ -3,6 +3,8 @@
 namespace App\Livewire\Portal;
 
 use App\Models\Asset;
+use App\Models\AssetHandover;
+use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Layout;
@@ -25,6 +27,32 @@ class MyAssets extends Component
         $this->resetPage();
     }
 
+    /**
+     * Marca el handover como recibido por el custodio. Solo el propio
+     * receptor puede confirmarlo; cualquier intento ajeno es ignorado
+     * silenciosamente (no exponer existencia de handovers de terceros).
+     */
+    public function confirmHandover(int $handoverId): void
+    {
+        $handover = AssetHandover::query()
+            ->where('id', $handoverId)
+            ->where('received_by_user_id', auth()->id())
+            ->whereNull('received_confirmed_at')
+            ->first();
+
+        if (! $handover) {
+            return;
+        }
+
+        $handover->forceFill(['received_confirmed_at' => now()])->save();
+
+        Notification::make()
+            ->title('Recepción confirmada')
+            ->body("Acta #{$handover->acta_number} marcada como recibida.")
+            ->success()
+            ->send();
+    }
+
     public function render(): View
     {
         /** @var LengthAwarePaginator<Asset> $assets */
@@ -37,7 +65,12 @@ class MyAssets extends Component
                 ->orWhere('manufacturer', 'like', "%{$s}%")
                 ->orWhere('model', 'like', "%{$s}%")
             ))
-            ->with('project:id,code,name')
+            ->with([
+                'project:id,code,name',
+                'handovers' => fn ($q) => $q->where('received_by_user_id', auth()->id())
+                    ->whereNull('received_confirmed_at')
+                    ->latest('delivered_at'),
+            ])
             ->latest()
             ->paginate(10);
 

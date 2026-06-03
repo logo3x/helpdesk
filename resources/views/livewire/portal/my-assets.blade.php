@@ -15,7 +15,11 @@
     {{-- Lista --}}
     <div class="space-y-3">
         @forelse ($assets as $asset)
-            <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+            <div @class([
+                'rounded-lg border p-4 transition',
+                'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30' => $asset->handovers->isNotEmpty(),
+                'border-zinc-200 dark:border-zinc-700' => $asset->handovers->isEmpty(),
+            ])>
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <div class="flex items-center gap-2">
@@ -55,6 +59,26 @@
                         Ubicación: {{ trim(($asset->field ?? '').' · '.($asset->location_zone ?? ''), ' ·') }}
                     </div>
                 @endif
+
+                {{-- Actas de entrega pendientes de confirmar recepción --}}
+                @foreach ($asset->handovers as $handover)
+                    <div class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300 bg-white p-3 dark:border-amber-700 dark:bg-amber-900/40">
+                        <div class="text-sm">
+                            <div class="font-semibold text-amber-800 dark:text-amber-200">
+                                Acta de entrega #{{ $handover->acta_number }} pendiente
+                            </div>
+                            <div class="text-xs text-amber-700 dark:text-amber-300">
+                                Entregada el {{ $handover->delivered_at->translatedFormat('d/m/Y') }}
+                                · Condición: {{ ucfirst($handover->condition_at_delivery) }}
+                            </div>
+                        </div>
+                        <flux:button wire:click="confirmHandover({{ $handover->id }})"
+                                     wire:loading.attr="disabled"
+                                     variant="primary" size="sm" icon="check">
+                            Confirmar recepción
+                        </flux:button>
+                    </div>
+                @endforeach
             </div>
         @empty
             <div class="rounded-lg border border-dashed border-zinc-200 p-8 text-center text-sm text-zinc-500 dark:border-zinc-700">

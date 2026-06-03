@@ -349,9 +349,22 @@
                                     <span class="text-xs font-semibold uppercase text-zinc-500">Bot respondió:</span>
                                     <p class="mt-1 text-zinc-600 dark:text-zinc-400">{{ $msg['answer'] }}</p>
                                 </div>
-                                @if ($msg['voted_at'])
-                                    <p class="mt-2 text-xs text-zinc-400">Voto: {{ $msg['voted_at']->translatedFormat('d M Y · H:i') }}</p>
-                                @endif
+                                <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+                                    @if ($msg['voted_at'])
+                                        <p class="text-xs text-zinc-400">Voto: {{ $msg['voted_at']->translatedFormat('d M Y · H:i') }}</p>
+                                    @else
+                                        <span></span>
+                                    @endif
+                                    <button
+                                        type="button"
+                                        wire:click="createReviewTicket({{ $msg['id'] }})"
+                                        wire:loading.attr="disabled"
+                                        wire:target="createReviewTicket({{ $msg['id'] }})"
+                                        class="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60"
+                                    >
+                                        🎫 Crear ticket de revisión
+                                    </button>
+                                </div>
                             </div>
                         @endforeach
                     @endif

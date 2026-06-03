@@ -2,13 +2,20 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\TicketImpact;
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
+use App\Enums\TicketUrgency;
 use App\Exports\ChatbotMetricsExport;
+use App\Models\Category;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
 use App\Models\Department;
 use App\Models\KbArticle;
+use App\Models\Ticket;
 use BackedEnum;
 use Carbon\CarbonInterface;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
@@ -359,6 +366,81 @@ class ChatbotMetrics extends Page
     public function closeDrilldown(): void
     {
         $this->drilldownArticleId = null;
+    }
+
+    /**
+     * Crea un ticket interno para que un agente revise por qué la
+     * respuesta del bot fue marcada como incorrecta. El ticket queda
+     * con la pregunta + respuesta + link al KB para que el editor
+     * pueda decidir si corregir el artículo o el comportamiento del
+     * modelo.
+     */
+    public function createReviewTicket(int $messageId): void
+    {
+        $message = ChatMessage::query()
+            ->where('id', $messageId)
+            ->where('role', 'assistant')
+            ->where('helpful', false)
+            ->first();
+
+        if (! $message) {
+            Notification::make()
+                ->title('Mensaje no encontrado o no marcado como incorrecto')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $userQuestion = ChatMessage::query()
+            ->where('chat_session_id', $message->chat_session_id)
+            ->where('role', 'user')
+            ->where('created_at', '<=', $message->created_at)
+            ->orderByDesc('created_at')
+            ->value('content');
+
+        $article = $message->kb_article_id ? KbArticle::find($message->kb_article_id) : null;
+        $articleLine = $article
+            ? '**KB consultado:** ['.$article->title.']('.url("/admin/kb-articles/{$article->id}/edit").")\n\n"
+            : "**KB consultado:** —\n\n";
+
+        $description = "## Revisión solicitada por respuesta IA incorrecta\n\n"
+            ."El supervisor marcó la siguiente respuesta del chatbot como incorrecta.\n\n"
+            .$articleLine
+            ."**Pregunta del usuario:**\n> ".($userQuestion ?? '—')."\n\n"
+            ."**Respuesta del bot (marcada 👎):**\n> ".$message->content."\n\n"
+            .'**Acción esperada:** revisar el KB y/o el prompt del modelo. '
+            .'Si el KB tiene contenido incorrecto, editarlo y publicarlo nuevamente.';
+
+        $user = auth()->user();
+        $departmentId = $user?->department_id;
+        if (! $departmentId) {
+            $departmentId = Department::where('slug', 'ti')->value('id')
+                ?? Department::query()->value('id');
+        }
+
+        $categoryId = $departmentId
+            ? Category::where('department_id', $departmentId)->value('id')
+            : null;
+
+        $ticket = Ticket::create([
+            'number' => sprintf('KB-%d-%05d', now()->year, random_int(1, 99999)),
+            'subject' => 'Revisar respuesta IA: '.mb_strimwidth($userQuestion ?? 'Sin pregunta', 0, 60, '…'),
+            'description' => $description,
+            'status' => TicketStatus::Nuevo,
+            'priority' => TicketPriority::Baja,
+            'impact' => TicketImpact::Bajo,
+            'urgency' => TicketUrgency::Baja,
+            'requester_id' => $user?->id,
+            'department_id' => $departmentId,
+            'category_id' => $categoryId,
+        ]);
+
+        Notification::make()
+            ->title("Ticket {$ticket->number} creado")
+            ->body('Asignado a tu depto para revisar el KB y la respuesta del bot.')
+            ->success()
+            ->send();
     }
 
     /**

@@ -5,38 +5,38 @@
     <title>Acta de Entrega — {{ $handover->acta_number }}</title>
     <style>
         * { box-sizing: border-box; }
-        @page { margin: 14mm 12mm; }
+        @page { margin: 10mm 10mm; }
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 9.5pt;
-            line-height: 1.35;
+            font-size: 8.5pt;
+            line-height: 1.2;
             color: #000;
             margin: 0;
         }
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
-        .header-table td { border: 1px solid #000; padding: 4px 8px; vertical-align: middle; }
+        .header-table td { border: 1px solid #000; padding: 3px 6px; vertical-align: middle; }
         .logo-cell { width: 22%; text-align: center; }
-        .logo-cell img { max-height: 44px; max-width: 100px; }
-        .title-cell { font-weight: bold; text-align: center; font-size: 11pt; }
-        .meta-cell { width: 28%; font-size: 8pt; }
-        .meta-cell div { line-height: 1.4; }
+        .logo-cell img { max-height: 36px; max-width: 90px; }
+        .title-cell { font-weight: bold; text-align: center; font-size: 10pt; }
+        .meta-cell { width: 28%; font-size: 7.5pt; }
+        .meta-cell div { line-height: 1.25; }
 
         .meta-table { width: 100%; border-collapse: collapse; margin-top: 0; }
-        .meta-table td { border: 1px solid #000; padding: 4px 8px; }
-        .meta-table .label { width: 18%; font-weight: bold; font-size: 9pt; }
-        .meta-table .value { font-size: 9pt; }
+        .meta-table td { border: 1px solid #000; padding: 2px 6px; }
+        .meta-table .label { width: 18%; font-weight: bold; font-size: 8pt; }
+        .meta-table .value { font-size: 8pt; }
 
         .equipment-block {
             border: 1px solid #000;
             border-top: none;
-            padding: 8px 10px;
+            padding: 5px 8px;
             margin-bottom: 0;
         }
-        .equipment-title { font-weight: bold; font-size: 9pt; margin-bottom: 6px; }
+        .equipment-title { font-weight: bold; font-size: 8pt; margin-bottom: 3px; }
         .equipment-grid { width: 100%; border-collapse: collapse; }
         .equipment-grid td {
-            padding: 3px 6px;
-            font-size: 9pt;
+            padding: 1.5px 5px;
+            font-size: 8pt;
             border: none;
             vertical-align: top;
         }
@@ -46,24 +46,24 @@
         .legal-text {
             border: 1px solid #000;
             border-top: none;
-            padding: 8px 10px;
-            font-size: 8.5pt;
+            padding: 5px 8px;
+            font-size: 7.5pt;
             text-align: justify;
-            line-height: 1.4;
+            line-height: 1.2;
         }
-        .legal-text p { margin: 0 0 6px 0; }
+        .legal-text p { margin: 0 0 3px 0; }
         .legal-text p:last-child { margin-bottom: 0; }
 
         .signatures-table { width: 100%; border-collapse: collapse; margin-top: 0; }
         .signatures-table td {
             border: 1px solid #000;
-            padding: 6px 8px;
-            font-size: 9pt;
+            padding: 3px 6px;
+            font-size: 8pt;
             vertical-align: top;
         }
-        .sig-header { text-align: center; font-weight: bold; height: 22px; }
-        .sig-line { height: 60px; text-align: center; padding-top: 38px; font-style: italic; color: #555; }
-        .sig-row { padding: 4px 6px; }
+        .sig-header { text-align: center; font-weight: bold; height: 16px; padding: 2px 6px; }
+        .sig-line { height: 36px; text-align: center; padding-top: 22px; font-style: italic; color: #555; }
+        .sig-row { padding: 2px 6px; }
     </style>
 </head>
 <body>

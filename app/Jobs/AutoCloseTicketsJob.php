@@ -11,8 +11,10 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Auto-close tickets that have been "resuelto" for more than 7 days
- * without the requester reopening them.
+ * Auto-close tickets resueltos sin actividad por más de N días. N
+ * viene de config/tickets.php (`auto_close_days`, default 7). Si el
+ * solicitante reabre/comenta antes, el estado cambia y el ticket sale
+ * del filtro.
  */
 class AutoCloseTicketsJob implements ShouldBeUnique, ShouldQueue
 {
@@ -22,9 +24,11 @@ class AutoCloseTicketsJob implements ShouldBeUnique, ShouldQueue
 
     public function handle(TicketService $ticketService): void
     {
+        $days = (int) config('tickets.auto_close_days', 7);
+
         $tickets = Ticket::query()
             ->where('status', TicketStatus::Resuelto)
-            ->where('resolved_at', '<=', now()->subDays(7))
+            ->where('resolved_at', '<=', now()->subDays($days))
             ->get();
 
         $count = 0;
@@ -35,7 +39,7 @@ class AutoCloseTicketsJob implements ShouldBeUnique, ShouldQueue
         }
 
         if ($count > 0) {
-            Log::channel('stack')->info("Auto-close: {$count} ticket(s) closed after 7 days resolved.");
+            Log::channel('stack')->info("Auto-close: {$count} ticket(s) closed after {$days} days resolved.");
         }
     }
 }

@@ -9,6 +9,7 @@ use App\Livewire\Portal\CreateTicket;
 use App\Livewire\Portal\Dashboard as PortalDashboard;
 use App\Livewire\Portal\KbIndex;
 use App\Livewire\Portal\KbShow;
+use App\Livewire\Portal\MyAssets;
 use App\Livewire\Portal\MyTickets;
 use App\Livewire\Portal\ViewTicket;
 use App\Models\User;
@@ -87,6 +88,9 @@ Route::middleware(['auth', 'verified', EnsureAslAccepted::class])->group(functio
         Route::get('tickets/create', CreateTicket::class)->name('tickets.create');
         Route::get('tickets/{ticket}', ViewTicket::class)->name('tickets.show');
         Route::get('chatbot', Chatbot::class)->name('chatbot');
+
+        // Mis activos asignados (inventario en custodia del usuario).
+        Route::get('assets', MyAssets::class)->name('assets.index');
 
         // Centro de ayuda (KB pública para usuarios finales). Solo
         // muestra artículos con status='published' (filtrado en el

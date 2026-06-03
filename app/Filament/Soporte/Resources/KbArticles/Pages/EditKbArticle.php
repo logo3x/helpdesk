@@ -6,11 +6,13 @@ use App\Filament\Soporte\Resources\KbArticles\KbArticleResource;
 use App\Models\KbArticle;
 use App\Models\User;
 use App\Notifications\KbArticlePublishedNotification;
+use App\Notifications\KbArticleRejectedNotification;
 use App\Notifications\KbArticleReviewRequestedNotification;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -135,6 +137,51 @@ class EditKbArticle extends EditRecord
                         ->send();
 
                     $this->refreshFormData(['status', 'published_at', 'pending_review_at']);
+                }),
+
+            // ── Rechazar con motivo (supervisor sobre artículo en revisión) ──
+            // Devuelve el artículo a Borrador puro y notifica al autor
+            // con el motivo. El autor puede corregir y volver a solicitar.
+            Action::make('rejectReview')
+                ->label('Rechazar con motivo')
+                ->icon('heroicon-o-x-circle')
+                ->color('warning')
+                ->visible(fn () => $isSupervisor
+                    && $article->status === 'draft'
+                    && $article->pending_review_at !== null)
+                ->schema([
+                    Textarea::make('reason')
+                        ->label('Motivo del rechazo')
+                        ->placeholder('Ej: Falta agregar el procedimiento de escalamiento al final.')
+                        ->required()
+                        ->minLength(10)
+                        ->maxLength(500)
+                        ->rows(4)
+                        ->helperText('El autor verá este mensaje. Sé específico para que sepa qué corregir.'),
+                ])
+                ->modalHeading('Rechazar solicitud de publicación')
+                ->modalDescription('El artículo vuelve a Borrador. Se notifica al autor con el motivo para que pueda corregir y volver a solicitar la publicación.')
+                ->action(function (array $data) use ($article, $user): void {
+                    $author = $article->author;
+
+                    $article->forceFill([
+                        'pending_review_at' => null,
+                        'pending_review_by_id' => null,
+                    ])->save();
+
+                    if ($author && $user) {
+                        $author->notify(new KbArticleRejectedNotification($article, $user, $data['reason']));
+                    }
+
+                    Notification::make()
+                        ->title('Solicitud rechazada')
+                        ->body($author
+                            ? "Se notificó al autor ({$author->name}) con el motivo."
+                            : 'Devuelto a Borrador. El artículo no tiene autor registrado para notificar.')
+                        ->success()
+                        ->send();
+
+                    $this->refreshFormData(['pending_review_at']);
                 }),
 
             DeleteAction::make()->visible(fn () => $isSupervisor),

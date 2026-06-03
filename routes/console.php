@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\AutoCloseTicketsJob;
+use App\Jobs\AutoMarkSurveysPositiveJob;
 use App\Jobs\CheckSlaBreachesJob;
 use Illuminate\Support\Facades\Schedule;
 
@@ -11,7 +12,12 @@ Schedule::job(new CheckSlaBreachesJob)
     ->between('07:55', '18:05')
     ->withoutOverlapping();
 
-// Auto-close resolved tickets after 7 days — daily at 6am
+// Auto-close resolved tickets — daily at 6am
 Schedule::job(new AutoCloseTicketsJob)
     ->dailyAt('06:00')
+    ->withoutOverlapping();
+
+// Auto-marca encuestas como 5★ si el cliente no respondió — diario 6:30am
+Schedule::job(new AutoMarkSurveysPositiveJob)
+    ->dailyAt('06:30')
     ->withoutOverlapping();

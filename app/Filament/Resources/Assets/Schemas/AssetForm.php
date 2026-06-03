@@ -101,7 +101,7 @@ class AssetForm
                                     ->preload()
                                     ->placeholder('Sin asignar')
                                     ->helperText('Busca por nombre, correo o cédula.')
-                                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->name} · {$record->email}"),
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->custodianLabel()),
 
                                 Select::make('department_id')
                                     ->label('Departamento')

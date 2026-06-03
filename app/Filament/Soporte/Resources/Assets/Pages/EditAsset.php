@@ -47,7 +47,7 @@ class EditAsset extends EditRecord
                         ->searchable(['name', 'email', 'identification'])
                         ->preload()
                         ->required()
-                        ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->name} · {$record->email}"),
+                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->custodianLabel()),
 
                     Select::make('condition_at_delivery')
                         ->label('Condición de entrega')

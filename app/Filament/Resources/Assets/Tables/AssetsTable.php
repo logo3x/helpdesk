@@ -281,7 +281,7 @@ class AssetsTable
                             ->searchable(['name', 'email', 'identification'])
                             ->preload()
                             ->required()
-                            ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->name} · {$record->email}"),
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->custodianLabel()),
                         Textarea::make('notes')
                             ->label('Nota (opcional)')
                             ->placeholder('Ej: "Préstamo por mantenimiento del equipo titular"')
@@ -377,7 +377,8 @@ class AssetsTable
                                 ->relationship('user', 'name')
                                 ->searchable(['name', 'email', 'identification'])
                                 ->preload()
-                                ->required(),
+                                ->required()
+                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->custodianLabel()),
                         ])
                         ->action(function (Collection $records, array $data): void {
                             $newUser = User::findOrFail($data['user_id']);

@@ -143,6 +143,18 @@ class User extends Authenticatable implements FilamentUser, HasName
     }
 
     /**
+     * Etiqueta del usuario para Selects de custodio en inventario.
+     * Incluye la cédula cuando está cargada para distinguir homónimos
+     * (varios "Juan Pérez" en la misma BD).
+     */
+    public function custodianLabel(): string
+    {
+        return filled($this->identification)
+            ? "{$this->name} · CC {$this->identification} · {$this->email}"
+            : "{$this->name} · {$this->email}";
+    }
+
+    /**
      * Etiqueta legible del rol actual del usuario para mostrar en la UI.
      * Los nombres Spatie están en snake_case; aquí se normalizan.
      */

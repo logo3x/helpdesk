@@ -56,7 +56,7 @@ class EditAsset extends EditRecord
                         ->searchable(['name', 'email', 'identification'])
                         ->preload()
                         ->required()
-                        ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->name} · {$record->email}")
+                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->custodianLabel())
                         ->helperText('La persona que firma el acta y se vuelve responsable del equipo.'),
 
                     Select::make('condition_at_delivery')

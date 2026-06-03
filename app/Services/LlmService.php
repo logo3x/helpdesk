@@ -91,10 +91,15 @@ class LlmService
      */
     protected function chatOpenRouter(array $messages, ?string $systemPrompt): ?string
     {
+        // 2048 tokens da margen para modelos "reasoning" (que gastan tokens
+        // en <thinking>...</thinking> antes del response real). Para
+        // modelos normales 1024 era suficiente, pero subir el techo evita
+        // que un usuario que elija un modelo reasoning por error reciba
+        // null porque el modelo agotó el budget pensando.
         $payload = [
             'model' => $this->model,
             'messages' => $this->prependSystem($messages, $systemPrompt),
-            'max_tokens' => 1024,
+            'max_tokens' => 2048,
             'temperature' => 0.3,
         ];
 

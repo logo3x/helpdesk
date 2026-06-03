@@ -8,10 +8,13 @@ use App\Models\Department;
 use App\Models\EscalationLog;
 use App\Models\Ticket;
 use BackedEnum;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Reporte de cumplimiento SLA en el panel /soporte.
@@ -80,6 +83,31 @@ class SlaReport extends Page
             'atRisk' => $this->atRiskTickets($isAdmin, $user?->department_id),
             'summary' => $this->summary($days, $isAdmin, $user?->department_id),
         ];
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('exportPdf')
+                ->label('Exportar a PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('gray')
+                ->action(fn () => $this->exportPdf()),
+        ];
+    }
+
+    public function exportPdf(): StreamedResponse
+    {
+        $pdf = Pdf::loadView('pdfs.sla-report', $this->getViewData())
+            ->setPaper('letter', 'landscape');
+
+        $filename = 'reporte-sla-'.now()->format('Y-m-d').'.pdf';
+
+        return response()->streamDownload(
+            fn () => print ($pdf->output()),
+            $filename,
+            ['Content-Type' => 'application/pdf'],
+        );
     }
 
     /**

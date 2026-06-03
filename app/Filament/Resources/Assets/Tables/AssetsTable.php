@@ -74,7 +74,17 @@ class AssetsTable
                     ->label('Proyecto')
                     ->formatStateUsing(fn ($record) => $record->project ? "{$record->project->code} · {$record->project->name}" : '—')
                     ->placeholder('—')
-                    ->searchable(['projects.code', 'projects.name'])
+                    // Búsqueda custom para que el global search matchee tanto
+                    // el `code` como el `name` del project relacionado. La
+                    // sintaxis ->searchable(['projects.code', 'projects.name'])
+                    // generaba SQL inválido en Filament 5 porque interpretaba
+                    // "projects" como una columna JSON.
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->orWhereHas('project', function (Builder $q) use ($search) {
+                            $q->where('code', 'like', "%{$search}%")
+                                ->orWhere('name', 'like', "%{$search}%");
+                        });
+                    })
                     ->toggleable(),
                 TextColumn::make('field')
                     ->label('Campo')

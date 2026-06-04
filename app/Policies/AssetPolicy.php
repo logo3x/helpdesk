@@ -17,8 +17,12 @@ use Illuminate\Foundation\Auth\User as AuthUser;
  * tener que regenerar permisos cada vez.
  *
  *   - super_admin / admin: acceso total siempre.
- *   - supervisor / agente / técnico: acceden si su depto tiene el flag
- *     `can_access_inventory = true`.
+ *   - supervisor_soporte / tecnico_campo: crear, editar y ver si su
+ *     depto tiene `can_access_inventory = true`. Borrar solo
+ *     supervisor.
+ *   - agente_soporte: SOLO LECTURA (ver listado y ficha) cuando su
+ *     depto tiene `can_access_inventory = true`. No crear/editar/borrar
+ *     — el agente consulta el inventario para resolver tickets.
  *   - usuario_final: nunca.
  */
 class AssetPolicy
@@ -37,12 +41,12 @@ class AssetPolicy
 
     public function create(AuthUser $user): bool
     {
-        return $this->hasInventoryAccess($user);
+        return $this->canWriteInventory($user);
     }
 
     public function update(AuthUser $user, Asset $asset): bool
     {
-        return $this->hasInventoryAccess($user);
+        return $this->canWriteInventory($user);
     }
 
     public function delete(AuthUser $user, Asset $asset): bool
@@ -89,12 +93,13 @@ class AssetPolicy
 
     public function reorder(AuthUser $user): bool
     {
-        return $this->hasInventoryAccess($user);
+        return $this->canWriteInventory($user);
     }
 
     /**
-     * Regla central: super_admin/admin pasan siempre; el resto solo si
-     * su departamento tiene `can_access_inventory = true`.
+     * Regla de lectura: super_admin/admin pasan siempre; supervisor,
+     * técnico y agente solo si su depto tiene `can_access_inventory`.
+     * usuario_final y editor_kb nunca.
      */
     protected function hasInventoryAccess(AuthUser $user): bool
     {
@@ -102,6 +107,27 @@ class AssetPolicy
             return true;
         }
 
-        return (bool) ($user->department?->can_access_inventory);
+        if (! $user->department?->can_access_inventory) {
+            return false;
+        }
+
+        return $user->hasAnyRole(['supervisor_soporte', 'tecnico_campo', 'agente_soporte']);
+    }
+
+    /**
+     * Regla de escritura: solo supervisor_soporte y tecnico_campo, no
+     * agente_soporte. Agente solo lee.
+     */
+    protected function canWriteInventory(AuthUser $user): bool
+    {
+        if ($user->hasAnyRole(['super_admin', 'admin'])) {
+            return true;
+        }
+
+        if (! $user->department?->can_access_inventory) {
+            return false;
+        }
+
+        return $user->hasAnyRole(['supervisor_soporte', 'tecnico_campo']);
     }
 }

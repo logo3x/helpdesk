@@ -62,11 +62,12 @@ class ViewTicket extends ViewRecord
                 ->label('Tomar este ticket')
                 ->icon('heroicon-o-hand-raised')
                 ->color('primary')
+                ->tooltip('Te asigna el ticket, publica un saludo automático al solicitante y arranca el reloj de SLA. Usá esto cuando vas a empezar a trabajar el caso ahora.')
                 ->visible(fn () => $ticket->status->isOpen()
                     && auth()->user()?->hasAnyRole(['agente_soporte', 'tecnico_campo'])
                     && $ticket->assigned_to_id !== auth()->id())
                 ->modalHeading('Tomar este ticket')
-                ->modalDescription('Te asignaremos el ticket. Escribe un saludo inicial al solicitante o usa una respuesta predefinida.')
+                ->modalDescription('Te asignaremos el ticket y publicaremos un saludo al solicitante para que sepa que alguien lo va a atender. Podés editar el texto o elegir una respuesta predefinida.')
                 ->modalSubmitActionLabel('Tomar y comentar')
                 ->fillForm(fn () => [
                     'body' => 'Hola, he tomado tu ticket y lo voy a revisar. Te contacto en breve con novedades.',
@@ -244,16 +245,25 @@ class ViewTicket extends ViewRecord
                     $this->refreshFormData(['impact', 'urgency', 'priority', 'first_response_due_at', 'resolution_due_at']);
                 }),
 
+            // "Registrar respuesta externa" — para casos donde el agente
+            // ya respondió al usuario por Teams/llamada/correo externo y
+            // necesita parar el reloj de SLA de primera respuesta sin
+            // escribir un comentario en el ticket. NO es lo mismo que
+            // "Tomar este ticket" (esa además auto-asigna y publica saludo).
             Action::make('markFirstResponse')
-                ->label('Marcar primera respuesta')
-                ->icon('heroicon-o-chat-bubble-left-right')
+                ->label('Registrar respuesta externa')
+                ->icon('heroicon-o-phone')
                 ->color('info')
+                ->tooltip('Solo si ya respondiste al solicitante por Teams, llamada o correo. Detiene el reloj de SLA de primera respuesta sin publicar un comentario en el ticket. Si vas a responder aquí mismo, usá "Tomar este ticket" o escribí un comentario público.')
                 ->visible(fn () => $ticket->first_responded_at === null && $ticket->status->isOpen())
                 ->requiresConfirmation()
+                ->modalHeading('Registrar respuesta externa')
+                ->modalDescription('Usa esta opción solo si ya respondiste al solicitante por un canal externo (Teams, llamada, correo). Esto NO envía nada al cliente — solo detiene el reloj de SLA de primera respuesta.')
+                ->modalSubmitActionLabel('Sí, ya respondí externamente')
                 ->action(function () use ($ticket): void {
                     abort_unless(auth()->user()?->can('update', $ticket), 403);
                     app(TicketService::class)->markFirstResponse($ticket);
-                    Notification::make()->title('Primera respuesta registrada')->success()->send();
+                    Notification::make()->title('Respuesta externa registrada')->success()->send();
                     $this->refreshFormData(['status', 'first_responded_at']);
                 }),
 

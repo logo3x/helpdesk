@@ -1,6 +1,6 @@
 # Pendientes — Helpdesk Confipetrol
 
-**Última actualización:** 2026-06-03 (v1.22 deployed)
+**Última actualización:** 2026-06-03 (sesión cierre: v1.23 → v1.25 + Kactus + UI inventario)
 
 Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = prioridad sugerida.
 
@@ -8,35 +8,43 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
 
 ## 🆕 Pendientes tras testeo en producción v1.21/v1.22 (reportados 2026-06-03)
 
-### Tanda 1 — Bugs críticos (próxima v1.23)
+### Tanda 1 — Bugs críticos (v1.23) ✅ COMPLETADA
 
-1. **Inventario: cédula falta en asignación de custodio** — al transferir/asignar custodio, el dropdown muestra solo nombre+email. Agregar `identification` para distinguir homónimos.
-2. **Hoja de vida del activo no se refresca** — tras editar/transferir/marcar mtto, la timeline no muestra el cambio. Falta refresh post-action.
-3. **Hoja de vida no se muestra (en algunos casos)** — clarificar qué condición falla. Investigar AssetLifecycle Soporte.
-4. **Agente IT no ve módulo inventario** — verificar `can_access_inventory=true` en BD prod (migración `enable_inventory_access_for_ti` de v1.17).
+1. ✅ **Cédula en asignación de custodio** — commit `565f633`. Selects ahora usan `custodianLabel()` (nombre · CC · email).
+2. ✅ **Hoja de vida del activo no se refresca** — commit `6787358`. Auto-history del observer del Asset registra cambios.
+3. ✅ **Hoja de vida no se muestra (row action)** — commit `3577e7d`. Botón en la lista + AssetLifecycle Soporte hereda del admin.
+4. ✅ **Agente IT no ve módulo inventario** — commit `c596d4f`. Comando `inventory:grant` para activar acceso por depto.
 
-### Tanda 2 — Features simples (v1.24)
+### Tanda 2 — Features simples (v1.24) ✅ COMPLETADA
 
-5. **Auto-cierre de ticket sin respuesta** — Job scheduled diario que cierre Resueltos sin actividad por X días (default sugerido: 3).
-6. **Encuesta de satisfacción auto-positiva** — si el cliente no responde en N días, marcar 5 estrellas automático.
-7. **Acta de entrega en UNA hoja** — refactor PDF para que no ocupe 2+ páginas.
-8. **Verificar timezone del server** — confirmar `America/Bogota`.
+5. ✅ **Auto-cierre de ticket sin respuesta** — commit `2badb85`. `AutoCloseTicketsJob` con umbral configurable vía `TICKETS_AUTO_CLOSE_AFTER_DAYS`.
+6. ✅ **Encuesta de satisfacción auto-positiva** — commit `c58b23f`. `AutoMarkSurveysPositiveJob` diario.
+7. ✅ **Acta de entrega en UNA hoja** — commit `550d8d5`. PDF refactor para letter.
+8. ✅ **Verificar timezone del server** — commit `93312a9`. `config/app.php` respeta `APP_TIMEZONE` con default `America/Bogota`.
 
-### Tanda 3 — Features con UX (v1.25)
+### Tanda 3 — Features con UX (v1.25) ✅ COMPLETADA
 
-9. **Modal de ASL al primer login** — términos de uso con botón "Aceptar". Persist en `users.asl_accepted_at`.
-10. **Portal: ver mis activos asignados** — nueva sección en `/portal` que liste `assets.user_id = auth()->id()`.
-11. **Portal: check de aceptación de activo entregado** — confirmar recepción en `asset_handovers.received_confirmed_at` con feedback visual.
-12. **Asistente IA en home del portal** — colocar chatbot en `/portal` con avatar "robotconfipetrol".
+9. ✅ **Modal de ASL al primer login** — commit `5015b76`. Middleware `EnsureAslAccepted` + página `/asl/accept` + persistencia.
+10. ✅ **Portal: ver mis activos asignados** — commit `5cdce97`. Componente `Portal\MyAssets` en `/portal/assets`.
+11. ✅ **Portal: check de aceptación de activo entregado** — commit `5fdcff6`. `asset_handovers.received_confirmed_at` + UI de confirmación.
+12. ✅ **Asistente IA en home del portal** — commit `791d61f`. Widget asistente con avatar "robotconfipetrol" en dashboard del portal.
+
+### Bonus de la sesión (no estaba en backlog)
+
+- ✅ **Reporte SLA exportable a PDF** — commit `93aaf98`.
+- ✅ **KB: rechazo de solicitud con motivo** — commit `188370b`.
+- ✅ **Widget ranking de agentes por productividad (Soporte)** — commit `bcccb0e`.
+- ✅ **Chatbot: acción supervisor "crear ticket por respuesta IA incorrecta"** — commit `2510164`.
+- ✅ **Inventario: UI botones agrupados en menú ⋮ con tooltips** — commit `3fa9495`.
 
 ### Pendientes con bloqueo externo
 
-13. **Habilitar correo SMTP** — coordinar credenciales con John (sysadmin). Notifications ya implementadas (Created/Assigned/Commented/Resolved/Reopened).
-14. **Reorganizar UI respuesta de tickets** — esperar mockup de Yury (formato Protexa).
-15. **Definir "tiempo pausado"** — ¿cuándo se pausa el SLA? ¿estado pendiente_cliente? ¿manual?
-16. **Definir "tiempo Resuelto → Cerrado"** — métrica + dónde mostrarla.
-17. **Definir "tiempo de solución"** — `resolved_at - created_at` menos pausas. Dónde se visualiza.
-18. **Integración Kactus API** — hablar con Hermes (Kactus admin) para credenciales y docs.
+13. **Habilitar correo SMTP** ⏳ — coordinar credenciales con John (sysadmin). Notifications ya implementadas (Created/Assigned/Commented/Resolved/Reopened + Kactus + KB rechazo).
+14. **Reorganizar UI respuesta de tickets** ⏳ — esperar mockup de Yury (formato Protexa).
+15. **Definir "tiempo pausado"** ⏳ — ¿cuándo se pausa el SLA? ¿estado pendiente_cliente? ¿manual?
+16. **Definir "tiempo Resuelto → Cerrado"** ⏳ — métrica + dónde mostrarla.
+17. **Definir "tiempo de solución"** ⏳ — `resolved_at - created_at` menos pausas. Dónde se visualiza.
+18. **Integración Kactus API** 🟡 PARCIAL — commit `3fa9495`. Toda la estructura (Service + DTOs + Command + Webhook HMAC + Job + UI Filament + 20 tests + doc) está lista detrás de toggle `KACTUS_ENABLED=false`. Falta: credenciales reales (URL, API key, webhook secret), confirmar shape exacto del payload con Hermes, y mapear catálogo de departamentos Kactus → IDs locales.
 
 ### Operación (no es código)
 

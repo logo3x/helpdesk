@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Soporte\Widgets\AgentRankingWidget;
+use App\Filament\Soporte\Widgets\TicketResolutionMetricsWidget;
 use App\Filament\Soporte\Widgets\TicketStatsWidget;
 use App\Http\Middleware\EnsureAslAccepted;
 use Awcodes\QuickCreate\QuickCreatePlugin;
@@ -57,6 +58,7 @@ class SoportePanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Soporte/Widgets'), for: 'App\Filament\Soporte\Widgets')
             ->widgets([
                 TicketStatsWidget::class,
+                TicketResolutionMetricsWidget::class,
                 AgentRankingWidget::class,
                 AccountWidget::class,
             ])

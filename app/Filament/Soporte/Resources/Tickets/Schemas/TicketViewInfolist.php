@@ -108,7 +108,7 @@ class TicketViewInfolist
 
                 Section::make('SLA y tiempos')
                     ->icon('heroicon-o-clock')
-                    ->description('Pasá el mouse sobre el ícono ⓘ de cada métrica para ver la definición.')
+                    ->description('Pasá el mouse sobre el ícono ❓ junto a cada métrica para ver su definición.')
                     ->collapsible()
                     ->collapsed()
                     ->columnSpanFull()
@@ -119,58 +119,67 @@ class TicketViewInfolist
                                     ->label('Creado')
                                     ->dateTime('d M Y H:i')
                                     ->since()
-                                    ->helperText('Fecha y hora en que el solicitante creó el ticket. Origen del reloj de SLA.'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Fecha y hora en que el solicitante creó el ticket. Origen del reloj de SLA.'),
 
                                 TextEntry::make('first_responded_at')
                                     ->label('Primera respuesta')
                                     ->dateTime('d M Y H:i')
                                     ->placeholder('Pendiente')
                                     ->color(fn (Ticket $record) => $record->first_responded_at ? 'success' : 'warning')
-                                    ->helperText('Momento en que un agente respondió o tomó el ticket por primera vez. Detiene el reloj de "primera respuesta" del SLA.'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Momento en que un agente respondió o tomó el ticket por primera vez. Detiene el reloj de "primera respuesta" del SLA.'),
 
                                 TextEntry::make('first_response_due_at')
                                     ->label('Vence primera respuesta')
                                     ->dateTime('d M Y H:i')
                                     ->placeholder('—')
                                     ->color(fn (Ticket $record) => $record->first_response_breached ? 'danger' : 'gray')
-                                    ->helperText('Objetivo de SLA para la primera respuesta. Calculado al crear el ticket usando minutos hábiles (L-V 08:00-18:00).'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Objetivo de SLA para la primera respuesta. Calculado al crear el ticket usando minutos hábiles (L-V 08:00-18:00).'),
 
                                 TextEntry::make('resolution_due_at')
                                     ->label('Vence resolución')
                                     ->dateTime('d M Y H:i')
                                     ->placeholder('—')
                                     ->color(fn (Ticket $record) => $record->resolution_breached ? 'danger' : 'gray')
-                                    ->helperText('Objetivo de SLA para resolver. Si resolved_at lo supera, el ticket entra en "fuera de SLA".'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Objetivo de SLA para resolver. Si resolved_at lo supera, el ticket entra en "fuera de SLA".'),
 
                                 TextEntry::make('resolved_at')
                                     ->label('Resuelto')
                                     ->dateTime('d M Y H:i')
                                     ->placeholder('—')
-                                    ->helperText('Momento en que el agente marcó el ticket como resuelto. A partir de aquí cuenta el tiempo Resuelto→Cerrado.'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Momento en que el agente marcó el ticket como resuelto. A partir de aquí cuenta el tiempo Resuelto→Cerrado.'),
 
                                 TextEntry::make('closed_at')
                                     ->label('Cerrado')
                                     ->dateTime('d M Y H:i')
                                     ->placeholder('—')
-                                    ->helperText('Confirmación del solicitante o auto-cierre del job programado tras X días sin respuesta.'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Confirmación del solicitante o auto-cierre del job programado tras X días sin respuesta.'),
 
                                 TextEntry::make('paused_minutes')
-                                    ->label('Tiempo pausado (min)')
+                                    ->label('Tiempo pausado')
                                     ->state(fn (Ticket $record) => self::formatPausedMinutes($record))
                                     ->placeholder('0 min')
-                                    ->helperText('Minutos hábiles acumulados en pendiente_cliente. El SLA se detiene en ese estado porque la demora no es del agente.'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Minutos hábiles acumulados mientras el ticket estuvo en pendiente_cliente. El SLA se detiene en ese estado porque la demora no es responsabilidad del agente.'),
 
                                 TextEntry::make('solution_time')
                                     ->label('Tiempo de solución')
                                     ->state(fn (Ticket $record) => self::computeSolutionTime($record))
                                     ->placeholder('—')
-                                    ->helperText('Trabajo efectivo del agente: minutos hábiles entre creación y resolución, descontando el tiempo pausado.'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Trabajo efectivo del agente: minutos hábiles entre creación y resolución, descontando el tiempo pausado.'),
 
                                 TextEntry::make('resolved_to_closed')
                                     ->label('Resuelto → Cerrado')
                                     ->state(fn (Ticket $record) => self::computeResolvedToClosed($record))
                                     ->placeholder('—')
-                                    ->helperText('Horas calendario que el cliente tardó en confirmar la solución (o que esperamos hasta auto-cerrar).'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Horas calendario que el cliente tardó en confirmar la solución (o que esperamos hasta auto-cerrar).'),
 
                                 IconEntry::make('first_response_breached')
                                     ->label('¿SLA primera respuesta?')
@@ -179,7 +188,8 @@ class TicketViewInfolist
                                     ->trueColor('danger')
                                     ->falseIcon('heroicon-o-check-circle')
                                     ->falseColor('success')
-                                    ->helperText('Indicador rojo = SLA de primera respuesta vencido. Verde = cumplido o aún dentro de plazo.'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Rojo = SLA de primera respuesta vencido. Verde = cumplido o aún dentro de plazo.'),
 
                                 IconEntry::make('resolution_breached')
                                     ->label('¿SLA resolución?')
@@ -188,7 +198,8 @@ class TicketViewInfolist
                                     ->trueColor('danger')
                                     ->falseIcon('heroicon-o-check-circle')
                                     ->falseColor('success')
-                                    ->helperText('Indicador rojo = SLA de resolución vencido. Verde = cumplido o aún dentro de plazo.'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Rojo = SLA de resolución vencido. Verde = cumplido o aún dentro de plazo.'),
                             ]),
                     ]),
 
@@ -205,14 +216,16 @@ class TicketViewInfolist
                                     ->badge()
                                     ->formatStateUsing(fn ($state) => $state?->getLabel())
                                     ->color('gray')
-                                    ->helperText('Alcance del problema: cuántos usuarios o servicios afecta.'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Alcance del problema: cuántos usuarios o servicios afecta.'),
 
                                 TextEntry::make('urgency')
                                     ->label('Urgencia')
                                     ->badge()
                                     ->formatStateUsing(fn ($state) => $state?->getLabel())
                                     ->color('gray')
-                                    ->helperText('Qué tan rápido debe resolverse desde la perspectiva del solicitante.'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Qué tan rápido debe resolverse desde la perspectiva del solicitante.'),
 
                                 TextEntry::make('status')
                                     ->label('Estado')
@@ -228,7 +241,8 @@ class TicketViewInfolist
                                         'reabierto' => 'danger',
                                         default => 'gray',
                                     })
-                                    ->helperText('Etapa actual del ticket. En pendiente_cliente el reloj de SLA queda pausado.'),
+                                    ->hintIcon('heroicon-m-question-mark-circle')
+                                    ->hintIconTooltip('Etapa actual del ticket. En pendiente_cliente el reloj de SLA queda pausado.'),
                             ]),
                     ]),
             ]);

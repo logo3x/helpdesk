@@ -223,16 +223,45 @@ class TicketViewInfolist
     /**
      * Renderiza el label con un signo de interrogación inline (a la
      * derecha del texto) que muestra la definición de la métrica al
-     * hacer hover, usando el tooltip nativo del navegador (title attr).
+     * hacer hover usando el tooltip de Filament/Alpine (x-tooltip).
      *
-     * Usa un span con texto "?" en vez de SVG porque Filament aplica
-     * estilos globales a los SVG que los hacen demasiado grandes.
+     * Por qué `x-tooltip` y no `title=`:
+     *   - title nativo del browser es lento (delay 1-2s), no estilable,
+     *     fuente fea, no respeta dark mode.
+     *   - Filament ya incluye Alpine + el plugin x-tooltip (Tippy.js),
+     *     que renderiza una card con bordes redondeados, sombra, fuente
+     *     consistente y soporta dark mode automático.
+     *
+     * Se cae a `title` como fallback por accesibilidad (lectores de
+     * pantalla y dispositivos sin Alpine cargado).
+     *
+     * Usa span con texto "?" — el SVG inline lo estiraba el CSS global
+     * de Filament.
      */
     protected static function labelWithTip(string $label, string $tooltip): HtmlString
     {
+        $jsonTooltip = e(json_encode([
+            'content' => $tooltip,
+            'theme' => 'dark',
+            'placement' => 'top',
+            'maxWidth' => 320,
+        ]));
+
         return new HtmlString(sprintf(
-            '%s <span title="%s" aria-label="%s" style="display:inline-flex;align-items:center;justify-content:center;width:1rem;height:1rem;margin-left:0.25rem;border-radius:9999px;background-color:rgb(229 231 235);color:rgb(75 85 99);font-size:0.7rem;font-weight:600;cursor:help;vertical-align:middle;">?</span>',
+            '<span style="display:inline-flex;align-items:center;gap:0.375rem;">'
+            .'%s'
+            .'<span x-data x-tooltip=\'%s\' title="%s" aria-label="%s" '
+            .'style="display:inline-flex;align-items:center;justify-content:center;'
+            .'width:0.95rem;height:0.95rem;border-radius:9999px;'
+            .'background-color:rgb(228 228 231);color:rgb(82 82 91);'
+            .'font-size:0.65rem;font-weight:700;line-height:1;cursor:help;'
+            .'transition:background-color 0.15s,color 0.15s;" '
+            .'onmouseover="this.style.backgroundColor=\'rgb(63 63 70)\';this.style.color=\'rgb(244 244 245)\';" '
+            .'onmouseout="this.style.backgroundColor=\'rgb(228 228 231)\';this.style.color=\'rgb(82 82 91)\';"'
+            .'>?</span>'
+            .'</span>',
             e($label),
+            $jsonTooltip,
             e($tooltip),
             e($tooltip),
         ));

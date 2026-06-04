@@ -221,17 +221,17 @@ class TicketViewInfolist
     }
 
     /**
-     * Renderiza el label con un ícono ❓ inline (a la derecha del texto)
-     * que muestra la definición de la métrica al hacer hover, usando el
-     * tooltip nativo del navegador (title attr).
+     * Renderiza el label con un signo de interrogación inline (a la
+     * derecha del texto) que muestra la definición de la métrica al
+     * hacer hover, usando el tooltip nativo del navegador (title attr).
+     *
+     * Usa un span con texto "?" en vez de SVG porque Filament aplica
+     * estilos globales a los SVG que los hacen demasiado grandes.
      */
     protected static function labelWithTip(string $label, string $tooltip): HtmlString
     {
         return new HtmlString(sprintf(
-            '%s <span title="%s" class="ml-1 inline-flex cursor-help text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" aria-label="%s">'
-            .'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">'
-            .'<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />'
-            .'</svg></span>',
+            '%s <span title="%s" aria-label="%s" style="display:inline-flex;align-items:center;justify-content:center;width:1rem;height:1rem;margin-left:0.25rem;border-radius:9999px;background-color:rgb(229 231 235);color:rgb(75 85 99);font-size:0.7rem;font-weight:600;cursor:help;vertical-align:middle;">?</span>',
             e($label),
             e($tooltip),
             e($tooltip),

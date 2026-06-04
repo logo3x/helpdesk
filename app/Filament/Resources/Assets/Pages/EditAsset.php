@@ -27,9 +27,10 @@ class EditAsset extends EditRecord
         return [
             // ── Ver hoja de vida (timeline del activo) ──────────────
             Action::make('viewLifecycle')
-                ->label('📋 Hoja de vida')
+                ->label('Hoja de vida')
                 ->icon('heroicon-o-clock')
                 ->color('info')
+                ->tooltip('Ver historial completo: scans, actas, mantenimientos y cambios')
                 ->url(fn () => AssetResource::getUrl('lifecycle', ['record' => $this->record])),
 
             // ── Generar acta de entrega (formato IT-ADM1-F-5 v3) ──
@@ -37,9 +38,10 @@ class EditAsset extends EditRecord
             // descarga inmediatamente. Si el receptor es distinto al
             // user_id actual del activo, actualiza la asignación.
             Action::make('generateHandover')
-                ->label('📄 Generar acta de entrega')
+                ->label('Generar acta de entrega')
                 ->icon('heroicon-o-document-text')
                 ->color('warning')
+                ->tooltip('Genera PDF oficial IT-ADM1-F-5 v3 y actualiza el custodio')
                 ->modalHeading('Generar acta de entrega')
                 ->modalDescription('Genera el PDF oficial IT-ADM1-F-5 v3 con los datos actuales del equipo. Si eliges un receptor distinto al custodio actual, también se actualiza la asignación del activo.')
                 ->modalSubmitActionLabel('Generar y descargar')

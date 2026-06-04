@@ -70,8 +70,10 @@ class AssetLifecycle extends Page
     {
         return [
             Action::make('backToEdit')
-                ->label('← Volver al activo')
+                ->label('Volver al activo')
+                ->icon('heroicon-o-arrow-uturn-left')
                 ->color('gray')
+                ->tooltip('Volver a la edición del activo')
                 ->url(AssetResource::getUrl('edit', ['record' => $this->record])),
         ];
     }

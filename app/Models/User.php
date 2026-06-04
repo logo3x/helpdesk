@@ -64,6 +64,10 @@ class User extends Authenticatable implements FilamentUser, HasName
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'asl_accepted_at' => 'datetime',
+            'kactus_synced_at' => 'datetime',
+            'kactus_payload' => 'array',
+            'hired_at' => 'date',
+            'terminated_at' => 'date',
         ];
     }
 

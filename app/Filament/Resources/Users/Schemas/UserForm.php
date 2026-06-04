@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Schemas;
 
 use App\Models\User;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -73,6 +74,36 @@ class UserForm
                             ->required(fn (Get $get) => in_array($get('roles'), ['supervisor_soporte', 'agente_soporte', 'tecnico_campo']))
                             ->visible(fn (Get $get) => in_array($get('roles'), ['supervisor_soporte', 'agente_soporte', 'tecnico_campo', 'usuario_final', 'editor_kb']))
                             ->helperText('Obligatorio para agentes y supervisores: define qué tickets pueden ver.'),
+                    ])
+                    ->columns(2),
+
+                Section::make('Integración Kactus')
+                    ->description('Datos sincronizados desde el sistema de nómina. Solo lectura — se actualizan automáticamente.')
+                    ->icon('heroicon-o-arrow-path')
+                    ->collapsed()
+                    ->visible(fn ($record) => $record && $record->kactus_employee_id)
+                    ->schema([
+                        TextInput::make('kactus_employee_id')
+                            ->label('ID en Kactus')
+                            ->disabled(),
+                        TextInput::make('employment_status')
+                            ->label('Estado laboral')
+                            ->disabled()
+                            ->formatStateUsing(fn (?string $state) => match ($state) {
+                                'active' => 'Activo',
+                                'terminated' => 'Retirado',
+                                'on_leave' => 'En licencia',
+                                default => $state ?? '—',
+                            }),
+                        Placeholder::make('hired_at')
+                            ->label('Fecha de ingreso')
+                            ->content(fn ($record) => $record?->hired_at?->translatedFormat('d M Y') ?? '—'),
+                        Placeholder::make('terminated_at')
+                            ->label('Fecha de retiro')
+                            ->content(fn ($record) => $record?->terminated_at?->translatedFormat('d M Y') ?? '—'),
+                        Placeholder::make('kactus_synced_at')
+                            ->label('Última sincronización')
+                            ->content(fn ($record) => $record?->kactus_synced_at?->diffForHumans() ?? 'Nunca'),
                     ])
                     ->columns(2),
             ]);

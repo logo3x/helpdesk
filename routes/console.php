@@ -21,3 +21,11 @@ Schedule::job(new AutoCloseTicketsJob)
 Schedule::job(new AutoMarkSurveysPositiveJob)
     ->dailyAt('06:30')
     ->withoutOverlapping();
+
+// Sync Kactus → users — cada hora durante horario laboral, solo si está habilitado.
+Schedule::command('kactus:sync')
+    ->hourly()
+    ->weekdays()
+    ->between('06:00', '20:00')
+    ->withoutOverlapping()
+    ->when(fn () => (bool) config('kactus.enabled'));

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Assets\Tables;
 use App\Models\Asset;
 use App\Models\User;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -255,9 +256,10 @@ class AssetsTable
             ])
             ->headerActions([
                 ExportAction::make()
-                    ->label('Exportar inventario')
+                    ->label('Exportar a Excel')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
+                    ->tooltip('Descargar el inventario filtrado a un archivo .xlsx')
                     ->exports([
                         ExcelExport::make('xlsx')
                             ->fromTable()
@@ -266,12 +268,16 @@ class AssetsTable
                     ]),
             ])
             ->recordActions([
-                // ── Acciones rápidas por activo ────────────────────────
-                // Acceso directo a la hoja de vida del activo. Se resuelve
-                // por panel actual (admin o soporte) usando el nombre de
-                // ruta registrado por Filament en cada AssetResource.
+                // ── Acción primaria: Editar — siempre visible ──────────
+                EditAction::make()
+                    ->iconButton()
+                    ->tooltip('Editar activo')
+                    ->color('primary'),
+
+                // ── Acción primaria: Hoja de vida — siempre visible ────
                 Action::make('viewLifecycle')
-                    ->label('Hoja de vida')
+                    ->iconButton()
+                    ->tooltip('Ver hoja de vida (timeline completo)')
                     ->icon('heroicon-o-clock')
                     ->color('gray')
                     ->url(fn (Asset $record) => route(
@@ -279,104 +285,111 @@ class AssetsTable
                         ['record' => $record],
                     )),
 
-                // Cambiar custodio sin abrir el form de edit completo.
-                Action::make('transferCustodian')
-                    ->label('Transferir')
-                    ->icon('heroicon-o-arrow-right-circle')
-                    ->color('info')
-                    ->modalHeading(fn (Asset $record) => "Transferir custodia de {$record->asset_tag}")
-                    ->modalDescription('Cambia el responsable del activo sin generar acta. Para generar acta formal, usa el botón "Generar acta de entrega" desde la edición.')
-                    ->schema([
-                        Select::make('user_id')
-                            ->label('Nuevo custodio')
-                            ->relationship('user', 'name')
-                            ->searchable(['name', 'email', 'identification'])
-                            ->preload()
-                            ->required()
-                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->custodianLabel()),
-                        Textarea::make('notes')
-                            ->label('Nota (opcional)')
-                            ->placeholder('Ej: "Préstamo por mantenimiento del equipo titular"')
-                            ->rows(2)
-                            ->maxLength(500),
-                    ])
-                    ->action(function (Asset $record, array $data): void {
-                        $newUser = User::findOrFail($data['user_id']);
-                        $oldUserId = $record->user_id;
+                // ── Acciones secundarias en menú ⋮ ─────────────────────
+                ActionGroup::make([
+                    // Cambiar custodio sin abrir el form de edit completo.
+                    Action::make('transferCustodian')
+                        ->label('Transferir custodia')
+                        ->icon('heroicon-o-arrow-right-circle')
+                        ->color('info')
+                        ->modalHeading(fn (Asset $record) => "Transferir custodia de {$record->asset_tag}")
+                        ->modalDescription('Cambia el responsable del activo sin generar acta. Para generar acta formal, usa el botón "Generar acta de entrega" desde la edición.')
+                        ->schema([
+                            Select::make('user_id')
+                                ->label('Nuevo custodio')
+                                ->relationship('user', 'name')
+                                ->searchable(['name', 'email', 'identification'])
+                                ->preload()
+                                ->required()
+                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->custodianLabel()),
+                            Textarea::make('notes')
+                                ->label('Nota (opcional)')
+                                ->placeholder('Ej: "Préstamo por mantenimiento del equipo titular"')
+                                ->rows(2)
+                                ->maxLength(500),
+                        ])
+                        ->action(function (Asset $record, array $data): void {
+                            $newUser = User::findOrFail($data['user_id']);
+                            $oldUserId = $record->user_id;
 
-                        // Skip auto-history: el observer del modelo Asset
-                        // registraría un evento "updated" genérico; aquí
-                        // creamos uno específico con label "Custodio asignado".
-                        $record->skipAutoHistory = true;
-                        $record->forceFill([
-                            'user_id' => $newUser->id,
-                            'department_id' => $newUser->department_id ?? $record->department_id,
-                        ])->save();
+                            // Skip auto-history: el observer del modelo Asset
+                            // registraría un evento "updated" genérico; aquí
+                            // creamos uno específico con label "Custodio asignado".
+                            $record->skipAutoHistory = true;
+                            $record->forceFill([
+                                'user_id' => $newUser->id,
+                                'department_id' => $newUser->department_id ?? $record->department_id,
+                            ])->save();
 
-                        $record->histories()->create([
-                            'user_id' => auth()->id(),
-                            'action' => 'assigned',
-                            'field' => 'user_id',
-                            'old_value' => (string) $oldUserId,
-                            'new_value' => (string) $newUser->id,
-                            'notes' => $data['notes'] ?? null,
-                        ]);
+                            $record->histories()->create([
+                                'user_id' => auth()->id(),
+                                'action' => 'assigned',
+                                'field' => 'user_id',
+                                'old_value' => (string) $oldUserId,
+                                'new_value' => (string) $newUser->id,
+                                'notes' => $data['notes'] ?? null,
+                            ]);
 
-                        Notification::make()
-                            ->title('Custodia transferida')
-                            ->body("Nuevo custodio: {$newUser->name}")
-                            ->success()
-                            ->send();
-                    }),
+                            Notification::make()
+                                ->title('Custodia transferida')
+                                ->body("Nuevo custodio: {$newUser->name}")
+                                ->success()
+                                ->send();
+                        }),
 
-                // Marcar mantenimiento realizado: actualiza last_maintenance_at
-                // y deja que el modelo recalcule next_maintenance_at solo.
-                Action::make('markMaintenance')
-                    ->label('Mtto realizado')
-                    ->icon('heroicon-o-wrench-screwdriver')
-                    ->color('warning')
-                    ->modalHeading(fn (Asset $record) => "Registrar mantenimiento de {$record->asset_tag}")
-                    ->modalDescription('Marca el activo como mantenido hoy. La próxima fecha se calcula automáticamente con el intervalo configurado.')
-                    ->schema([
-                        DatePicker::make('done_at')
-                            ->label('Fecha del mantenimiento')
-                            ->default(now())
-                            ->required(),
-                        TextInput::make('interval')
-                            ->label('Intervalo (días)')
-                            ->numeric()
-                            ->minValue(1)
-                            ->default(fn (Asset $record) => $record->maintenance_interval_days ?? 180)
-                            ->helperText('Días hasta el próximo mantenimiento. Si lo dejás vacío, se usa el valor previo del activo.'),
-                        Textarea::make('notes')
-                            ->label('Observaciones (opcional)')
-                            ->placeholder('Ej: "Limpieza interna + cambio de pasta térmica"')
-                            ->rows(2)
-                            ->maxLength(500),
-                    ])
-                    ->action(function (Asset $record, array $data): void {
-                        // Skip auto-history: el evento "maintenance" se
-                        // crea con su label propio, no como "updated".
-                        $record->skipAutoHistory = true;
-                        $record->forceFill([
-                            'last_maintenance_at' => $data['done_at'],
-                            'maintenance_interval_days' => $data['interval'] ?? $record->maintenance_interval_days,
-                        ])->save(); // El booted() hook recalcula next_maintenance_at.
+                    // Marcar mantenimiento realizado: actualiza last_maintenance_at
+                    // y deja que el modelo recalcule next_maintenance_at solo.
+                    Action::make('markMaintenance')
+                        ->label('Registrar mantenimiento')
+                        ->icon('heroicon-o-wrench-screwdriver')
+                        ->color('warning')
+                        ->modalHeading(fn (Asset $record) => "Registrar mantenimiento de {$record->asset_tag}")
+                        ->modalDescription('Marca el activo como mantenido hoy. La próxima fecha se calcula automáticamente con el intervalo configurado.')
+                        ->schema([
+                            DatePicker::make('done_at')
+                                ->label('Fecha del mantenimiento')
+                                ->default(now())
+                                ->required(),
+                            TextInput::make('interval')
+                                ->label('Intervalo (días)')
+                                ->numeric()
+                                ->minValue(1)
+                                ->default(fn (Asset $record) => $record->maintenance_interval_days ?? 180)
+                                ->helperText('Días hasta el próximo mantenimiento. Si lo dejás vacío, se usa el valor previo del activo.'),
+                            Textarea::make('notes')
+                                ->label('Observaciones (opcional)')
+                                ->placeholder('Ej: "Limpieza interna + cambio de pasta térmica"')
+                                ->rows(2)
+                                ->maxLength(500),
+                        ])
+                        ->action(function (Asset $record, array $data): void {
+                            // Skip auto-history: el evento "maintenance" se
+                            // crea con su label propio, no como "updated".
+                            $record->skipAutoHistory = true;
+                            $record->forceFill([
+                                'last_maintenance_at' => $data['done_at'],
+                                'maintenance_interval_days' => $data['interval'] ?? $record->maintenance_interval_days,
+                            ])->save(); // El booted() hook recalcula next_maintenance_at.
 
-                        $record->histories()->create([
-                            'user_id' => auth()->id(),
-                            'action' => 'maintenance',
-                            'notes' => $data['notes'] ?? null,
-                        ]);
+                            $record->histories()->create([
+                                'user_id' => auth()->id(),
+                                'action' => 'maintenance',
+                                'notes' => $data['notes'] ?? null,
+                            ]);
 
-                        Notification::make()
-                            ->title('Mantenimiento registrado')
-                            ->body('Próximo: '.$record->fresh()->next_maintenance_at?->translatedFormat('d/m/Y'))
-                            ->success()
-                            ->send();
-                    }),
-
-                EditAction::make(),
+                            Notification::make()
+                                ->title('Mantenimiento registrado')
+                                ->body('Próximo: '.$record->fresh()->next_maintenance_at?->translatedFormat('d/m/Y'))
+                                ->success()
+                                ->send();
+                        }),
+                ])
+                    ->label('Más acciones')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('gray')
+                    ->size('sm')
+                    ->tooltip('Más acciones')
+                    ->button(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

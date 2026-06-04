@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\DeployController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\KactusWebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -32,3 +33,11 @@ Route::middleware('throttle:5,1')
         Route::post('/', [DeployController::class, 'trigger']);
         Route::get('log', [DeployController::class, 'log']);
     });
+
+// ── Kactus webhook ───────────────────────────────────────────
+// Sin auth:sanctum: lo invoca Kactus desde fuera. Autenticación
+// vía header X-Kactus-Signature (HMAC del body con webhook_secret).
+// Throttle alto porque Kactus puede burstear varios eventos seguidos
+// cuando RRHH hace un cambio masivo.
+Route::middleware('throttle:120,1')
+    ->post('kactus/webhook', [KactusWebhookController::class, 'handle']);

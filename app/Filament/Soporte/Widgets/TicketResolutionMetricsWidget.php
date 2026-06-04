@@ -60,19 +60,35 @@ class TicketResolutionMetricsWidget extends StatsOverviewWidget
             Stat::make('Tiempo de solución (prom.)', $this->formatMinutes((int) round($solutionMinutes->avg())))
                 ->description('Trabajo efectivo del agente (sin pausa)')
                 ->descriptionIcon('heroicon-m-wrench-screwdriver')
-                ->color('success'),
+                ->color('success')
+                ->extraAttributes([
+                    'title' => 'Minutos hábiles (L-V 08:00-18:00) entre la creación '
+                        .'y la resolución, descontando el tiempo en pendiente_cliente. '
+                        .'Es el trabajo real del agente.',
+                ]),
 
             Stat::make('Tiempo pausado (prom.)', $this->formatMinutes((int) round($pausedMinutes->avg())))
                 ->description('Espera al cliente en estado pendiente_cliente')
                 ->descriptionIcon('heroicon-m-pause-circle')
-                ->color($pausedMinutes->avg() > 240 ? 'warning' : 'info'),
+                ->color($pausedMinutes->avg() > 240 ? 'warning' : 'info')
+                ->extraAttributes([
+                    'title' => 'Minutos hábiles acumulados mientras el ticket estuvo en '
+                        .'pendiente_cliente. El reloj de SLA se detiene en ese estado '
+                        .'porque la demora no es responsabilidad del agente.',
+                ]),
 
             Stat::make('Resuelto → Cerrado (prom.)', $resolvedToClosedHours->isEmpty()
                 ? '—'
                 : number_format($resolvedToClosedHours->avg(), 1).' h')
                 ->description('Cuánto tarda el cliente en confirmar')
                 ->descriptionIcon('heroicon-m-check-badge')
-                ->color('gray'),
+                ->color('gray')
+                ->extraAttributes([
+                    'title' => 'Tiempo calendario (no hábil) entre que se marca el '
+                        .'ticket como resuelto y se cierra. Mide cuánto tarda el '
+                        .'solicitante en confirmar la solución o cuánto tardamos en '
+                        .'auto-cerrarlo por timeout.',
+                ]),
 
             Stat::make('% en SLA', $slaCompliancePct === null ? '—' : $slaCompliancePct.'%')
                 ->description('Resueltos antes del resolution_due_at')
@@ -82,7 +98,13 @@ class TicketResolutionMetricsWidget extends StatsOverviewWidget
                     $slaCompliancePct >= 90 => 'success',
                     $slaCompliancePct >= 75 => 'warning',
                     default => 'danger',
-                }),
+                })
+                ->extraAttributes([
+                    'title' => 'Porcentaje de tickets cuyo resolved_at es menor o '
+                        .'igual al resolution_due_at (objetivo de SLA calculado al '
+                        .'crear el ticket en minutos hábiles). Verde ≥90%, '
+                        .'amarillo ≥75%, rojo <75%.',
+                ]),
         ];
     }
 

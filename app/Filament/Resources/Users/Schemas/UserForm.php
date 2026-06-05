@@ -48,18 +48,14 @@ class UserForm
                     ->schema([
                         Select::make('roles')
                             ->label('Rol')
-                            ->relationship('roles', 'name')
                             ->options(Role::pluck('name', 'name'))
                             ->required()
                             ->live()
-                            ->multiple(false)
-                            ->saveRelationshipsUsing(function ($component, $state, $record) {
-                                if ($state) {
-                                    $record->syncRoles([$state]);
-                                }
-                            })
-                            ->dehydrated(true)
-                            ->afterStateHydrated(function ($component, $state, $record) {
+                            // dehydrated:false porque NO queremos que Filament
+                            // intente persistir 'roles' como columna del User.
+                            // El sync real se hace en afterSave del page.
+                            ->dehydrated(false)
+                            ->afterStateHydrated(function ($component, $record) {
                                 if ($record) {
                                     $component->state($record->roles->first()?->name);
                                 }

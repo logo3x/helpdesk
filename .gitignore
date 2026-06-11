@@ -47,3 +47,9 @@ yarn-error.log
 /.agents
 /.codex
 /AGENTS.md
+
+# Playwright — artefactos de video/screenshots generados por los tests E2E.
+# Los specs (.spec.cjs) SÍ se versionan, los outputs no.
+/tests/e2e/videos
+/playwright-report
+/playwright/.cache

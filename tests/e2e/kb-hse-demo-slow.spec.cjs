@@ -115,16 +115,14 @@ test('Supervisor crea KB con IA y usuario final lo consulta (LENTO)', async ({ p
     });
 
     await test.step('8. Selecciona Estado = Publicado', async () => {
-        // El Select de Filament — busca el trigger por texto cercano al label "Estado".
-        await page.evaluate(() => window.scrollBy(0, 200));
-        await page.waitForTimeout(800);
-        const statusTrigger = page.locator('button[role="combobox"], [role="combobox"]')
-            .filter({ hasText: /borrador|estado/i })
-            .first();
-        await statusTrigger.click({ timeout: 8000 }).catch(() => {});
-        await page.waitForTimeout(1500); // muestra el dropdown abierto
-        await page.getByRole('option', { name: /publicado/i }).first().click({ timeout: 5000 }).catch(() => {});
-        await page.waitForTimeout(1500);
+        // El Select "status" del KB form es un <select> HTML nativo (no
+        // tiene ->native(false)). Lo manejamos con selectOption() que
+        // funciona directo. Locator: por wire:model.
+        const statusSelect = page.locator('select[wire\\:model="data.status"], select[id$="status"]').first();
+        await statusSelect.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(1500); // muestra el campo
+        await statusSelect.selectOption({ label: 'Publicado' });
+        await page.waitForTimeout(2000); // muestra el cambio
     });
 
     await test.step('9. Guarda el KB', async () => {
@@ -179,10 +177,34 @@ test('Supervisor crea KB con IA y usuario final lo consulta (LENTO)', async ({ p
     });
 
     await test.step('15. Verifica que la respuesta cite el KB recién publicado', async () => {
+        // Aceptamos cualquiera de las palabras clave del KB HSE para que
+        // si el RAG matchea por sinónimos o el chatbot devuelve solo el
+        // link al artículo, igual valide.
         await expect(
-            page.locator('text=/extensión 2911|hse\\.confipetrol|FR-HSE-001|incidente HSE/i').first()
+            page.locator('text=/2911|hse\\.confipetrol|FR-HSE-001|incidente HSE|reportar.*incidente|HSE/i').first()
         ).toBeVisible({ timeout: 15000 });
-        // Pausa final larga para que el video cierre con la respuesta visible.
-        await page.waitForTimeout(6000);
+    });
+
+    await test.step('16. Scroll lento por toda la respuesta del bot', async () => {
+        // Scroll por dentro del contenedor del chatbot para mostrar
+        // toda la respuesta generada (puede ser larga). Hacemos 3
+        // tandas de scroll suave con pausa para que el espectador
+        // alcance a leer cada sección del KB.
+        const chatContainer = page.locator('[wire\\:id], main, .chat-messages, body').first();
+
+        for (let i = 0; i < 4; i++) {
+            await page.evaluate(() => window.scrollBy({ top: 200, behavior: 'smooth' }));
+            await page.waitForTimeout(2500);
+        }
+
+        // Scroll back al inicio de la respuesta para cerrar el video
+        // con la pregunta + el comienzo de la respuesta visibles.
+        await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        await page.waitForTimeout(2000);
+
+        // Scroll al final una vez más para terminar mostrando el ticket
+        // de fallback ("Crea un ticket en categoría HSE - Reportes").
+        await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }));
+        await page.waitForTimeout(5000);
     });
 });

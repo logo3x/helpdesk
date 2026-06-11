@@ -12,7 +12,7 @@ const { defineConfig } = require('@playwright/test');
 module.exports = defineConfig({
     testDir: './tests/e2e',
     testMatch: '**/*.spec.cjs',
-    timeout: 180000, // 3 min por test (KB form + RAG dejan margen)
+    timeout: 360000, // 6 min por test (KB form + RAG + LLM mock + pausas largas)
     expect: { timeout: 15000 },
     fullyParallel: false,
     workers: 1,

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\DemoLlmService;
+use App\Services\LlmService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +20,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Modo demo: reemplaza el LlmService real por un mock determinista
+        // que devuelve borradores prefabricados al instante. Útil para
+        // grabar videos sin depender del rate-limit de OpenRouter.
+        // Activar con DEMO_LLM_MOCK=true en .env (NO usar en producción).
+        if (env('DEMO_LLM_MOCK') === true || env('DEMO_LLM_MOCK') === 'true') {
+            $this->app->singleton(LlmService::class, DemoLlmService::class);
+        }
     }
 
     /**

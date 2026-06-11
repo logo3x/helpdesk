@@ -29,11 +29,13 @@ const AI_PROMPT = 'Cuando alguien tiene un incidente HSE (derrame, lesión, casi
 const USER_QUESTION = '¿Cómo reporto un incidente HSE en Confipetrol?';
 
 test.beforeAll(() => {
-    // Limpia el KB de demo si quedó de una corrida previa para que el
-    // supervisor lo cree "en vivo" cada vez.
+    // Reset limpio: borra el KB HSE previo + historial del chatbot del
+    // usuario final. Así cada grabación arranca como una consulta nueva.
     try {
-        execSync('php artisan tinker --execute "App\\Models\\KbArticle::where(\'slug\',\'como-reportar-un-incidente-hse-en-confipetrol\')->forceDelete();"', { stdio: 'pipe' });
-    } catch (e) { /* ignore */ }
+        execSync('php artisan demo:reset --slug=como-reportar-un-incidente-hse-en-confipetrol', { stdio: 'pipe' });
+    } catch (e) {
+        throw new Error('demo:reset falló: ' + e.message);
+    }
 });
 
 test.use({
@@ -185,26 +187,38 @@ test('Supervisor crea KB con IA y usuario final lo consulta (LENTO)', async ({ p
         ).toBeVisible({ timeout: 15000 });
     });
 
-    await test.step('16. Scroll lento por toda la respuesta del bot', async () => {
-        // Scroll por dentro del contenedor del chatbot para mostrar
-        // toda la respuesta generada (puede ser larga). Hacemos 3
-        // tandas de scroll suave con pausa para que el espectador
-        // alcance a leer cada sección del KB.
-        const chatContainer = page.locator('[wire\\:id], main, .chat-messages, body').first();
+    await test.step('16. Scroll lento DENTRO del chat para mostrar toda la respuesta', async () => {
+        // El chatbot tiene un contenedor con scroll propio (#chat-container,
+        // h-[32rem] overflow-y-auto). Hacemos scroll dentro de ese div,
+        // no de la página, para que el viewport del bot quede fijo y
+        // el espectador siga viendo el header + input mientras la
+        // respuesta se desliza.
+        const scrollChat = async (top) => {
+            await page.evaluate((t) => {
+                const el = document.getElementById('chat-container');
+                if (el) el.scrollTo({ top: t, behavior: 'smooth' });
+            }, top);
+        };
+        const getScrollHeight = async () => page.evaluate(() => {
+            const el = document.getElementById('chat-container');
+            return el ? el.scrollHeight : 0;
+        });
 
-        for (let i = 0; i < 4; i++) {
-            await page.evaluate(() => window.scrollBy({ top: 200, behavior: 'smooth' }));
-            await page.waitForTimeout(2500);
+        // Scroll al inicio para ver la pregunta + comienzo de la respuesta.
+        await scrollChat(0);
+        await page.waitForTimeout(3000);
+
+        // Scroll progresivo a través de toda la respuesta.
+        const totalHeight = await getScrollHeight();
+        const steps = 5;
+        const stepHeight = Math.max(150, Math.floor(totalHeight / steps));
+
+        for (let i = 1; i <= steps; i++) {
+            await scrollChat(stepHeight * i);
+            await page.waitForTimeout(2800);
         }
 
-        // Scroll back al inicio de la respuesta para cerrar el video
-        // con la pregunta + el comienzo de la respuesta visibles.
-        await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
-        await page.waitForTimeout(2000);
-
-        // Scroll al final una vez más para terminar mostrando el ticket
-        // de fallback ("Crea un ticket en categoría HSE - Reportes").
-        await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }));
-        await page.waitForTimeout(5000);
+        // Pausa final con la respuesta completa visible al fondo.
+        await page.waitForTimeout(4000);
     });
 });

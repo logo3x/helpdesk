@@ -25,12 +25,13 @@ const KB_TITLE = 'Solicitar acceso a SAP S/4HANA en Confipetrol (Demo)';
 const KB_QUESTION = '¿Cómo solicito acceso a SAP en Confipetrol?';
 
 test.beforeAll(() => {
-    // Resetea el KB de demo vía comando artisan dedicado para evitar
-    // pelearse con escapado de comillas y con CodeMirror en el video.
+    // Reset limpio: borra el KB previo + historial del chatbot del
+    // usuario final para que el video se vea como una consulta nueva.
     try {
+        execSync('php artisan demo:reset --slug=solicitar-acceso-sap-s4hana-demo', { stdio: 'pipe' });
         execSync('php artisan demo:seed-kb', { stdio: 'pipe' });
     } catch (e) {
-        throw new Error('demo:seed-kb falló — corré php artisan demo:seed-kb manualmente: ' + e.message);
+        throw new Error('Setup demo falló: ' + e.message);
     }
 });
 

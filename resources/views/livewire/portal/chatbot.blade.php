@@ -21,31 +21,31 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-2">
+        <div class="flex gap-2">
             <a href="{{ route('portal.tickets.index') }}" wire:navigate
-               class="flex items-center gap-2.5 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 transition hover:border-sky-400 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-sky-500">
-                <flux:icon name="inbox" class="size-5 shrink-0 text-sky-500" />
-                <div>
-                    <div class="text-lg font-semibold leading-tight">{{ $totalCount }}</div>
-                    <flux:text size="xs" class="text-zinc-500">Mis tickets</flux:text>
+               class="flex flex-1 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 transition hover:border-sky-400 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-sky-500">
+                <flux:icon name="inbox" class="size-4 shrink-0 text-sky-500" />
+                <div class="min-w-0">
+                    <div class="text-base font-semibold leading-tight">{{ $totalCount }}</div>
+                    <flux:text size="xs" class="truncate text-zinc-500">Mis tickets</flux:text>
                 </div>
             </a>
 
             <a href="{{ route('portal.tickets.index') }}" wire:navigate
-               class="flex items-center gap-2.5 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 transition hover:border-amber-400 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-amber-500">
-                <flux:icon name="bolt" class="size-5 shrink-0 text-amber-500" />
-                <div>
-                    <div class="text-lg font-semibold leading-tight">{{ $openCount }}</div>
-                    <flux:text size="xs" class="text-zinc-500">En proceso</flux:text>
+               class="flex flex-1 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 transition hover:border-amber-400 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-amber-500">
+                <flux:icon name="bolt" class="size-4 shrink-0 text-amber-500" />
+                <div class="min-w-0">
+                    <div class="text-base font-semibold leading-tight">{{ $openCount }}</div>
+                    <flux:text size="xs" class="truncate text-zinc-500">En proceso</flux:text>
                 </div>
             </a>
 
             <a href="{{ route('portal.tickets.index') }}?status=pendiente_cliente" wire:navigate
-               class="flex items-center gap-2.5 rounded-lg border {{ $waitingCount > 0 ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30' : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900' }} px-3 py-2.5 transition hover:shadow-sm">
-                <flux:icon name="exclamation-circle" class="size-5 shrink-0 {{ $waitingCount > 0 ? 'text-red-500' : 'text-zinc-400' }}" />
-                <div>
-                    <div class="text-lg font-semibold leading-tight {{ $waitingCount > 0 ? 'text-red-600 dark:text-red-400' : '' }}">{{ $waitingCount }}</div>
-                    <flux:text size="xs" class="{{ $waitingCount > 0 ? 'text-red-500' : 'text-zinc-500' }}">Tu respuesta</flux:text>
+               class="flex flex-1 items-center gap-2 rounded-lg border {{ $waitingCount > 0 ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30' : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900' }} px-3 py-2.5 transition hover:shadow-sm">
+                <flux:icon name="exclamation-circle" class="size-4 shrink-0 {{ $waitingCount > 0 ? 'text-red-500' : 'text-zinc-400' }}" />
+                <div class="min-w-0">
+                    <div class="text-base font-semibold leading-tight {{ $waitingCount > 0 ? 'text-red-600 dark:text-red-400' : '' }}">{{ $waitingCount }}</div>
+                    <flux:text size="xs" class="{{ $waitingCount > 0 ? 'truncate text-red-500' : 'truncate text-zinc-500' }}">Tu respuesta</flux:text>
                 </div>
             </a>
         </div>

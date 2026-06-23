@@ -18,7 +18,7 @@ class AzureAuthController extends Controller
      */
     public function redirect(): RedirectResponse
     {
-        return Socialite::driver('microsoft')->redirect();
+        return Socialite::driver('microsoft')->stateless()->redirect();
     }
 
     /**
@@ -26,7 +26,7 @@ class AzureAuthController extends Controller
      */
     public function callback(): RedirectResponse
     {
-        $azureUser = Socialite::driver('microsoft')->user();
+        $azureUser = Socialite::driver('microsoft')->stateless()->user();
 
         $email = $azureUser->getEmail();
 

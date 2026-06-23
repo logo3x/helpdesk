@@ -18,9 +18,7 @@ class AzureAuthController extends Controller
      */
     public function redirect(): RedirectResponse
     {
-        return Socialite::driver('microsoft')
-            ->scopes(['User.Read', 'GroupMember.Read.All'])
-            ->redirect();
+        return Socialite::driver('microsoft')->redirect();
     }
 
     /**

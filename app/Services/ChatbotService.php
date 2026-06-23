@@ -237,7 +237,7 @@ class ChatbotService
         }
 
         // 5. KB con confianza media.
-        if ($topKb !== null && $topSimilarity >= 0.30) {
+        if ($topKb !== null && $topSimilarity >= 0.42) {
             return [
                 $this->formatKbResponse($topKb),
                 $this->meta('kb_medium', $topKb['article_id'] ?? null, $topSimilarity),
@@ -259,10 +259,7 @@ class ChatbotService
         //    genéricos de su entrenamiento.
         if ($topKb === null) {
             return [
-                "No encontré información sobre ese tema en nuestra base de conocimiento. 🔍\n\n"
-                .'Si necesitas ayuda, puedes:\n'
-                .'- Escribir **"crear ticket"** para que un agente te atienda\n'
-                .'- Consultar el [Centro de ayuda](/portal/kb) con los artículos publicados',
+                "No encontré información sobre ese tema en nuestra base de conocimiento. 🔍\n\nSi necesitas ayuda, puedes:\n- Escribir **\"crear ticket\"** para que un agente te atienda\n- Consultar el [Centro de ayuda](/portal/kb) con los artículos publicados",
                 $this->meta('fallback'),
             ];
         }

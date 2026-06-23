@@ -43,6 +43,7 @@ return [
     ],
 
     'azure' => [
+        'client_id' => env('AZURE_CLIENT_ID'),
         'tenant_id' => env('AZURE_TENANT_ID'),
         // Dominios permitidos para login SSO. Si el correo no termina en
         // uno de estos, el callback aborta con 403. Previene login con

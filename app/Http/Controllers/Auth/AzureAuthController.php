@@ -22,6 +22,23 @@ class AzureAuthController extends Controller
     }
 
     /**
+     * Cierra la sesión local y redirige al logout de Microsoft para
+     * limpiar también la sesión SSO. Sin esto, Microsoft recuerda la
+     * cuenta y auto-loguea al volver a /auth/azure.
+     */
+    public function logout(): RedirectResponse
+    {
+        Auth::logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+
+        $tenantId = config('services.azure.tenant_id');
+        $postLogoutUri = urlencode(url('/login'));
+
+        return redirect("https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/logout?post_logout_redirect_uri={$postLogoutUri}");
+    }
+
+    /**
      * Handle the callback from Azure AD after authentication.
      */
     public function callback(): RedirectResponse

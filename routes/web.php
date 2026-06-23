@@ -40,6 +40,7 @@ Route::get('/', function () {
 // ── Azure AD SSO ─────────────────────────────────────────────
 Route::get('auth/azure', [AzureAuthController::class, 'redirect'])->name('auth.azure');
 Route::get('auth/azure/callback', [AzureAuthController::class, 'callback'])->name('auth.azure.callback');
+Route::get('auth/azure/logout', [AzureAuthController::class, 'logout'])->name('auth.azure.logout')->middleware('auth');
 
 // ── Instalador del agente de inventario ───────────────────────
 // Endpoint sin auth para que IT lo invoque desde cada PC con un

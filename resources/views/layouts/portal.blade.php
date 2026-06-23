@@ -60,12 +60,18 @@
 
                     <flux:menu.separator />
 
-                    <form method="POST" action="{{ route('logout') }}" class="w-full">
-                        @csrf
-                        <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full cursor-pointer">
+                    @if (auth()->user()->azure_id)
+                        <flux:menu.item :href="route('auth.azure.logout')" icon="arrow-right-start-on-rectangle" class="w-full cursor-pointer">
                             Cerrar sesión
                         </flux:menu.item>
-                    </form>
+                    @else
+                        <form method="POST" action="{{ route('logout') }}" class="w-full">
+                            @csrf
+                            <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full cursor-pointer">
+                                Cerrar sesión
+                            </flux:menu.item>
+                        </form>
+                    @endif
                 </flux:menu>
             </flux:dropdown>
         </flux:header>

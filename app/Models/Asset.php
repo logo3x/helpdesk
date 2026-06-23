@@ -271,9 +271,18 @@ class Asset extends Model
      */
     public static function findOrCreateByHostname(string $hostname): self
     {
-        return static::firstOrCreate(
-            ['hostname' => $hostname],
-            ['type' => 'desktop', 'status' => 'active'],
-        );
+        // Incluir soft-deleted para restaurar si el activo fue borrado y
+        // el agente lo vuelve a detectar.
+        $existing = static::withTrashed()->where('hostname', $hostname)->first();
+
+        if ($existing) {
+            if ($existing->trashed()) {
+                $existing->restore();
+            }
+
+            return $existing;
+        }
+
+        return static::create(['hostname' => $hostname, 'type' => 'desktop', 'status' => 'active']);
     }
 }

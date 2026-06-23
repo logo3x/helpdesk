@@ -92,39 +92,51 @@ new #[Layout('layouts.portal')] #[Title('Security settings')] class extends Comp
 
     <flux:heading class="sr-only">Configuración de seguridad</flux:heading>
 
-    <x-pages::settings.layout heading="Actualizar contraseña" subheading="Asegúrate de usar una contraseña larga y aleatoria para mantener tu cuenta segura">
-        <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
-            <flux:input
-                wire:model="current_password"
-                label="Contraseña actual"
-                type="password"
-                required
-                autocomplete="current-password"
-                viewable
-            />
-            <flux:input
-                wire:model="password"
-                label="Nueva contraseña"
-                type="password"
-                required
-                autocomplete="new-password"
-                viewable
-            />
-            <flux:input
-                wire:model="password_confirmation"
-                label="Confirmar contraseña"
-                type="password"
-                required
-                autocomplete="new-password"
-                viewable
-            />
+    <x-pages::settings.layout heading="Seguridad" subheading="Gestiona la seguridad de tu cuenta">
+        @if (! auth()->user()->azure_id)
+            <div class="mb-10">
+                <flux:heading>Actualizar contraseña</flux:heading>
+                <flux:subheading>Asegúrate de usar una contraseña larga y aleatoria para mantener tu cuenta segura</flux:subheading>
 
-            <div class="flex items-center gap-4">
-                <flux:button variant="primary" type="submit" data-test="update-password-button">
-                    Guardar
-                </flux:button>
+                <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
+                    <flux:input
+                        wire:model="current_password"
+                        label="Contraseña actual"
+                        type="password"
+                        required
+                        autocomplete="current-password"
+                        viewable
+                    />
+                    <flux:input
+                        wire:model="password"
+                        label="Nueva contraseña"
+                        type="password"
+                        required
+                        autocomplete="new-password"
+                        viewable
+                    />
+                    <flux:input
+                        wire:model="password_confirmation"
+                        label="Confirmar contraseña"
+                        type="password"
+                        required
+                        autocomplete="new-password"
+                        viewable
+                    />
+
+                    <div class="flex items-center gap-4">
+                        <flux:button variant="primary" type="submit" data-test="update-password-button">
+                            Guardar
+                        </flux:button>
+                    </div>
+                </form>
             </div>
-        </form>
+        @else
+            <flux:callout variant="info" icon="shield-check" class="mb-10">
+                <flux:callout.heading>Cuenta corporativa Azure AD</flux:callout.heading>
+                <flux:callout.text>Tu acceso está gestionado por Microsoft Azure AD. Para cambiar tu contraseña, hazlo desde el portal corporativo de Confipetrol.</flux:callout.text>
+            </flux:callout>
+        @endif
 
         @if ($canManageTwoFactor)
             <section class="mt-12">

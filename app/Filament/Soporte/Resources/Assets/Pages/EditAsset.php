@@ -13,6 +13,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Support\Enums\MaxWidth;
 use Illuminate\Support\Facades\Storage;
 
 class EditAsset extends EditRecord
@@ -27,8 +28,8 @@ class EditAsset extends EditRecord
                 ->icon('heroicon-o-clock')
                 ->color('info')
                 ->tooltip('Ver historial completo: scans, actas, mantenimientos y cambios')
-                ->modalHeading(fn () => 'Hoja de vida — '.($this->record->asset_tag ?: $this->record->hostname ?: 'Activo #'.$this->record->id))
-                ->modalWidth('4xl')
+                ->modalHeading('')
+                ->modalWidth(MaxWidth::Screen)
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Cerrar')
                 ->modalContent(function () {

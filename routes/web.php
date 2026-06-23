@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AslController;
+use App\Http\Controllers\Assets\AssetLifecyclePdfController;
 use App\Http\Controllers\Auth\AzureAuthController;
 use App\Http\Controllers\InventoryAgentController;
 use App\Http\Middleware\EnsureAslAccepted;
@@ -59,6 +60,11 @@ Route::middleware('auth')->group(function () {
     Route::get('asl/accept', [AslController::class, 'show'])->name('asl.show');
     Route::post('asl/accept', [AslController::class, 'accept'])->name('asl.accept');
 });
+
+// Hoja de vida PDF — ruta simple para evitar restricciones IIS en rutas Filament
+Route::get('assets/{asset}/edit/pdf', AssetLifecyclePdfController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('assets.lifecycle.pdf');
 
 Route::middleware(['auth', 'verified', EnsureAslAccepted::class])->group(function () {
     // /dashboard es el destino por defecto de Fortify tras login; aquí

@@ -54,7 +54,7 @@ class AzureAuthController extends Controller
             [
                 'name' => $azureUser->getName(),
                 'email' => $email,
-                'avatar_url' => $azureUser->getAvatar(),
+                'avatar_url' => $this->resolveAvatar($azureUser->getAvatar()),
                 'password' => Hash::make(Str::random(32)),
                 'email_verified_at' => now(),
             ],
@@ -75,6 +75,19 @@ class AzureAuthController extends Controller
         Auth::login($user, remember: true);
 
         return redirect()->intended($this->resolveRedirectUrl($user));
+    }
+
+    /**
+     * Azure devuelve el avatar como data:image/jpeg;base64,... (demasiado largo para la columna).
+     * Solo guardamos si es una URL real; si es base64 lo descartamos.
+     */
+    protected function resolveAvatar(?string $avatar): ?string
+    {
+        if (blank($avatar) || str_starts_with($avatar, 'data:')) {
+            return null;
+        }
+
+        return mb_substr($avatar, 0, 500);
     }
 
     /**

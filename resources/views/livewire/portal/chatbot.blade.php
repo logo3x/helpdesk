@@ -1,5 +1,55 @@
 <div class="mx-auto max-w-2xl">
-    <flux:heading size="xl" class="mb-6">Asistente virtual</flux:heading>
+    {{-- Saludo + mini-cards de estado --}}
+    <div class="mb-5">
+        @php
+            $hour = now()->hour;
+            $greeting = match (true) {
+                $hour < 12 => 'Buenos días',
+                $hour < 19 => 'Buenas tardes',
+                default    => 'Buenas noches',
+            };
+            $firstName = explode(' ', (string) $user?->name)[0] ?? '';
+        @endphp
+
+        <div class="mb-4 flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-sky-500 text-sm font-semibold text-white shadow">
+                {{ $user?->initials() }}
+            </div>
+            <div>
+                <flux:heading size="lg">{{ $greeting }}, {{ $firstName }}</flux:heading>
+                <flux:text size="sm" class="text-zinc-500">¿En qué puedo ayudarte hoy?</flux:text>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+            <a href="{{ route('portal.tickets.index') }}" wire:navigate
+               class="flex items-center gap-2.5 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 transition hover:border-sky-400 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-sky-500">
+                <flux:icon name="inbox" class="size-5 shrink-0 text-sky-500" />
+                <div>
+                    <div class="text-lg font-semibold leading-tight">{{ $totalCount }}</div>
+                    <flux:text size="xs" class="text-zinc-500">Mis tickets</flux:text>
+                </div>
+            </a>
+
+            <a href="{{ route('portal.tickets.index') }}" wire:navigate
+               class="flex items-center gap-2.5 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 transition hover:border-amber-400 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-amber-500">
+                <flux:icon name="bolt" class="size-5 shrink-0 text-amber-500" />
+                <div>
+                    <div class="text-lg font-semibold leading-tight">{{ $openCount }}</div>
+                    <flux:text size="xs" class="text-zinc-500">En proceso</flux:text>
+                </div>
+            </a>
+
+            <a href="{{ route('portal.tickets.index') }}?status=pendiente_cliente" wire:navigate
+               class="flex items-center gap-2.5 rounded-lg border {{ $waitingCount > 0 ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30' : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900' }} px-3 py-2.5 transition hover:shadow-sm">
+                <flux:icon name="exclamation-circle" class="size-5 shrink-0 {{ $waitingCount > 0 ? 'text-red-500' : 'text-zinc-400' }}" />
+                <div>
+                    <div class="text-lg font-semibold leading-tight {{ $waitingCount > 0 ? 'text-red-600 dark:text-red-400' : '' }}">{{ $waitingCount }}</div>
+                    <flux:text size="xs" class="{{ $waitingCount > 0 ? 'text-red-500' : 'text-zinc-500' }}">Tu respuesta</flux:text>
+                </div>
+            </a>
+        </div>
+    </div>
 
     {{-- Chat messages --}}
     <div class="mb-4 h-[32rem] overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900"

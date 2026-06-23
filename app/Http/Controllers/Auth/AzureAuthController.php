@@ -164,6 +164,6 @@ class AzureAuthController extends Controller
             return '/soporte';
         }
 
-        return '/portal/tickets';
+        return '/portal/chatbot';
     }
 }

@@ -31,7 +31,7 @@ Route::get('/', function () {
             return redirect('/soporte');
         }
 
-        return redirect('/portal');
+        return redirect('/portal/chatbot');
     }
 
     return view('welcome');
@@ -75,7 +75,7 @@ Route::middleware(['auth', 'verified', EnsureAslAccepted::class])->group(functio
             return redirect('/soporte');
         }
 
-        return redirect('/portal');
+        return redirect('/portal/chatbot');
     })->name('dashboard');
 
     // ── Portal de usuario ────────────────────────────────────────

@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Portal;
 
+use App\Enums\TicketStatus;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
 use App\Models\Department;
+use App\Models\Ticket;
 use App\Services\ChatbotService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
@@ -357,6 +359,14 @@ class Chatbot extends Component
 
     public function render(): View
     {
-        return view('livewire.portal.chatbot');
+        $user = auth()->user();
+        $base = Ticket::query()->where('requester_id', $user?->id);
+
+        return view('livewire.portal.chatbot', [
+            'user' => $user,
+            'openCount' => (clone $base)->open()->count(),
+            'waitingCount' => (clone $base)->where('status', TicketStatus::PendienteCliente)->count(),
+            'totalCount' => (clone $base)->count(),
+        ]);
     }
 }

@@ -253,10 +253,21 @@ class ChatbotService
             return [$firstStep, $this->meta('flow')];
         }
 
-        // 7. LLM con contexto KB (si hay API key).
-        $context = $topKb !== null
-            ? "[Artículo: {$topKb['article_title']}]\n{$topKb['content']}"
-            : '';
+        // 7. LLM con contexto KB (solo si hay artículo con algo de relevancia).
+        //    Si no hay ningún resultado KB, NO llamamos al LLM para evitar
+        //    que el modelo alucine información de Confipetrol con datos
+        //    genéricos de su entrenamiento.
+        if ($topKb === null) {
+            return [
+                "No encontré información sobre ese tema en nuestra base de conocimiento. 🔍\n\n"
+                .'Si necesitas ayuda, puedes:\n'
+                .'- Escribir **"crear ticket"** para que un agente te atienda\n'
+                .'- Consultar el [Centro de ayuda](/portal/kb) con los artículos publicados',
+                $this->meta('fallback'),
+            ];
+        }
+
+        $context = "[Artículo: {$topKb['article_title']}]\n{$topKb['content']}";
         $chatHistory = $session->messages()
             ->orderByDesc('created_at')
             ->limit(10)
@@ -276,7 +287,7 @@ class ChatbotService
                 $this->meta(
                     'llm',
                     $topKb['article_id'] ?? null,
-                    $topKb !== null ? $topSimilarity : null,
+                    $topSimilarity,
                 ),
             ];
         }

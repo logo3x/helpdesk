@@ -49,16 +49,28 @@ class AzureAuthController extends Controller
             abort(403, 'Tu cuenta de Microsoft no pertenece a un dominio corporativo autorizado.');
         }
 
-        $user = User::updateOrCreate(
-            ['azure_id' => $azureUser->getId()],
-            [
+        // Buscar primero por azure_id, luego por email (para vincular cuentas existentes)
+        $user = User::where('azure_id', $azureUser->getId())
+            ->orWhere('email', $email)
+            ->first();
+
+        if ($user) {
+            $user->update([
+                'azure_id' => $azureUser->getId(),
+                'name' => $azureUser->getName(),
+                'avatar_url' => $this->resolveAvatar($azureUser->getAvatar()),
+                'email_verified_at' => $user->email_verified_at ?? now(),
+            ]);
+        } else {
+            $user = User::create([
+                'azure_id' => $azureUser->getId(),
                 'name' => $azureUser->getName(),
                 'email' => $email,
                 'avatar_url' => $this->resolveAvatar($azureUser->getAvatar()),
                 'password' => Hash::make(Str::random(32)),
                 'email_verified_at' => now(),
-            ],
-        );
+            ]);
+        }
 
         // Sync department from Azure profile (if available in token)
         $this->syncDepartment($user, $azureUser);

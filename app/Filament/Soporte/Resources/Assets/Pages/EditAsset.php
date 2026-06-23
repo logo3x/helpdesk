@@ -3,6 +3,7 @@
 namespace App\Filament\Soporte\Resources\Assets\Pages;
 
 use App\Filament\Soporte\Resources\Assets\AssetResource;
+use App\Filament\Soporte\Resources\Assets\Pages\AssetLifecycle;
 use App\Models\User;
 use App\Services\AssetHandoverService;
 use Filament\Actions\Action;
@@ -26,7 +27,20 @@ class EditAsset extends EditRecord
                 ->icon('heroicon-o-clock')
                 ->color('info')
                 ->tooltip('Ver historial completo: scans, actas, mantenimientos y cambios')
-                ->url(fn () => AssetResource::getUrl('lifecycle', ['record' => $this->record])),
+                ->modalHeading(fn () => 'Hoja de vida — '.($this->record->asset_tag ?: $this->record->hostname ?: 'Activo #'.$this->record->id))
+                ->modalWidth('4xl')
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Cerrar')
+                ->modalContent(function () {
+                    $page = new AssetLifecycle;
+                    $page->record = $this->record;
+                    $events = $page->getTimeline();
+
+                    return view('filament.resources.assets.partials.timeline-modal', [
+                        'record' => $this->record,
+                        'events' => $events,
+                    ]);
+                }),
 
             Action::make('generateHandover')
                 ->label('Generar acta de entrega')

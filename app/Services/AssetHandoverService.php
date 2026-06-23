@@ -66,7 +66,8 @@ class AssetHandoverService
             $asset->skipAutoHistory = true;
             $asset->forceFill([
                 'user_id' => $receivedBy->id,
-                'department_id' => $receivedBy->department_id ?? $asset->department_id,
+                // department_id se deja intacto: debe ingresarse manualmente
+                // en el formulario del activo, no inferirse del custodio.
             ])->save();
         }
 

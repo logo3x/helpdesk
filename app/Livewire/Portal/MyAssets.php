@@ -4,9 +4,12 @@ namespace App\Livewire\Portal;
 
 use App\Models\Asset;
 use App\Models\AssetHandover;
+use App\Models\User;
+use App\Notifications\AssetHandoverConfirmedNotification;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Notification as MailNotification;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -45,10 +48,15 @@ class MyAssets extends Component
         }
 
         $handover->forceFill(['received_confirmed_at' => now()])->save();
+        $handover->load('asset');
+
+        // Notificar por email al equipo de soporte (admins y supervisores)
+        $recipients = User::role(['super_admin', 'admin', 'supervisor_soporte'])->get();
+        MailNotification::send($recipients, new AssetHandoverConfirmedNotification($handover));
 
         Notification::make()
             ->title('Recepción confirmada')
-            ->body("Acta #{$handover->acta_number} marcada como recibida.")
+            ->body("Acta #{$handover->acta_number} marcada como recibida. Se notificó al equipo de soporte.")
             ->success()
             ->send();
     }

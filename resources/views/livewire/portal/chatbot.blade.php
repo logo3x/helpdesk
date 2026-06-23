@@ -1,5 +1,5 @@
 <div class="mx-auto max-w-2xl">
-    {{-- Saludo + mini-cards de estado --}}
+    {{-- Saludo + mini-cards de estado en una sola fila --}}
     <div class="mb-5">
         @php
             $hour = now()->hour;
@@ -11,17 +11,20 @@
             $firstName = explode(' ', (string) $user?->name)[0] ?? '';
         @endphp
 
-        <div class="mb-4 flex items-center gap-3">
-            <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-sky-500 text-sm font-semibold text-white shadow">
-                {{ $user?->initials() }}
+        <div class="flex items-center gap-2">
+            <div class="flex shrink-0 items-center gap-2 mr-2">
+                <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-sky-500 text-sm font-semibold text-white shadow">
+                    {{ $user?->initials() }}
+                </div>
+                <div>
+                    <div class="text-sm font-semibold leading-tight text-zinc-800 dark:text-zinc-100">{{ $greeting }}, {{ $firstName }}</div>
+                    <flux:text size="xs" class="text-zinc-500">¿En qué puedo ayudarte?</flux:text>
+                </div>
             </div>
-            <div>
-                <flux:heading size="lg">{{ $greeting }}, {{ $firstName }}</flux:heading>
-                <flux:text size="sm" class="text-zinc-500">¿En qué puedo ayudarte hoy?</flux:text>
-            </div>
-        </div>
 
-        <div class="flex gap-2">
+            <div class="h-8 w-px bg-zinc-200 dark:bg-zinc-700 shrink-0"></div>
+
+            <div class="flex flex-1 gap-2">
             <a href="{{ route('portal.tickets.index') }}" wire:navigate
                class="flex flex-1 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 transition hover:border-sky-400 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-sky-500">
                 <flux:icon name="inbox" class="size-4 shrink-0 text-sky-500" />
@@ -48,6 +51,7 @@
                     <flux:text size="xs" class="{{ $waitingCount > 0 ? 'truncate text-red-500' : 'truncate text-zinc-500' }}">Tu respuesta</flux:text>
                 </div>
             </a>
+            </div>
         </div>
     </div>
 

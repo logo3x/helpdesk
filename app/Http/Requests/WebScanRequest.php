@@ -15,7 +15,6 @@ class WebScanRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'hostname' => ['nullable', 'string', 'max:255'],
             'os_name' => ['nullable', 'string', 'max:255'],
             'os_version' => ['nullable', 'string', 'max:255'],
             'cpu_cores' => ['nullable', 'integer', 'min:1', 'max:512'],
@@ -24,6 +23,8 @@ class WebScanRequest extends FormRequest
             'screen_resolution' => ['nullable', 'string', 'max:50'],
             'timezone' => ['nullable', 'string', 'max:100'],
             'user_agent' => ['nullable', 'string', 'max:500'],
+            'browser_language' => ['nullable', 'string', 'max:20'],
+            'touch_points' => ['nullable', 'integer', 'min:0', 'max:20'],
         ];
     }
 }

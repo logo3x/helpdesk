@@ -18,25 +18,59 @@ class InventoryService
     /**
      * Process a web browser scan (limited data: UA, screen, CPU cores, RAM estimate).
      *
+     * Browsers cannot expose the real PC hostname, so assets are identified by
+     * the authenticated user_id. If the user already has an asset assigned we
+     * update it; otherwise we create a new "web-scan" asset linked to them.
+     *
      * @param  array<string, mixed>  $data
      */
     public function processWebScan(array $data, ?User $user = null, ?string $ip = null, ?string $userAgent = null): Asset
     {
-        $hostname = $data['hostname'] ?? $data['user_agent'] ?? 'unknown';
+        // Find the asset already assigned to this user, or create a new one.
+        // We prefer the first active desktop/laptop asset linked to the user.
+        $asset = null;
 
-        $asset = Asset::findOrCreateByHostname($hostname);
+        if ($user?->id) {
+            $asset = Asset::where('user_id', $user->id)
+                ->whereIn('type', ['desktop', 'laptop', 'notebook', 'workstation'])
+                ->latest('last_scan_at')
+                ->first();
+        }
 
-        $asset->update(array_filter([
+        if (! $asset) {
+            // Fallback: create a placeholder asset for this user
+            $asset = Asset::create([
+                'type' => 'desktop',
+                'status' => 'active',
+                'user_id' => $user?->id,
+                'department_id' => $user?->department_id,
+                'ip_address' => $ip,
+                'last_scan_at' => now(),
+                'last_scan_status' => 'web_scan',
+            ]);
+        }
+
+        $updates = array_filter([
             'user_id' => $user?->id ?? $asset->user_id,
             'department_id' => $user?->department_id ?? $asset->department_id,
-            'os_name' => $data['os_name'] ?? $asset->os_name,
-            'os_version' => $data['os_version'] ?? $asset->os_version,
-            'cpu_cores' => $data['cpu_cores'] ?? $asset->cpu_cores,
-            'ram_mb' => isset($data['ram_gb']) ? (int) ($data['ram_gb'] * 1024) : $asset->ram_mb,
-            'gpu_info' => $data['gpu_info'] ?? $asset->gpu_info,
             'ip_address' => $ip ?? $asset->ip_address,
             'last_scan_at' => now(),
-        ], fn ($v) => $v !== null));
+            'last_scan_status' => 'web_scan',
+        ], fn ($v) => $v !== null);
+
+        // Only overwrite hardware fields if the asset doesn't already have
+        // better data from an agent scan (agent data takes priority).
+        if ($asset->last_scan_status !== 'agent_scan') {
+            $updates = array_merge($updates, array_filter([
+                'os_name' => $data['os_name'] ?? null,
+                'os_version' => $data['os_version'] ?? null,
+                'cpu_cores' => $data['cpu_cores'] ?? null,
+                'ram_mb' => isset($data['ram_gb']) ? (int) ($data['ram_gb'] * 1024) : null,
+                'gpu_info' => $data['gpu_info'] ?? null,
+            ], fn ($v) => $v !== null));
+        }
+
+        $asset->update($updates);
 
         AssetScan::create([
             'asset_id' => $asset->id,

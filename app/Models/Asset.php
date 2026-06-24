@@ -114,10 +114,16 @@ class Asset extends Model
     protected static function booted(): void
     {
         static::saving(function (self $asset): void {
+            // Recalcula next_maintenance_at siempre que tengamos ambos campos,
+            // ya sea porque cambiaron ahora o porque next_maintenance_at está vacío
+            // (para reparar activos que tenían la fecha sin calcular).
             if (
                 $asset->last_maintenance_at
                 && $asset->maintenance_interval_days
-                && $asset->isDirty(['last_maintenance_at', 'maintenance_interval_days'])
+                && (
+                    $asset->isDirty(['last_maintenance_at', 'maintenance_interval_days'])
+                    || ! $asset->next_maintenance_at
+                )
             ) {
                 $asset->next_maintenance_at = $asset->last_maintenance_at
                     ->copy()

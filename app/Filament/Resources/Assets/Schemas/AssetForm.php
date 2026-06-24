@@ -103,6 +103,12 @@ class AssetForm
                                     ->helperText('Busca por nombre, correo o cédula.')
                                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->custodianLabel()),
 
+                                TextInput::make('custodian_name')
+                                    ->label('Nombre del custodio')
+                                    ->placeholder('Ej: Juan Pérez (si no tiene cuenta en el sistema)')
+                                    ->helperText('Nombre libre cuando el custodio no tiene cuenta.')
+                                    ->maxLength(150),
+
                                 Select::make('department_id')
                                     ->label('Departamento')
                                     ->relationship('department', 'name')

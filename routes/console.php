@@ -3,6 +3,7 @@
 use App\Jobs\AutoCloseTicketsJob;
 use App\Jobs\AutoMarkSurveysPositiveJob;
 use App\Jobs\CheckSlaBreachesJob;
+use App\Jobs\MaintenanceAlertJob;
 use Illuminate\Support\Facades\Schedule;
 
 // SLA breach detection — every 5 minutes during business hours
@@ -20,6 +21,12 @@ Schedule::job(new AutoCloseTicketsJob)
 // Auto-marca encuestas como 5★ si el cliente no respondió — diario 6:30am
 Schedule::job(new AutoMarkSurveysPositiveJob)
     ->dailyAt('06:30')
+    ->withoutOverlapping();
+
+// Alertas de mantenimiento de activos — lunes 7am.
+// Campanita (7 días) + correo semanal (14 días).
+Schedule::job(new MaintenanceAlertJob)
+    ->weeklyOn(1, '07:00')
     ->withoutOverlapping();
 
 // Sync Kactus → users — cada hora durante horario laboral, solo si está habilitado.

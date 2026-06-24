@@ -6,12 +6,13 @@ use App\Filament\Resources\Assets\Pages\AssetLifecycle;
 use App\Http\Controllers\Controller;
 use App\Models\Asset;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 class AssetLifecyclePdfController extends Controller
 {
     public function __invoke(Asset $asset): Response
     {
-        $this->authorize('viewAny', Asset::class);
+        Gate::authorize('viewAny', Asset::class);
 
         $asset->loadMissing([
             'user',

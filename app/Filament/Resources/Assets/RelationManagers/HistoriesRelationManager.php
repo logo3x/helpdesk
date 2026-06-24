@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Assets\RelationManagers;
 
 use App\Models\Asset;
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -72,15 +73,10 @@ class HistoriesRelationManager extends RelationManager
 
                 Select::make('maintenance_responsible_id')
                     ->label('Responsable')
-                    ->relationship(
-                        'maintenanceResponsible',
-                        'name',
-                        fn ($query) => $query->whereHas('roles', fn ($q) => $q->whereIn('name', [
-                            'super_admin', 'admin', 'supervisor_soporte', 'agente_soporte', 'tecnico_campo',
-                        ])),
-                    )
-                    ->searchable(['name', 'email'])
-                    ->preload()
+                    ->options(fn () => User::whereHas('roles', fn ($q) => $q->whereIn('name', [
+                        'super_admin', 'admin', 'supervisor_soporte', 'agente_soporte', 'tecnico_campo',
+                    ]))->orderBy('name')->pluck('name', 'id'))
+                    ->searchable()
                     ->placeholder('Sin asignar')
                     ->visible(fn ($get) => $get('action') === 'maintenance'),
 

@@ -26,7 +26,7 @@ class EditAsset extends EditRecord
                 ->icon('heroicon-o-clock')
                 ->color('info')
                 ->tooltip('Ver historial completo: scans, actas, mantenimientos y cambios')
-                ->url(fn () => AssetResource::getUrl('lifecycle', ['record' => $this->record])),
+                ->url(fn () => route('assets.lifecycle.pdf', ['asset' => $this->record])),
 
             Action::make('generateHandover')
                 ->label('Generar acta de entrega')

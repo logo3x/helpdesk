@@ -2,13 +2,16 @@
 
 namespace App\Filament\Resources\Assets\RelationManagers;
 
+use App\Models\Asset;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -17,8 +20,13 @@ use Filament\Tables\Table;
 
 /**
  * Historial completo del activo: mantenimientos, asignaciones, scans, etc.
- * Aparece en tiempo real en la página de edición del activo.
- * Permite crear entradas de mantenimiento manuales y editar/borrar notas.
+ *
+ * - Se refresca automáticamente cada 15 segundos (poll).
+ * - Los cambios en el formulario del activo (custodio, estado, etc.)
+ *   se registran automáticamente via Asset::booted() TRACKED_FIELDS.
+ * - El modal "Registrar evento" permite crear entradas manuales;
+ *   cuando el tipo es "Mantenimiento" también actualiza los campos
+ *   del activo (last_maintenance_at, interval, responsable).
  */
 class HistoriesRelationManager extends RelationManager
 {
@@ -33,15 +41,48 @@ class HistoriesRelationManager extends RelationManager
                 Select::make('action')
                     ->label('Tipo de evento')
                     ->options([
-                        'maintenance' => 'Mantenimiento',
-                        'updated' => 'Actualización',
-                        'assigned' => 'Asignación',
-                        'scanned' => 'Scan automático',
-                        'retired' => 'Retiro',
-                        'created' => 'Creación',
+                        'maintenance' => '🔧 Mantenimiento',
+                        'updated' => '✏️ Actualización',
+                        'assigned' => '👤 Asignación',
+                        'scanned' => '🖥️ Scan automático',
+                        'retired' => '📦 Retiro',
+                        'created' => '✅ Creación',
                     ])
                     ->required()
-                    ->native(false),
+                    ->native(false)
+                    ->live(),
+
+                // Campos extra que solo aparecen cuando el evento es "Mantenimiento"
+                DatePicker::make('maintenance_done_at')
+                    ->label('Fecha del mantenimiento')
+                    ->displayFormat('d/m/Y')
+                    ->native(false)
+                    ->default(now())
+                    ->visible(fn ($get) => $get('action') === 'maintenance')
+                    ->required(fn ($get) => $get('action') === 'maintenance'),
+
+                TextInput::make('maintenance_interval_days')
+                    ->label('Frecuencia (días)')
+                    ->numeric()
+                    ->minValue(1)
+                    ->maxValue(3650)
+                    ->placeholder('120')
+                    ->helperText('120 = trimestral · 180 = semestral · 365 = anual')
+                    ->visible(fn ($get) => $get('action') === 'maintenance'),
+
+                Select::make('maintenance_responsible_id')
+                    ->label('Responsable')
+                    ->relationship(
+                        'maintenanceResponsible',
+                        'name',
+                        fn ($query) => $query->whereHas('roles', fn ($q) => $q->whereIn('name', [
+                            'super_admin', 'admin', 'supervisor_soporte', 'agente_soporte', 'tecnico_campo',
+                        ])),
+                    )
+                    ->searchable(['name', 'email'])
+                    ->preload()
+                    ->placeholder('Sin asignar')
+                    ->visible(fn ($get) => $get('action') === 'maintenance'),
 
                 Textarea::make('notes')
                     ->label('Observaciones')
@@ -131,10 +172,31 @@ class HistoriesRelationManager extends RelationManager
                 CreateAction::make()
                     ->label('Registrar evento')
                     ->modalHeading('Registrar evento en el historial')
-                    ->mutateFormDataUsing(function (array $data): array {
+                    ->mutateDataUsing(function (array $data): array {
                         $data['user_id'] = auth()->id();
 
                         return $data;
+                    })
+                    ->after(function (array $data): void {
+                        // Si es mantenimiento, actualizar los campos del activo
+                        if (($data['action'] ?? '') !== 'maintenance') {
+                            return;
+                        }
+
+                        /** @var Asset $asset */
+                        $asset = $this->getOwnerRecord();
+
+                        $fields = array_filter([
+                            'last_maintenance_at' => $data['maintenance_done_at'] ?? null,
+                            'maintenance_interval_days' => $data['maintenance_interval_days'] ?? null,
+                            'maintenance_responsible_id' => $data['maintenance_responsible_id'] ?? null,
+                        ], fn ($v) => $v !== null && $v !== '');
+
+                        if (! empty($fields)) {
+                            // Skip auto-history: ya se creó el registro manual en CreateAction
+                            $asset->skipAutoHistory = true;
+                            $asset->forceFill($fields)->save();
+                        }
                     }),
             ])
             ->recordActions([

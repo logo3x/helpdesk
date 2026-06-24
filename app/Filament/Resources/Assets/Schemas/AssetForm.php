@@ -2,13 +2,10 @@
 
 namespace App\Filament\Resources\Assets\Schemas;
 
-use Carbon\Carbon;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Set;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -141,65 +138,6 @@ class AssetForm
                                     ->label('Ubicación / Zona')
                                     ->placeholder('Ej: ZONA 4, Bodega central')
                                     ->maxLength(100),
-                            ]),
-                    ])
-                    ->columnSpanFull(),
-
-                Section::make('Mantenimiento')
-                    ->icon('heroicon-o-wrench-screwdriver')
-                    ->description('Plan de mantenimiento físico. La fecha del próximo se calcula automáticamente.')
-                    ->collapsible()
-                    ->schema([
-                        Grid::make(['default' => 1, 'md' => 4])
-                            ->schema([
-                                DatePicker::make('last_maintenance_at')
-                                    ->label('Último mantenimiento')
-                                    ->displayFormat('d/m/Y')
-                                    ->native(false)
-                                    ->live()
-                                    ->afterStateUpdated(function (?string $state, Set $set, $get): void {
-                                        $interval = (int) $get('maintenance_interval_days');
-                                        if ($state && $interval > 0) {
-                                            $set('next_maintenance_at', Carbon::parse($state)->addDays($interval)->format('Y-m-d'));
-                                        }
-                                    }),
-
-                                TextInput::make('maintenance_interval_days')
-                                    ->label('Frecuencia (días)')
-                                    ->numeric()
-                                    ->minValue(1)
-                                    ->maxValue(3650)
-                                    ->placeholder('120')
-                                    ->helperText('120 = trimestral · 180 = semestral · 365 = anual')
-                                    ->live()
-                                    ->afterStateUpdated(function (?string $state, Set $set, $get): void {
-                                        $last = $get('last_maintenance_at');
-                                        $interval = (int) $state;
-                                        if ($last && $interval > 0) {
-                                            $set('next_maintenance_at', Carbon::parse($last)->addDays($interval)->format('Y-m-d'));
-                                        }
-                                    }),
-
-                                DatePicker::make('next_maintenance_at')
-                                    ->label('Próximo mantenimiento')
-                                    ->displayFormat('d/m/Y')
-                                    ->disabled()
-                                    ->dehydrated()
-                                    ->native(false)
-                                    ->helperText('Se calcula automáticamente al cambiar los campos anteriores.'),
-
-                                Select::make('maintenance_responsible_id')
-                                    ->label('Responsable')
-                                    ->relationship(
-                                        'maintenanceResponsible',
-                                        'name',
-                                        fn ($query) => $query->whereHas('roles', fn ($q) => $q->whereIn('name', [
-                                            'super_admin', 'admin', 'supervisor_soporte', 'agente_soporte', 'tecnico_campo',
-                                        ])),
-                                    )
-                                    ->searchable(['name', 'email'])
-                                    ->preload()
-                                    ->placeholder('Sin asignar'),
                             ]),
                     ])
                     ->columnSpanFull(),

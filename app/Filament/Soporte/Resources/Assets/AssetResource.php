@@ -2,6 +2,7 @@
 
 namespace App\Filament\Soporte\Resources\Assets;
 
+use App\Filament\Resources\Assets\RelationManagers\HistoriesRelationManager;
 use App\Filament\Resources\Assets\Schemas\AssetForm;
 use App\Filament\Resources\Assets\Tables\AssetsTable;
 use App\Filament\Soporte\Resources\Assets\Pages\AssetLifecycle;
@@ -136,6 +137,13 @@ class AssetResource extends Resource
     public static function table(Table $table): Table
     {
         return AssetsTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            HistoriesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

@@ -13,7 +13,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Filament\Support\Enums\MaxWidth;
+use Filament\Support\Enums\Width;
 use Illuminate\Support\Facades\Storage;
 
 class EditAsset extends EditRecord
@@ -29,7 +29,7 @@ class EditAsset extends EditRecord
                 ->color('info')
                 ->tooltip('Ver historial completo: scans, actas, mantenimientos y cambios')
                 ->modalHeading('')
-                ->modalWidth(MaxWidth::Screen)
+                ->modalWidth(Width::Screen)
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Cerrar')
                 ->modalContent(function () {

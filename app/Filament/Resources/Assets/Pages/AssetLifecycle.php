@@ -4,6 +4,9 @@ namespace App\Filament\Resources\Assets\Pages;
 
 use App\Filament\Resources\Assets\AssetResource;
 use App\Models\Asset;
+use App\Models\Department;
+use App\Models\Project;
+use App\Models\User;
 use Carbon\CarbonInterface;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\Page;
@@ -139,9 +142,9 @@ class AssetLifecycle extends Page
                 'description' => $history->notes,
                 'meta' => array_filter([
                     'Usuario' => $history->user?->name,
-                    'Campo' => $history->field,
-                    'Antes' => $history->old_value,
-                    'Después' => $history->new_value,
+                    'Campo' => $history->field ? $this->labelForField($history->field) : null,
+                    'Antes' => $this->resolveHistoryValue($history->old_value, $history->field),
+                    'Después' => $this->resolveHistoryValue($history->new_value, $history->field),
                 ]),
             ];
         }
@@ -185,21 +188,48 @@ class AssetLifecycle extends Page
     protected function labelForField(string $field): string
     {
         return match ($field) {
-            'user_id' => 'Custodio',
+            'user_id' => 'Custodio (usuario)',
+            'custodian_name' => 'Nombre custodio',
             'department_id' => 'Departamento',
             'project_id' => 'Proyecto',
             'maintenance_responsible_id' => 'Responsable de mantenimiento',
             'asset_tag' => 'TAG',
+            'hostname' => 'Hostname',
             'serial_number' => 'Serial',
             'sap_code' => 'Código SAP',
+            'type' => 'Tipo',
+            'status' => 'Estado',
+            'field' => 'Campo',
             'location_zone' => 'Ubicación',
             'management_area' => 'Gerencia',
+            'notes' => 'Notas',
             'last_maintenance_at' => 'Último mantenimiento',
             'maintenance_interval_days' => 'Frecuencia de mtto (días)',
+            'next_maintenance_at' => 'Próximo mantenimiento',
             'purchased_at' => 'Fecha de compra',
             'purchase_cost' => 'Costo de compra',
             'warranty_expires_at' => 'Vencimiento de garantía',
+            'ip_address' => 'IP',
+            'mac_address' => 'MAC',
             default => $field,
+        };
+    }
+
+    protected function resolveHistoryValue(?string $value, ?string $field): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return match ($field) {
+            'user_id', 'maintenance_responsible_id' => User::find($value)?->name ?? "ID #{$value}",
+            'department_id' => Department::find($value)?->name ?? "ID #{$value}",
+            'project_id' => (function () use ($value) {
+                $p = Project::find($value);
+
+                return $p ? "{$p->code} · {$p->name}" : "ID #{$value}";
+            })(),
+            default => $value,
         };
     }
 }

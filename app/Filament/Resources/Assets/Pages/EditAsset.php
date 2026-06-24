@@ -31,7 +31,8 @@ class EditAsset extends EditRecord
                 ->icon('heroicon-o-clock')
                 ->color('info')
                 ->tooltip('Ver historial completo: scans, actas, mantenimientos y cambios')
-                ->url(fn () => route('assets.lifecycle.pdf', ['asset' => $this->record])),
+                ->url(fn () => route('assets.lifecycle.pdf', ['asset' => $this->record]))
+                ->openUrlInNewTab(),
 
             // ── Generar acta de entrega (formato IT-ADM1-F-5 v3) ──
             // Crea un AssetHandover con snapshot, genera el PDF y lo

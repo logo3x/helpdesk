@@ -136,7 +136,30 @@ class HistoriesRelationManager extends RelationManager
                 TextColumn::make('field')
                     ->label('Campo')
                     ->placeholder('—')
-                    ->width('140px'),
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'asset_tag' => 'TAG',
+                        'hostname' => 'Hostname',
+                        'serial_number' => 'Serial',
+                        'type' => 'Tipo',
+                        'status' => 'Estado',
+                        'user_id' => 'Custodio (usuario)',
+                        'custodian_name' => 'Nombre custodio',
+                        'department_id' => 'Departamento',
+                        'project_id' => 'Proyecto',
+                        'management_area' => 'Gerencia',
+                        'field' => 'Campo',
+                        'location_zone' => 'Ubicación',
+                        'notes' => 'Notas',
+                        'last_maintenance_at' => 'Último mantenimiento',
+                        'maintenance_interval_days' => 'Frecuencia (días)',
+                        'maintenance_responsible_id' => 'Responsable mantenimiento',
+                        'next_maintenance_at' => 'Próximo mantenimiento',
+                        'last_scan_at' => 'Último scan',
+                        'ip_address' => 'IP',
+                        'mac_address' => 'MAC',
+                        default => $state ?? '—',
+                    })
+                    ->width('160px'),
 
                 TextColumn::make('old_value')
                     ->label('Antes')

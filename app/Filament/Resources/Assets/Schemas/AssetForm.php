@@ -33,6 +33,7 @@ class AssetForm
                 Section::make('Identificación')
                     ->icon('heroicon-o-identification')
                     ->collapsible()
+                    ->collapsed()
                     ->schema([
                         Grid::make(['default' => 1, 'md' => 2])
                             ->schema([
@@ -91,6 +92,7 @@ class AssetForm
                     ->icon('heroicon-o-user-circle')
                     ->description('Custodio del equipo, departamento y proyecto al que se carga.')
                     ->collapsible()
+                    ->collapsed()
                     ->schema([
                         Grid::make(['default' => 1, 'md' => 2])
                             ->schema([
@@ -193,6 +195,7 @@ class AssetForm
                 Section::make('Hardware')
                     ->icon('heroicon-o-cpu-chip')
                     ->collapsible()
+                    ->collapsed()
                     ->schema([
                         Grid::make(['default' => 1, 'md' => 2])
                             ->schema([
@@ -239,6 +242,7 @@ class AssetForm
                 Section::make('Sistema operativo')
                     ->icon('heroicon-o-window')
                     ->collapsible()
+                    ->collapsed()
                     ->schema([
                         Grid::make(['default' => 1, 'md' => 3])
                             ->schema([

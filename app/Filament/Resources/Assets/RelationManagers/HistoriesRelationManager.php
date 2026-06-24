@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Assets\RelationManagers;
 
 use App\Models\Asset;
+use App\Models\Department;
+use App\Models\Project;
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -160,12 +162,14 @@ class HistoriesRelationManager extends RelationManager
                 TextColumn::make('old_value')
                     ->label('Antes')
                     ->placeholder('—')
+                    ->formatStateUsing(fn (?string $state, $record): string => self::resolveValue($state, $record->field))
                     ->limit(40)
                     ->width('140px'),
 
                 TextColumn::make('new_value')
                     ->label('Después')
                     ->placeholder('—')
+                    ->formatStateUsing(fn (?string $state, $record): string => self::resolveValue($state, $record->field))
                     ->limit(40)
                     ->width('140px'),
 
@@ -228,5 +232,32 @@ class HistoriesRelationManager extends RelationManager
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    protected static function resolveValue(?string $value, ?string $field): string
+    {
+        if ($value === null || $value === '') {
+            return '—';
+        }
+
+        // Campos que almacenan IDs de usuario → mostrar nombre
+        if (in_array($field, ['user_id', 'maintenance_responsible_id'], true)) {
+            $name = User::find($value)?->name;
+
+            return $name ?? "Usuario #{$value}";
+        }
+
+        // Campos que almacenan IDs de relaciones → mostrar nombre legible
+        if ($field === 'department_id') {
+            return Department::find($value)?->name ?? "Depto #{$value}";
+        }
+
+        if ($field === 'project_id') {
+            $p = Project::find($value);
+
+            return $p ? "{$p->code} · {$p->name}" : "Proyecto #{$value}";
+        }
+
+        return $value;
     }
 }

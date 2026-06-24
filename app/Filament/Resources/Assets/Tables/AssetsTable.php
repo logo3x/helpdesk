@@ -34,123 +34,125 @@ class AssetsTable
     {
         return $table
             ->columns([
+                // Equipo — TAG + hostname apilados, icono según tipo
                 TextColumn::make('asset_tag')
-                    ->label('TAG')
-                    ->searchable(),
-                TextColumn::make('hostname')
-                    ->label('Hostname')
+                    ->label('Equipo')
                     ->searchable()
-                    ->toggleable(),
-                TextColumn::make('serial_number')
-                    ->label('Serial')
-                    ->searchable()
-                    ->toggleable(),
-                TextColumn::make('sap_code')
-                    ->label('Código SAP')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('type')
-                    ->label('Tipo')
-                    ->badge()
-                    ->searchable(),
-                TextColumn::make('manufacturer')
-                    ->label('Fabricante')
-                    ->searchable()
-                    ->toggleable(),
-                TextColumn::make('model')
-                    ->label('Modelo')
-                    ->searchable()
-                    ->toggleable(),
+                    ->sortable()
+                    ->icon(fn ($record) => match ($record?->type) {
+                        'laptop', 'notebook' => 'heroicon-o-computer-desktop',
+                        'server' => 'heroicon-o-server',
+                        'printer' => 'heroicon-o-printer',
+                        'phone' => 'heroicon-o-device-phone-mobile',
+                        'tablet' => 'heroicon-o-device-tablet',
+                        default => 'heroicon-o-computer-desktop',
+                    })
+                    ->iconColor('primary')
+                    ->description(fn ($record) => $record?->hostname ?? $record?->serial_number ?? '—')
+                    ->placeholder('Sin TAG'),
+
+                // Custodio — nombre del usuario + nombre libre apilados
                 TextColumn::make('user.name')
                     ->label('Custodio')
+                    ->icon('heroicon-o-user')
+                    ->iconColor('gray')
                     ->placeholder('Sin asignar')
-                    ->searchable(),
-                TextColumn::make('department.name')
-                    ->label('Depto')
-                    ->badge()
-                    ->color('gray')
                     ->searchable()
-                    ->toggleable(),
-                TextColumn::make('project.name')
-                    ->label('Proyecto')
-                    ->formatStateUsing(fn ($record) => $record->project ? "{$record->project->code} · {$record->project->name}" : '—')
+                    ->description(fn ($record) => $record?->custodian_name
+                        ? $record->custodian_name
+                        : ($record?->department?->name ?? null)),
+
+                // Tipo + Estado como badges en una sola celda
+                TextColumn::make('type')
+                    ->label('Tipo / Estado')
+                    ->badge()
+                    ->color(fn (?string $state) => match ($state) {
+                        'laptop', 'notebook' => 'info',
+                        'server' => 'warning',
+                        'printer' => 'gray',
+                        'phone' => 'success',
+                        default => 'primary',
+                    })
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'desktop' => 'Desktop',
+                        'laptop' => 'Laptop',
+                        'notebook' => 'Notebook',
+                        'all_in_one' => 'All-in-One',
+                        'server' => 'Servidor',
+                        'printer' => 'Impresora',
+                        'phone' => 'Teléfono',
+                        'tablet' => 'Tablet',
+                        'other' => 'Otro',
+                        default => $state ?? '—',
+                    })
+                    ->searchable()
+                    ->description(fn ($record) => match ($record?->status) {
+                        'active' => 'Activo',
+                        'fair' => 'Regular',
+                        'in_repair' => 'En reparación',
+                        'retired' => 'Retirado',
+                        default => null,
+                    }),
+
+                // Hardware: SO + RAM/Disco apilados
+                TextColumn::make('os_name')
+                    ->label('Hardware')
+                    ->icon('heroicon-o-cpu-chip')
+                    ->iconColor('gray')
+                    ->formatStateUsing(fn ($state, $record) => collect([
+                        $state,
+                        $record?->os_version ? 'v'.$record->os_version : null,
+                    ])->filter()->join(' '))
                     ->placeholder('—')
-                    // Búsqueda custom para que el global search matchee tanto
-                    // el `code` como el `name` del project relacionado. La
-                    // sintaxis ->searchable(['projects.code', 'projects.name'])
-                    // generaba SQL inválido en Filament 5 porque interpretaba
-                    // "projects" como una columna JSON.
+                    ->searchable()
+                    ->description(fn ($record) => collect([
+                        $record?->ram_mb ? round($record->ram_mb / 1024).' GB RAM' : null,
+                        $record?->disk_total_gb ? $record->disk_total_gb.' GB Disco' : null,
+                        $record?->cpu_cores ? $record->cpu_cores.' cores' : null,
+                    ])->filter()->join(' · ') ?: null)
+                    ->toggleable(),
+
+                // Proyecto + Campo apilados
+                TextColumn::make('project.name')
+                    ->label('Proyecto / Campo')
+                    ->icon('heroicon-o-briefcase')
+                    ->iconColor('gray')
+                    ->formatStateUsing(fn ($record) => $record?->project
+                        ? "{$record->project->code} · {$record->project->name}"
+                        : '—')
+                    ->placeholder('—')
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query->orWhereHas('project', function (Builder $q) use ($search) {
                             $q->where('code', 'like', "%{$search}%")
                                 ->orWhere('name', 'like', "%{$search}%");
                         });
                     })
+                    ->description(fn ($record) => collect([
+                        $record?->field,
+                        $record?->location_zone,
+                    ])->filter()->join(' · ') ?: null)
                     ->toggleable(),
-                TextColumn::make('field')
-                    ->label('Campo')
-                    ->placeholder('—')
-                    ->searchable()
-                    ->toggleable(),
-                TextColumn::make('location_zone')
-                    ->label('Ubicación')
-                    ->placeholder('—')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('os_name')
-                    ->label('SO')
-                    ->searchable()
-                    ->toggleable(),
-                TextColumn::make('os_version')
-                    ->label('Versión SO')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('cpu_cores')
-                    ->label('Cores')
-                    ->numeric()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('cpu_model')
-                    ->label('CPU')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('ram_mb')
-                    ->label('RAM (MB)')
-                    ->numeric()
-                    ->sortable()
-                    ->toggleable(),
-                TextColumn::make('disk_total_gb')
-                    ->label('Disco (GB)')
-                    ->numeric()
-                    ->sortable()
-                    ->toggleable(),
+
+                // IP + MAC
                 TextColumn::make('ip_address')
-                    ->label('IP')
+                    ->label('Red')
+                    ->icon('heroicon-o-signal')
+                    ->iconColor('gray')
+                    ->placeholder('—')
                     ->searchable()
+                    ->description(fn ($record) => $record?->mac_address ?? null)
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('mac_address')
-                    ->label('MAC')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('status')
-                    ->label('Estado')
-                    ->badge()
-                    ->color(fn (string $state) => match ($state) {
-                        'active' => 'success',
-                        'fair' => 'info',
-                        'in_repair' => 'warning',
-                        'retired' => 'gray',
+
+                // Estado de mantenimiento
+                TextColumn::make('next_maintenance_at')
+                    ->label('Mantenimiento')
+                    ->icon('heroicon-o-wrench-screwdriver')
+                    ->iconColor(fn ($record) => match ($record?->maintenance_status) {
+                        'vencido' => 'danger',
+                        'por vencer' => 'warning',
+                        'vigente' => 'success',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state) => match ($state) {
-                        'active' => 'Activo',
-                        'fair' => 'Regular',
-                        'in_repair' => 'En reparación',
-                        'retired' => 'Retirado',
-                        default => $state,
-                    }),
-                TextColumn::make('next_maintenance_at')
-                    ->label('Próx. mantto.')
                     ->date('d M Y')
                     ->placeholder('—')
                     ->sortable()
@@ -161,36 +163,53 @@ class AssetsTable
                         default => 'gray',
                     })
                     ->description(fn ($record) => $record?->maintenance_status
-                        ? '· '.ucfirst((string) $record->maintenance_status)
+                        ? ucfirst((string) $record->maintenance_status)
                         : null),
+
+                // Último scan + versión agente
                 TextColumn::make('last_scan_at')
                     ->label('Último scan')
-                    ->dateTime('d M Y H:i')
-                    ->since()
-                    ->placeholder('Nunca')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('agent_version')
-                    ->label('Agente')
-                    ->badge()
-                    ->color(fn (?string $state) => match (true) {
-                        $state === null => 'gray',
-                        str_starts_with($state, '2.') => 'success',
-                        default => 'warning',
+                    ->icon(fn ($record) => match ($record?->last_scan_status) {
+                        'ok', 'agent_scan', 'web_scan' => 'heroicon-o-check-circle',
+                        'partial' => 'heroicon-o-exclamation-circle',
+                        'error' => 'heroicon-o-x-circle',
+                        default => 'heroicon-o-clock',
                     })
-                    ->placeholder('—')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('last_scan_status')
-                    ->label('Status scan')
-                    ->badge()
-                    ->color(fn (?string $state) => match ($state) {
-                        'ok' => 'success',
+                    ->iconColor(fn ($record) => match ($record?->last_scan_status) {
+                        'ok', 'agent_scan', 'web_scan' => 'success',
                         'partial' => 'warning',
                         'error' => 'danger',
                         default => 'gray',
                     })
-                    ->placeholder('—')
+                    ->since()
+                    ->placeholder('Nunca')
+                    ->sortable()
+                    ->description(fn ($record) => $record?->agent_version ?? null),
+
+                // Columnas ocultas por defecto (accesibles via toggle)
+                TextColumn::make('serial_number')
+                    ->label('Serial')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('sap_code')
+                    ->label('Código SAP')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('manufacturer')
+                    ->label('Fabricante')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('model')
+                    ->label('Modelo')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('cpu_model')
+                    ->label('CPU')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('mac_address')
+                    ->label('MAC')
+                    ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([

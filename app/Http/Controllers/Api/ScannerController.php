@@ -115,66 +115,94 @@ class ScannerController extends Controller
 
     private function buildScript(string $serverUrl, string $url, string $email): string
     {
-        // Usamos concatenación para evitar que PHP interpole las variables PowerShell ($var)
         $lines = [];
-        $lines[] = '# ─────────────────────────────────────────────────────────────────────────';
-        $lines[] = '#  ScanConfi — Escaner de inventario Helpdesk Confipetrol';
-        $lines[] = '#  Generado para: '.$email;
-        $lines[] = '#  Servidor: '.$serverUrl;
-        $lines[] = '# ─────────────────────────────────────────────────────────────────────────';
-        $lines[] = '#  Ejecucion: .\scanconfi.ps1';
-        $lines[] = '#  Requisito: PowerShell 5+ (incluido en Windows 10/11)';
-        $lines[] = '# ─────────────────────────────────────────────────────────────────────────';
+
+        // ── Encabezado ────────────────────────────────────────────────────────
+        $lines[] = '# ScanConfi v1.0 — Helpdesk Confipetrol';
+        $lines[] = '# Agente : '.$email;
+        $lines[] = '# Server : '.$serverUrl;
         $lines[] = '';
         $lines[] = '$ErrorActionPreference = \'SilentlyContinue\'';
         $lines[] = '$Email  = \''.$email.'\'';
         $lines[] = '$ApiUrl = \''.$url.'\'';
         $lines[] = '';
-        $lines[] = 'Write-Host ""';
-        $lines[] = 'Write-Host "  Helpdesk Confipetrol - Escaner de Inventario" -ForegroundColor Cyan';
-        $lines[] = 'Write-Host "  ─────────────────────────────────────────────" -ForegroundColor DarkGray';
-        $lines[] = 'Write-Host ("  Agente  : " + $Email) -ForegroundColor Gray';
-        $lines[] = 'Write-Host ""';
+
+        // ── Función de utilidad: step con número ──────────────────────────────
+        $lines[] = 'function Show-Step($n, $total, $text) {';
+        $lines[] = '    $bar = "[" + ("=" * $n) + (" " * ($total - $n)) + "]"';
+        $lines[] = '    Write-Host ("  " + $bar + " Paso " + $n + "/" + $total + "  " + $text) -ForegroundColor Cyan';
+        $lines[] = '}';
+        $lines[] = 'function Show-Ok($msg)    { Write-Host ("    OK  " + $msg) -ForegroundColor Green }';
+        $lines[] = 'function Show-Info($msg)  { Write-Host ("    >>  " + $msg) -ForegroundColor Gray }';
+        $lines[] = 'function Show-Error($msg) { Write-Host ("    XX  " + $msg) -ForegroundColor Red }';
+        $lines[] = 'function Show-Sep { Write-Host "  " + ("-" * 54) -ForegroundColor DarkGray }';
         $lines[] = '';
-        $lines[] = '# Contrasena';
-        $lines[] = '$SecurePass = Read-Host "  Contrasena" -AsSecureString';
+
+        // ── Banner ────────────────────────────────────────────────────────────
+        $lines[] = 'Clear-Host';
+        $lines[] = 'Write-Host ""';
+        $lines[] = 'Write-Host "  ╔══════════════════════════════════════════════════╗" -ForegroundColor DarkCyan';
+        $lines[] = 'Write-Host "  ║        SCANCONFI  -  Inventario de Equipos       ║" -ForegroundColor Cyan';
+        $lines[] = 'Write-Host "  ║              Helpdesk Confipetrol v1.0           ║" -ForegroundColor DarkCyan';
+        $lines[] = 'Write-Host "  ╚══════════════════════════════════════════════════╝" -ForegroundColor DarkCyan';
+        $lines[] = 'Write-Host ""';
+        $lines[] = 'Show-Info ("Agente  : " + $Email)';
+        $lines[] = 'Show-Info ("Equipo  : " + $env:COMPUTERNAME)';
+        $lines[] = 'Show-Info ("Fecha   : " + (Get-Date -Format "dd/MM/yyyy HH:mm"))';
+        $lines[] = 'Write-Host ""';
+
+        // ── Paso 1: Autenticacion ─────────────────────────────────────────────
+        $lines[] = 'Show-Step 1 4 "Autenticacion"';
+        $lines[] = 'Show-Sep';
+        $lines[] = '$SecurePass = Read-Host "    Contrasena Helpdesk" -AsSecureString';
         $lines[] = '$Password   = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(';
         $lines[] = '                [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecurePass))';
-        $lines[] = '';
         $lines[] = 'Write-Host ""';
-        $lines[] = 'Write-Host "  [Capturando hardware...]" -ForegroundColor Yellow -NoNewline';
+
+        // ── Paso 2: Hardware ──────────────────────────────────────────────────
+        $lines[] = 'Show-Step 2 4 "Capturando hardware del equipo"';
+        $lines[] = 'Show-Sep';
         $lines[] = '';
-        $lines[] = '# Hardware';
+        $lines[] = 'Write-Host "    Leyendo sistema..." -ForegroundColor DarkGray';
         $lines[] = '$CS   = Get-CimInstance Win32_ComputerSystem';
         $lines[] = '$OS   = Get-CimInstance Win32_OperatingSystem';
         $lines[] = '$CPU  = Get-CimInstance Win32_Processor | Select-Object -First 1';
         $lines[] = '$BIOS = Get-CimInstance Win32_BIOS';
         $lines[] = '$GPU  = (Get-CimInstance Win32_VideoController | Select-Object -First 1).Name';
-        $lines[] = '$RamMb = [math]::Round($CS.TotalPhysicalMemory / 1MB)';
-        $lines[] = '$Disk = Get-CimInstance Win32_DiskDrive | Sort-Object Size -Descending | Select-Object -First 1';
+        $lines[] = '$Enc  = Get-CimInstance Win32_SystemEnclosure';
+        $lines[] = '';
+        $lines[] = '$RamMb  = [math]::Round($CS.TotalPhysicalMemory / 1MB)';
+        $lines[] = '$RamGb  = [math]::Round($RamMb / 1024)';
+        $lines[] = '$Disk   = Get-CimInstance Win32_DiskDrive | Sort-Object Size -Descending | Select-Object -First 1';
         $lines[] = '$DiskGb = if ($Disk) { [math]::Round($Disk.Size / 1GB) } else { $null }';
-        $lines[] = '$Net = Get-CimInstance Win32_NetworkAdapterConfiguration |';
-        $lines[] = '        Where-Object { $_.IPEnabled -and $_.IPAddress -and $_.MACAddress } |';
-        $lines[] = '        Select-Object -First 1';
+        $lines[] = '$Net    = Get-CimInstance Win32_NetworkAdapterConfiguration |';
+        $lines[] = '          Where-Object { $_.IPEnabled -and $_.IPAddress -and $_.MACAddress } |';
+        $lines[] = '          Select-Object -First 1';
         $lines[] = '$IpAddress  = if ($Net) { $Net.IPAddress[0] } else { $null }';
         $lines[] = '$MacAddress = if ($Net) { $Net.MACAddress } else { $null }';
         $lines[] = '';
-        $lines[] = '$ChassisMap = @{ 1="other";2="desktop";3="desktop";4="desktop";5="desktop";';
+        $lines[] = '$ChassisMap = @{1="other";2="desktop";3="desktop";4="desktop";5="desktop";';
         $lines[] = '  6="desktop";7="desktop";8="laptop";9="laptop";10="laptop";11="laptop";';
         $lines[] = '  12="laptop";13="desktop";14="desktop";15="desktop";16="desktop";';
-        $lines[] = '  17="server";18="server";19="server";20="server";21="desktop";22="desktop";';
-        $lines[] = '  23="server" }';
-        $lines[] = '$ChassisType = (Get-CimInstance Win32_SystemEnclosure).ChassisTypes | Select-Object -First 1';
+        $lines[] = '  17="server";18="server";19="server";20="server";21="desktop";22="desktop";23="server"}';
+        $lines[] = '$ChassisType = $Enc.ChassisTypes | Select-Object -First 1';
         $lines[] = '$AssetType   = if ($ChassisMap.ContainsKey([int]$ChassisType)) { $ChassisMap[[int]$ChassisType] } else { "desktop" }';
         $lines[] = '';
         $lines[] = '$OsName    = $OS.Caption -replace "Microsoft ", ""';
         $lines[] = '$OsVersion = $OS.Version';
         $lines[] = '$OsArch    = $OS.OSArchitecture';
         $lines[] = '';
-        $lines[] = 'Write-Host " OK" -ForegroundColor Green';
-        $lines[] = '';
-        $lines[] = '# Software instalado';
-        $lines[] = 'Write-Host "  [Capturando software...]" -ForegroundColor Yellow -NoNewline';
+        $lines[] = 'Show-Ok ("Equipo  : " + $CS.Manufacturer + " " + $CS.Model)';
+        $lines[] = 'Show-Ok ("SO      : " + $OsName + " " + $OsArch)';
+        $lines[] = 'Show-Ok ("CPU     : " + $CPU.Name + " (" + $CS.NumberOfLogicalProcessors + " cores)")';
+        $lines[] = 'Show-Ok ("RAM     : " + $RamGb + " GB  |  Disco: " + $DiskGb + " GB")';
+        $lines[] = 'Show-Ok ("IP/MAC  : " + $IpAddress + " / " + $MacAddress)';
+        $lines[] = 'Write-Host ""';
+
+        // ── Paso 3: Software ──────────────────────────────────────────────────
+        $lines[] = 'Show-Step 3 4 "Capturando software instalado"';
+        $lines[] = 'Show-Sep';
+        $lines[] = 'Write-Host "    Leyendo registro de Windows..." -ForegroundColor DarkGray';
         $lines[] = '$SoftwareRaw = Get-ItemProperty `';
         $lines[] = '    "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",`';
         $lines[] = '    "HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" `';
@@ -182,29 +210,29 @@ class ScannerController extends Controller
         $lines[] = '    Where-Object { $_.DisplayName -and $_.DisplayName.Trim() -ne "" } |';
         $lines[] = '    Select-Object DisplayName, DisplayVersion, Publisher, InstallDate |';
         $lines[] = '    Sort-Object DisplayName -Unique';
-        $lines[] = '';
         $lines[] = '$Software = @($SoftwareRaw | ForEach-Object {';
-        $lines[] = '    @{';
-        $lines[] = '        name         = $_.DisplayName';
-        $lines[] = '        version      = $_.DisplayVersion';
-        $lines[] = '        publisher    = $_.Publisher';
-        $lines[] = '        install_date = $_.InstallDate';
-        $lines[] = '    }';
+        $lines[] = '    @{ name=$_.DisplayName; version=$_.DisplayVersion; publisher=$_.Publisher; install_date=$_.InstallDate }';
         $lines[] = '})';
-        $lines[] = 'Write-Host (" OK (" + $Software.Count + " programas)") -ForegroundColor Green';
-        $lines[] = '';
-        $lines[] = '# Datos administrativos opcionales';
+        $lines[] = 'Show-Ok ($Software.Count.ToString() + " programas encontrados")';
         $lines[] = 'Write-Host ""';
-        $lines[] = 'Write-Host "  Datos del activo (Enter para omitir)" -ForegroundColor Cyan';
-        $lines[] = 'Write-Host "  ─────────────────────────────────────" -ForegroundColor DarkGray';
-        $lines[] = '$CustodianName  = (Read-Host "  Nombre del custodio  ").Trim()';
-        $lines[] = '$Field          = (Read-Host "  Campo operativo      ").Trim()';
-        $lines[] = '$LocationZone   = (Read-Host "  Ubicacion / Zona     ").Trim()';
-        $lines[] = '$ManagementArea = (Read-Host "  Gerencia             ").Trim()';
-        $lines[] = '$AssetTag       = (Read-Host "  TAG / Etiqueta       ").Trim()';
-        $lines[] = '$Notes          = (Read-Host "  Notas                ").Trim()';
+
+        // ── Datos administrativos ─────────────────────────────────────────────
+        $lines[] = 'Show-Step 4 4 "Datos adicionales del activo (opcional)"';
+        $lines[] = 'Show-Sep';
+        $lines[] = 'Write-Host "    Presiona Enter para omitir cada campo" -ForegroundColor DarkGray';
+        $lines[] = 'Write-Host ""';
+        $lines[] = '$CustodianName  = (Read-Host "    Nombre del custodio   ").Trim()';
+        $lines[] = '$Field          = (Read-Host "    Campo operativo        ").Trim()';
+        $lines[] = '$LocationZone   = (Read-Host "    Ubicacion / Zona       ").Trim()';
+        $lines[] = '$ManagementArea = (Read-Host "    Gerencia               ").Trim()';
+        $lines[] = '$AssetTag       = (Read-Host "    TAG / Etiqueta         ").Trim()';
+        $lines[] = '$Notes          = (Read-Host "    Notas                  ").Trim()';
+        $lines[] = 'Write-Host ""';
+
+        // ── Envío ─────────────────────────────────────────────────────────────
+        $lines[] = 'Write-Host "  Enviando datos al servidor..." -ForegroundColor Yellow';
+        $lines[] = 'Show-Sep';
         $lines[] = '';
-        $lines[] = '# Payload base';
         $lines[] = '$Payload = @{';
         $lines[] = '    email           = $Email';
         $lines[] = '    password        = $Password';
@@ -226,8 +254,6 @@ class ScannerController extends Controller
         $lines[] = '    agent_version   = "scanconfi-1.0"';
         $lines[] = '    software        = $Software';
         $lines[] = '}';
-        $lines[] = '';
-        $lines[] = '# Agregar opcionales solo si se ingresaron';
         $lines[] = 'if ($CustodianName  -ne "") { $Payload.custodian_name  = $CustodianName }';
         $lines[] = 'if ($Field          -ne "") { $Payload.field           = $Field }';
         $lines[] = 'if ($LocationZone   -ne "") { $Payload.location_zone   = $LocationZone }';
@@ -235,37 +261,39 @@ class ScannerController extends Controller
         $lines[] = 'if ($AssetTag       -ne "") { $Payload.asset_tag       = $AssetTag }';
         $lines[] = 'if ($Notes          -ne "") { $Payload.notes           = $Notes }';
         $lines[] = '';
-        $lines[] = '# Envío';
-        $lines[] = 'Write-Host ""';
-        $lines[] = 'Write-Host "  [Enviando datos al servidor...]" -ForegroundColor Yellow -NoNewline';
-        $lines[] = '';
         $lines[] = 'try {';
         $lines[] = '    $Json     = $Payload | ConvertTo-Json -Depth 5 -Compress';
         $lines[] = '    $Bytes    = [System.Text.Encoding]::UTF8.GetBytes($Json)';
         $lines[] = '    $Response = Invoke-RestMethod `';
-        $lines[] = '        -Uri $ApiUrl `';
-        $lines[] = '        -Method POST `';
-        $lines[] = '        -Body $Bytes `';
+        $lines[] = '        -Uri $ApiUrl -Method POST -Body $Bytes `';
         $lines[] = '        -ContentType "application/json; charset=utf-8" `';
         $lines[] = '        -Headers @{ Accept = "application/json" }';
         $lines[] = '';
-        $lines[] = '    Write-Host " OK" -ForegroundColor Green';
         $lines[] = '    Write-Host ""';
-        $lines[] = '    Write-Host ("  OK " + $Response.message) -ForegroundColor Green';
-        $lines[] = '    Write-Host ("  ID Activo  : " + $Response.asset_id) -ForegroundColor White';
-        $lines[] = '    Write-Host ("  Hostname   : " + $env:COMPUTERNAME) -ForegroundColor White';
-        $lines[] = '    Write-Host ("  Registrado : " + $Response.scanned_by) -ForegroundColor Gray';
+        $lines[] = '    Write-Host "  ╔══════════════════════════════════════════════════╗" -ForegroundColor Green';
+        $lines[] = '    Write-Host "  ║   EQUIPO REGISTRADO CORRECTAMENTE               ║" -ForegroundColor Green';
+        $lines[] = '    Write-Host "  ╚══════════════════════════════════════════════════╝" -ForegroundColor Green';
+        $lines[] = '    Write-Host ""';
+        $lines[] = '    Show-Ok ("ID Activo  : " + $Response.asset_id)';
+        $lines[] = '    Show-Ok ("Hostname   : " + $env:COMPUTERNAME)';
+        $lines[] = '    Show-Ok ("Registrado : " + $Response.scanned_by)';
+        $lines[] = '    Show-Ok ("Software   : " + $Software.Count + " programas registrados")';
         $lines[] = '}';
         $lines[] = 'catch {';
-        $lines[] = '    Write-Host " ERROR" -ForegroundColor Red';
+        $lines[] = '    Write-Host ""';
+        $lines[] = '    Write-Host "  ╔══════════════════════════════════════════════════╗" -ForegroundColor Red';
+        $lines[] = '    Write-Host "  ║   ERROR AL ENVIAR DATOS                         ║" -ForegroundColor Red';
+        $lines[] = '    Write-Host "  ╚══════════════════════════════════════════════════╝" -ForegroundColor Red';
         $lines[] = '    Write-Host ""';
         $lines[] = '    $StatusCode = $_.Exception.Response.StatusCode.value__';
         $lines[] = '    if ($StatusCode -eq 401) {';
-        $lines[] = '        Write-Host "  X Credenciales incorrectas. Verifica tu contrasena." -ForegroundColor Red';
+        $lines[] = '        Show-Error "Credenciales incorrectas. Verifica tu contrasena Helpdesk."';
         $lines[] = '    } elseif ($StatusCode -eq 403) {';
-        $lines[] = '        Write-Host "  X Sin permiso. Contacta al administrador." -ForegroundColor Red';
+        $lines[] = '        Show-Error "Sin permiso. Tu usuario no tiene acceso a inventario."';
+        $lines[] = '    } elseif ($StatusCode -eq 422) {';
+        $lines[] = '        Show-Error "Error de validacion. Contacta al administrador."';
         $lines[] = '    } else {';
-        $lines[] = '        Write-Host ("  X Error: " + $_.Exception.Message) -ForegroundColor Red';
+        $lines[] = '        Show-Error ("Error " + $StatusCode + ": " + $_.Exception.Message)';
         $lines[] = '    }';
         $lines[] = '}';
         $lines[] = '';

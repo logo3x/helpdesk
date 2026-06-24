@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\DeployController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\KactusWebhookController;
+use App\Http\Controllers\Api\ScannerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -19,7 +20,13 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])
     ->group(function () {
         Route::post('web-scan', [InventoryController::class, 'webScan']);
         Route::post('agent-scan', [InventoryController::class, 'agentScan']);
+        // ScanConfi: descarga el .ps1 personalizado (requiere sesión web activa)
+        Route::get('scanner/download', [ScannerController::class, 'download']);
     });
+
+// ScanConfi scanner: autenticación propia por email+password (sin token Sanctum)
+Route::middleware('throttle:30,1')
+    ->post('inventory/scanner-scan', [ScannerController::class, 'scan']);
 
 // ── Deploy webhook ───────────────────────────────────────────
 // Sin auth:sanctum (no hay sesión web ni token Sanctum involucrado)

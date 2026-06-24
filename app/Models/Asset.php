@@ -49,6 +49,7 @@ class Asset extends Model
         'model',
         // Asignación
         'user_id',
+        'custodian_name',
         'department_id',
         'project_id',
         'field',

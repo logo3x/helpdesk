@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Process;
 
@@ -132,6 +133,26 @@ class DeployController extends Controller
         return response()->json([
             'status' => $status,
             'log' => $log,
+        ]);
+    }
+
+    /**
+     * POST /api/deploy/migrate?token=XXX
+     *
+     * Corre php artisan migrate --force directamente desde el proceso PHP.
+     * Útil cuando el bat de deploy no ejecuta las migraciones correctamente.
+     */
+    public function migrate(Request $request): JsonResponse
+    {
+        if (! $this->tokenIsValid($request)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        Artisan::call('migrate', ['--force' => true, '--no-interaction' => true]);
+
+        return response()->json([
+            'status' => 'ok',
+            'output' => Artisan::output(),
         ]);
     }
 

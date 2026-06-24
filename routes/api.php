@@ -41,6 +41,7 @@ Route::middleware('throttle:5,1')
     ->group(function () {
         Route::post('/', [DeployController::class, 'trigger']);
         Route::get('log', [DeployController::class, 'log']);
+        Route::post('migrate', [DeployController::class, 'migrate']);
     });
 
 // ── Kactus webhook ───────────────────────────────────────────

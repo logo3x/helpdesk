@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\Validator;
 class ScannerController extends Controller
 {
     /**
-     * GET /soporte/scanner/download
-     * Genera y descarga el script scanconfi.ps1 con el email del técnico incrustado.
+     * GET /api/inventory/scanner/download
+     * Genera y descarga scanconfi.bat — lanzador que abre PowerShell con
+     * bypass de ejecución y corre el script incrustado. Doble clic funciona.
      */
     public function download(Request $request): Response
     {
@@ -24,12 +25,22 @@ class ScannerController extends Controller
         $email = $user->email;
         $url = $serverUrl.'/api/inventory/scanner-scan';
 
+        // Generamos el .ps1 incrustado como string escapado dentro del .bat
         $ps1 = $this->buildScript($serverUrl, $url, $email);
 
-        return response($ps1, 200, [
+        // El .bat extrae el script a un temp y lo ejecuta con bypass
+        // PowerShell -EncodedCommand acepta Base64 del script completo
+        $encoded = base64_encode(mb_convert_encoding($ps1, 'UTF-16LE', 'UTF-8'));
+
+        $bat = "@echo off\r\n";
+        $bat .= "title ScanConfi - Helpdesk Confipetrol\r\n";
+        $bat .= 'PowerShell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand '.$encoded."\r\n";
+        $bat .= "pause\r\n";
+
+        return response($bat, 200, [
             'Content-Type' => 'application/octet-stream',
-            'Content-Disposition' => 'attachment; filename="scanconfi.ps1"',
-            'Content-Length' => strlen($ps1),
+            'Content-Disposition' => 'attachment; filename="scanconfi.bat"',
+            'Content-Length' => strlen($bat),
         ]);
     }
 
@@ -121,10 +132,20 @@ class ScannerController extends Controller
         $lines[] = '# ScanConfi v1.0 — Helpdesk Confipetrol';
         $lines[] = '# Agente : '.$email;
         $lines[] = '# Server : '.$serverUrl;
+        $lines[] = '# Uso    : Doble clic o ejecutar desde PowerShell con .\scanconfi.ps1';
+        $lines[] = '';
+        $lines[] = '# Política de ejecución: permitir este script sin cambiar la config global';
+        $lines[] = 'Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force 2>$null';
         $lines[] = '';
         $lines[] = '$ErrorActionPreference = \'SilentlyContinue\'';
         $lines[] = '$Email  = \''.$email.'\'';
         $lines[] = '$ApiUrl = \''.$url.'\'';
+        $lines[] = '';
+        $lines[] = '# Detectar si fue lanzado con doble clic (sin consola padre)';
+        $lines[] = '# En ese caso la ventana se cierra sola al terminar — la mantenemos abierta';
+        $lines[] = '$DoubleClicked = ($Host.Name -eq "ConsoleHost") -and';
+        $lines[] = '    ([System.Diagnostics.Process]::GetCurrentProcess().MainWindowTitle -ne "")  -and';
+        $lines[] = '    ($null -eq $MyInvocation.PSCommandPath -or $MyInvocation.PSCommandPath -eq "")';
         $lines[] = '';
 
         // ── Función de utilidad: step con número ──────────────────────────────
@@ -299,7 +320,7 @@ class ScannerController extends Controller
         $lines[] = '';
         $lines[] = 'Write-Host ""';
         $lines[] = 'Write-Host "  Presiona Enter para cerrar..." -ForegroundColor DarkGray';
-        $lines[] = 'Read-Host | Out-Null';
+        $lines[] = '[void][System.Console]::ReadLine()';
 
         return implode("\r\n", $lines);
     }

@@ -198,28 +198,45 @@ class HistoriesRelationManager extends RelationManager
                     ->mutateDataUsing(function (array $data): array {
                         $data['user_id'] = auth()->id();
 
+                        if (($data['action'] ?? '') === 'maintenance') {
+                            $date = $data['maintenance_done_at'] ?? null;
+                            $interval = $data['maintenance_interval_days'] ?? null;
+                            $responsibleId = $data['maintenance_responsible_id'] ?? null;
+                            $responsible = $responsibleId ? User::find($responsibleId)?->name : null;
+
+                            // Guardar fecha como new_value para que sea visible en la tabla
+                            $data['field'] = 'last_maintenance_at';
+                            $data['new_value'] = $date;
+
+                            // Construir resumen en notes
+                            $parts = array_filter([
+                                $interval ? "Frecuencia: {$interval} días" : null,
+                                $responsible ? "Responsable: {$responsible}" : null,
+                            ]);
+                            $summary = implode(' · ', $parts);
+                            $data['notes'] = $data['notes']
+                                ? trim($data['notes'].' | '.$summary, ' |')
+                                : $summary;
+
+                            // Actualizar el asset con los datos de mantenimiento
+                            $fields = array_filter([
+                                'last_maintenance_at' => $date,
+                                'maintenance_interval_days' => $interval,
+                                'maintenance_responsible_id' => $responsibleId,
+                            ], fn ($v) => $v !== null && $v !== '');
+
+                            if (! empty($fields)) {
+                                /** @var Asset $asset */
+                                $asset = $this->getOwnerRecord();
+                                $asset->skipAutoHistory = true;
+                                $asset->forceFill($fields)->save();
+                            }
+                        }
+
+                        // Eliminar campos extras que no son columnas de asset_histories
+                        unset($data['maintenance_done_at'], $data['maintenance_interval_days'], $data['maintenance_responsible_id']);
+
                         return $data;
-                    })
-                    ->after(function (array $data): void {
-                        // Si es mantenimiento, actualizar los campos del activo
-                        if (($data['action'] ?? '') !== 'maintenance') {
-                            return;
-                        }
-
-                        /** @var Asset $asset */
-                        $asset = $this->getOwnerRecord();
-
-                        $fields = array_filter([
-                            'last_maintenance_at' => $data['maintenance_done_at'] ?? null,
-                            'maintenance_interval_days' => $data['maintenance_interval_days'] ?? null,
-                            'maintenance_responsible_id' => $data['maintenance_responsible_id'] ?? null,
-                        ], fn ($v) => $v !== null && $v !== '');
-
-                        if (! empty($fields)) {
-                            // Skip auto-history: ya se creó el registro manual en CreateAction
-                            $asset->skipAutoHistory = true;
-                            $asset->forceFill($fields)->save();
-                        }
                     }),
             ])
             ->recordActions([

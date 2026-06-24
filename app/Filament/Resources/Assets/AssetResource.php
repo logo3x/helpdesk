@@ -46,7 +46,7 @@ class AssetResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\HistoriesRelationManager::class,
         ];
     }
 

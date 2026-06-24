@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\Assets\Schemas;
 
+use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Set;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -153,7 +155,14 @@ class AssetForm
                                 DatePicker::make('last_maintenance_at')
                                     ->label('Último mantenimiento')
                                     ->displayFormat('d/m/Y')
-                                    ->native(false),
+                                    ->native(false)
+                                    ->live()
+                                    ->afterStateUpdated(function (?string $state, Set $set, $get): void {
+                                        $interval = (int) $get('maintenance_interval_days');
+                                        if ($state && $interval > 0) {
+                                            $set('next_maintenance_at', Carbon::parse($state)->addDays($interval)->format('Y-m-d'));
+                                        }
+                                    }),
 
                                 TextInput::make('maintenance_interval_days')
                                     ->label('Frecuencia (días)')
@@ -161,7 +170,15 @@ class AssetForm
                                     ->minValue(1)
                                     ->maxValue(3650)
                                     ->placeholder('120')
-                                    ->helperText('120 = trimestral · 180 = semestral · 365 = anual'),
+                                    ->helperText('120 = trimestral · 180 = semestral · 365 = anual')
+                                    ->live()
+                                    ->afterStateUpdated(function (?string $state, Set $set, $get): void {
+                                        $last = $get('last_maintenance_at');
+                                        $interval = (int) $state;
+                                        if ($last && $interval > 0) {
+                                            $set('next_maintenance_at', Carbon::parse($last)->addDays($interval)->format('Y-m-d'));
+                                        }
+                                    }),
 
                                 DatePicker::make('next_maintenance_at')
                                     ->label('Próximo mantenimiento')
@@ -169,7 +186,7 @@ class AssetForm
                                     ->disabled()
                                     ->dehydrated()
                                     ->native(false)
-                                    ->helperText('Se calcula automáticamente.'),
+                                    ->helperText('Se calcula automáticamente al cambiar los campos anteriores.'),
 
                                 Select::make('maintenance_responsible_id')
                                     ->label('Responsable')

@@ -345,13 +345,18 @@ class ScannerController extends Controller
         $lines[] = 'if ($AssetTag       -ne "") { $Payload.asset_tag       = $AssetTag }';
         $lines[] = 'if ($Notes          -ne "") { $Payload.notes           = $Notes }';
         $lines[] = '';
+        // Usamos Invoke-WebRequest en lugar de Invoke-RestMethod para poder
+        // leer el body de la respuesta en errores 4xx/5xx (PS 5.1 no expone
+        // el stream en la excepción de Invoke-RestMethod).
+        $lines[] = '$Json  = $Payload | ConvertTo-Json -Depth 5 -Compress';
+        $lines[] = '$Bytes = [System.Text.Encoding]::UTF8.GetBytes($Json)';
+        $lines[] = '';
         $lines[] = 'try {';
-        $lines[] = '    $Json     = $Payload | ConvertTo-Json -Depth 5 -Compress';
-        $lines[] = '    $Bytes    = [System.Text.Encoding]::UTF8.GetBytes($Json)';
-        $lines[] = '    $Response = Invoke-RestMethod `';
-        $lines[] = '        -Uri $ApiUrl -Method POST -Body $Bytes `';
-        $lines[] = '        -ContentType "application/json; charset=utf-8" `';
-        $lines[] = '        -Headers @{ Accept = "application/json" }';
+        $lines[] = '    $WebResp  = Invoke-WebRequest -Uri $ApiUrl -Method POST -Body $Bytes `';
+        $lines[] = '                -ContentType "application/json; charset=utf-8" `';
+        $lines[] = '                -Headers @{ Accept = "application/json" } `';
+        $lines[] = '                -UseBasicParsing -ErrorAction Stop';
+        $lines[] = '    $Response = $WebResp.Content | ConvertFrom-Json';
         $lines[] = '';
         $lines[] = '    Write-Host ""';
         $lines[] = '    Write-Host "  ╔══════════════════════════════════════════════════╗" -ForegroundColor Green';
@@ -369,21 +374,18 @@ class ScannerController extends Controller
         $lines[] = '    Write-Host "  ║   ERROR AL ENVIAR DATOS                         ║" -ForegroundColor Red';
         $lines[] = '    Write-Host "  ╚══════════════════════════════════════════════════╝" -ForegroundColor Red';
         $lines[] = '    Write-Host ""';
-        $lines[] = '    $StatusCode = $_.Exception.Response.StatusCode.value__';
-        $lines[] = '    # Leer el body del error para diagnóstico';
+        $lines[] = '    # Invoke-WebRequest sí expone el body en el error';
         $lines[] = '    $ErrBody = ""';
-        $lines[] = '    try {';
-        $lines[] = '        $Stream = $_.Exception.Response.GetResponseStream()';
-        $lines[] = '        $Reader = New-Object System.IO.StreamReader($Stream)';
-        $lines[] = '        $ErrBody = $Reader.ReadToEnd()';
-        $lines[] = '        $Reader.Close()';
-        $lines[] = '    } catch {}';
+        $lines[] = '    if ($_.Exception.Response) {';
+        $lines[] = '        $StatusCode = [int]$_.Exception.Response.StatusCode';
+        $lines[] = '        try { $ErrBody = $_.ErrorDetails.Message } catch {}';
+        $lines[] = '    } else { $StatusCode = 0 }';
         $lines[] = '    if ($StatusCode -eq 401) {';
         $lines[] = '        Show-Error "Credenciales incorrectas. Verifica tu contrasena Helpdesk."';
         $lines[] = '    } elseif ($StatusCode -eq 403) {';
         $lines[] = '        Show-Error "Sin permiso. Tu usuario no tiene acceso a inventario."';
         $lines[] = '    } elseif ($StatusCode -eq 422) {';
-        $lines[] = '        Show-Error "Error de validacion. Contacta al administrador."';
+        $lines[] = '        Show-Error "Error de validacion."';
         $lines[] = '        if ($ErrBody) { Show-Error $ErrBody }';
         $lines[] = '    } else {';
         $lines[] = '        Show-Error ("Error " + $StatusCode + ": " + $_.Exception.Message)';

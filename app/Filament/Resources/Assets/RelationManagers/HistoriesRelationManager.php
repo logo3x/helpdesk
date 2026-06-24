@@ -53,7 +53,8 @@ class HistoriesRelationManager extends RelationManager
                     ])
                     ->required()
                     ->native(false)
-                    ->live(),
+                    ->live()
+                    ->afterStateUpdated(fn () => null),
 
                 // Campos extra que solo aparecen cuando el evento es "Mantenimiento"
                 DatePicker::make('maintenance_done_at')

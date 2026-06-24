@@ -6,6 +6,7 @@ use App\Models\Asset;
 use App\Models\Department;
 use App\Models\Project;
 use App\Models\User;
+use App\Notifications\AssetMaintenanceAssignedNotification;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -271,6 +272,21 @@ class HistoriesRelationManager extends RelationManager
                                     $asset = $this->getOwnerRecord();
                                     $asset->skipAutoHistory = true;
                                     $asset->forceFill($fields)->save();
+
+                                    // Notificar al responsable asignado (skipAutoHistory impide que lo haga el observer)
+                                    if ($responsibleId) {
+                                        $responsibleUser = User::find($responsibleId);
+                                        $assignedBy = auth()->user();
+                                        if ($responsibleUser && $assignedBy && $responsibleUser->id !== $assignedBy->id) {
+                                            try {
+                                                $responsibleUser->notify(new AssetMaintenanceAssignedNotification(
+                                                    asset: $asset->refresh(),
+                                                    assignedBy: $assignedBy,
+                                                ));
+                                            } catch (\Throwable) {
+                                            }
+                                        }
+                                    }
                                 }
                             })(),
 

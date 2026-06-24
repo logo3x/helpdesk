@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\AssetMaintenanceAssignedNotification;
 use Database\Factories\AssetFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -137,6 +138,22 @@ class Asset extends Model
         // amigable como "Custodio asignado") setean skipAutoHistory=true
         // para no duplicar.
         static::updated(function (self $asset): void {
+            // Notificar al responsable de mantenimiento si fue asignado/cambiado
+            if ($asset->wasChanged('maintenance_responsible_id') && $asset->maintenance_responsible_id) {
+                $responsible = User::find($asset->maintenance_responsible_id);
+                $assignedBy = auth()->user();
+                if ($responsible && $assignedBy && $responsible->id !== $assignedBy->id) {
+                    try {
+                        $responsible->notify(new AssetMaintenanceAssignedNotification(
+                            asset: $asset,
+                            assignedBy: $assignedBy,
+                        ));
+                    } catch (\Throwable) {
+                        // No bloquear el guardado si falla la notificación
+                    }
+                }
+            }
+
             if ($asset->skipAutoHistory) {
                 return;
             }

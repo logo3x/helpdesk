@@ -25,8 +25,10 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])
     });
 
 // ScanConfi scanner: autenticación propia por email+password (sin token Sanctum)
-Route::middleware('throttle:30,1')
-    ->post('inventory/scanner-scan', [ScannerController::class, 'scan']);
+Route::middleware('throttle:30,1')->group(function () {
+    Route::post('inventory/scanner-verify', [ScannerController::class, 'verify']);
+    Route::post('inventory/scanner-scan', [ScannerController::class, 'scan']);
+});
 
 // ── Deploy webhook ───────────────────────────────────────────
 // Sin auth:sanctum (no hay sesión web ni token Sanctum involucrado)

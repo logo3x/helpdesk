@@ -46,6 +46,31 @@ class ScannerController extends Controller
     }
 
     /**
+     * POST /api/inventory/scanner-verify
+     * Valida email + password antes de que el script capture hardware.
+     * Responde 200 OK con el nombre del agente, o 401/403 si falla.
+     */
+    public function verify(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = User::where('email', $data['email'])->first();
+
+        if (! $user || ! Hash::check($data['password'], $user->password)) {
+            return response()->json(['message' => 'Credenciales incorrectas.'], 401);
+        }
+
+        if (! $user->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte', 'agente_soporte'])) {
+            return response()->json(['message' => 'Sin permiso para registrar inventario.'], 403);
+        }
+
+        return response()->json(['ok' => true, 'name' => $user->name]);
+    }
+
+    /**
      * POST /api/inventory/scanner-scan
      * Recibe el payload del scanconfi.ps1. Autentica con email + password.
      */
@@ -155,8 +180,9 @@ class ScannerController extends Controller
         $lines[] = 'Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force 2>$null';
         $lines[] = '';
         $lines[] = '$ErrorActionPreference = \'SilentlyContinue\'';
-        $lines[] = '$Email  = \''.$email.'\'';
-        $lines[] = '$ApiUrl = \''.$url.'\'';
+        $lines[] = '$Email     = \''.$email.'\'';
+        $lines[] = '$ApiUrl    = \''.$url.'\'';
+        $lines[] = '$VerifyUrl = \''.$serverUrl.'/api/inventory/scanner-verify\'';
         $lines[] = '';
         $lines[] = '# Detectar si fue lanzado con doble clic (sin consola padre)';
         $lines[] = '# En ese caso la ventana se cierra sola al terminar — la mantenemos abierta';
@@ -195,6 +221,26 @@ class ScannerController extends Controller
         $lines[] = '$SecurePass = Read-Host "    Contrasena Helpdesk" -AsSecureString';
         $lines[] = '$Password   = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(';
         $lines[] = '                [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecurePass))';
+        $lines[] = '';
+        $lines[] = '# Verificar credenciales antes de capturar hardware';
+        $lines[] = 'Write-Host "    Verificando credenciales..." -ForegroundColor DarkGray';
+        $lines[] = 'try {';
+        $lines[] = '    $VBytes  = [System.Text.Encoding]::UTF8.GetBytes(("{""email"":""$Email"",""password"":""$Password""}"))';
+        $lines[] = '    $VResult = Invoke-RestMethod -Uri $VerifyUrl -Method POST -Body $VBytes `';
+        $lines[] = '               -ContentType "application/json; charset=utf-8" `';
+        $lines[] = '               -Headers @{ Accept = "application/json" }';
+        $lines[] = '    Show-Ok ("Autenticado como: " + $VResult.name)';
+        $lines[] = '} catch {';
+        $lines[] = '    $VCode = $_.Exception.Response.StatusCode.value__';
+        $lines[] = '    Write-Host ""';
+        $lines[] = '    if ($VCode -eq 401) { Show-Error "Contrasena incorrecta. Verifica tu clave del Helpdesk." }';
+        $lines[] = '    elseif ($VCode -eq 403) { Show-Error "Tu usuario no tiene permiso para registrar inventario." }';
+        $lines[] = '    else { Show-Error ("Error al verificar: " + $_.Exception.Message) }';
+        $lines[] = '    Write-Host ""';
+        $lines[] = '    Write-Host "  Presiona Enter para cerrar..." -ForegroundColor DarkGray';
+        $lines[] = '    [void][System.Console]::ReadLine()';
+        $lines[] = '    exit 1';
+        $lines[] = '}';
         $lines[] = 'Write-Host ""';
 
         // ── Paso 2: Hardware ──────────────────────────────────────────────────

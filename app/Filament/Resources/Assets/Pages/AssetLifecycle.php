@@ -217,12 +217,21 @@ class AssetLifecycle extends Page
 
     protected function resolveHistoryValue(?string $value, ?string $field): ?string
     {
+        // Campos de usuario: null es significativo → "Sin custodio asignado"
+        if (in_array($field, ['user_id', 'maintenance_responsible_id'], true)) {
+            if ($value === null || $value === '') {
+                return 'Sin custodio asignado';
+            }
+            $user = User::find($value);
+
+            return $user ? "{$user->name} ({$user->email})" : "ID #{$value}";
+        }
+
         if ($value === null || $value === '') {
             return null;
         }
 
         return match ($field) {
-            'user_id', 'maintenance_responsible_id' => User::find($value)?->name ?? "ID #{$value}",
             'department_id' => Department::find($value)?->name ?? "ID #{$value}",
             'project_id' => (function () use ($value) {
                 $p = Project::find($value);

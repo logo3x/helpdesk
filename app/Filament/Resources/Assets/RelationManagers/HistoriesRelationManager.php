@@ -236,18 +236,20 @@ class HistoriesRelationManager extends RelationManager
 
     protected static function resolveValue(?string $value, ?string $field): string
     {
+        // Campos de usuario: null = sin asignar (no "—")
+        if (in_array($field, ['user_id', 'maintenance_responsible_id'], true)) {
+            if ($value === null || $value === '') {
+                return 'Sin custodio asignado';
+            }
+            $user = User::find($value);
+
+            return $user ? "{$user->name} ({$user->email})" : "Usuario #{$value}";
+        }
+
         if ($value === null || $value === '') {
             return '—';
         }
 
-        // Campos que almacenan IDs de usuario → mostrar nombre
-        if (in_array($field, ['user_id', 'maintenance_responsible_id'], true)) {
-            $name = User::find($value)?->name;
-
-            return $name ?? "Usuario #{$value}";
-        }
-
-        // Campos que almacenan IDs de relaciones → mostrar nombre legible
         if ($field === 'department_id') {
             return Department::find($value)?->name ?? "Depto #{$value}";
         }

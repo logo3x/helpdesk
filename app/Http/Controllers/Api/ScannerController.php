@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class ScannerController extends Controller
@@ -98,10 +99,26 @@ class ScannerController extends Controller
             return response()->json(['message' => 'Sin permiso para registrar inventario.'], 403);
         }
 
-        $asset = app(InventoryService::class)->processAgentScan(
-            data: array_merge($data, ['scan_status' => 'agent_scan']),
-            ip: $request->ip(),
-        );
+        try {
+            $asset = app(InventoryService::class)->processAgentScan(
+                data: array_merge($data, ['scan_status' => 'agent_scan']),
+                ip: $request->ip(),
+            );
+        } catch (\Throwable $e) {
+            Log::error('ScannerController@scan error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'email' => $data['email'],
+                'hostname' => $data['hostname'] ?? null,
+                'software_count' => count($data['software'] ?? []),
+            ]);
+
+            return response()->json([
+                'message' => 'Error al procesar el scan.',
+                'detail' => $e->getMessage(),
+            ], 500);
+        }
 
         $adminFields = array_filter([
             'custodian_name' => $data['custodian_name'] ?? null,
@@ -307,14 +324,24 @@ class ScannerController extends Controller
         $lines[] = '    Write-Host "  ╚══════════════════════════════════════════════════╝" -ForegroundColor Red';
         $lines[] = '    Write-Host ""';
         $lines[] = '    $StatusCode = $_.Exception.Response.StatusCode.value__';
+        $lines[] = '    # Leer el body del error para diagnóstico';
+        $lines[] = '    $ErrBody = ""';
+        $lines[] = '    try {';
+        $lines[] = '        $Stream = $_.Exception.Response.GetResponseStream()';
+        $lines[] = '        $Reader = New-Object System.IO.StreamReader($Stream)';
+        $lines[] = '        $ErrBody = $Reader.ReadToEnd()';
+        $lines[] = '        $Reader.Close()';
+        $lines[] = '    } catch {}';
         $lines[] = '    if ($StatusCode -eq 401) {';
         $lines[] = '        Show-Error "Credenciales incorrectas. Verifica tu contrasena Helpdesk."';
         $lines[] = '    } elseif ($StatusCode -eq 403) {';
         $lines[] = '        Show-Error "Sin permiso. Tu usuario no tiene acceso a inventario."';
         $lines[] = '    } elseif ($StatusCode -eq 422) {';
         $lines[] = '        Show-Error "Error de validacion. Contacta al administrador."';
+        $lines[] = '        if ($ErrBody) { Show-Error $ErrBody }';
         $lines[] = '    } else {';
         $lines[] = '        Show-Error ("Error " + $StatusCode + ": " + $_.Exception.Message)';
+        $lines[] = '        if ($ErrBody) { Show-Error $ErrBody }';
         $lines[] = '    }';
         $lines[] = '}';
         $lines[] = '';

@@ -244,7 +244,7 @@
 
     {{-- ── FOOTER ──────────────────────────────────────────── --}}
     <div class="footer">
-        <span>Confipetrol Andina S.A. · Gestión IT</span>
+        <span>Confipetrol - Gestión IT</span>
         <span>Generado el {{ now()->translatedFormat('d \d\e F \d\e Y \a \l\a\s H:i') }}</span>
     </div>
 

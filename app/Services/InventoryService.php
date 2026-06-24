@@ -124,18 +124,53 @@ class InventoryService
             'last_scan_status' => $data['scan_status'] ?? null,
         ], fn ($v) => $v !== null));
 
-        // Sync software list (replace all)
+        // Sync software list (replace all, upsert batch for performance)
         if (isset($data['software']) && is_array($data['software'])) {
             $asset->software()->delete();
 
+            $rows = [];
+            $now = now()->toDateTimeString();
+
             foreach ($data['software'] as $sw) {
-                AssetSoftware::create([
+                $name = trim((string) ($sw['name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                // install_date puede venir como "20241215" (YYYYMMDD sin separadores)
+                // o como "2024-12-15" o vacío. Normalizamos a Y-m-d o null.
+                $rawDate = trim((string) ($sw['install_date'] ?? ''));
+                $installDate = null;
+                if ($rawDate !== '') {
+                    if (preg_match('/^(\d{4})(\d{2})(\d{2})$/', $rawDate, $m)) {
+                        $installDate = "{$m[1]}-{$m[2]}-{$m[3]}";
+                    } elseif (preg_match('/^\d{4}-\d{2}-\d{2}/', $rawDate)) {
+                        $installDate = substr($rawDate, 0, 10);
+                    }
+                    // Validar que sea una fecha real (no "00000000" u otro basura)
+                    if ($installDate && ! checkdate(
+                        (int) substr($installDate, 5, 2),
+                        (int) substr($installDate, 8, 2),
+                        (int) substr($installDate, 0, 4)
+                    )) {
+                        $installDate = null;
+                    }
+                }
+
+                $rows[] = [
                     'asset_id' => $asset->id,
-                    'name' => $sw['name'] ?? 'Unknown',
-                    'version' => $sw['version'] ?? null,
-                    'publisher' => $sw['publisher'] ?? null,
-                    'install_date' => $sw['install_date'] ?? null,
-                ]);
+                    'name' => mb_substr($name, 0, 255),
+                    'version' => mb_substr((string) ($sw['version'] ?? ''), 0, 100) ?: null,
+                    'publisher' => mb_substr((string) ($sw['publisher'] ?? ''), 0, 255) ?: null,
+                    'install_date' => $installDate,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            // Insertar en chunks de 200 para evitar límite de parámetros SQL
+            foreach (array_chunk($rows, 200) as $chunk) {
+                AssetSoftware::insert($chunk);
             }
         }
 

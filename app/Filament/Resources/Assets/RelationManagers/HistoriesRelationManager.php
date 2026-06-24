@@ -39,31 +39,38 @@ class HistoriesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
+        $isMaintenance = fn ($get) => $get('action') === 'maintenance';
+        $isAssigned = fn ($get) => $get('action') === 'assigned';
+        $isUpdated = fn ($get) => $get('action') === 'updated';
+        $isRetired = fn ($get) => $get('action') === 'retired';
+
         return $schema
+            ->columns(2)
             ->components([
                 Select::make('action')
                     ->label('Tipo de evento')
                     ->options([
                         'maintenance' => '🔧 Mantenimiento',
-                        'updated' => '✏️ Actualización',
                         'assigned' => '👤 Asignación',
-                        'scanned' => '🖥️ Scan automático',
+                        'updated' => '✏️ Actualización',
                         'retired' => '📦 Retiro',
                         'created' => '✅ Creación',
+                        'scanned' => '🖥️ Scan automático',
                     ])
                     ->required()
                     ->native(false)
                     ->live()
-                    ->afterStateUpdated(fn () => null),
+                    ->afterStateUpdated(fn () => null)
+                    ->columnSpanFull(),
 
-                // Campos extra que solo aparecen cuando el evento es "Mantenimiento"
+                // ── MANTENIMIENTO ────────────────────────────────────
                 DatePicker::make('maintenance_done_at')
                     ->label('Fecha del mantenimiento')
                     ->displayFormat('d/m/Y')
                     ->native(false)
                     ->default(now())
-                    ->visible(fn ($get) => $get('action') === 'maintenance')
-                    ->required(fn ($get) => $get('action') === 'maintenance'),
+                    ->visible($isMaintenance)
+                    ->required($isMaintenance),
 
                 TextInput::make('maintenance_interval_days')
                     ->label('Frecuencia (días)')
@@ -72,21 +79,55 @@ class HistoriesRelationManager extends RelationManager
                     ->maxValue(3650)
                     ->placeholder('120')
                     ->helperText('120 = trimestral · 180 = semestral · 365 = anual')
-                    ->visible(fn ($get) => $get('action') === 'maintenance'),
+                    ->visible($isMaintenance),
 
                 Select::make('maintenance_responsible_id')
-                    ->label('Responsable')
+                    ->label('Responsable del mantenimiento')
                     ->options(fn () => User::whereHas('roles', fn ($q) => $q->whereIn('name', [
                         'super_admin', 'admin', 'supervisor_soporte', 'agente_soporte', 'tecnico_campo',
                     ]))->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->placeholder('Sin asignar')
-                    ->visible(fn ($get) => $get('action') === 'maintenance'),
+                    ->visible($isMaintenance)
+                    ->columnSpanFull(),
 
+                // ── ASIGNACIÓN ───────────────────────────────────────
+                Select::make('assigned_user_id')
+                    ->label('Nuevo custodio')
+                    ->options(fn () => User::orderBy('name')->pluck('name', 'id'))
+                    ->searchable()
+                    ->placeholder('Seleccionar usuario')
+                    ->visible($isAssigned)
+                    ->columnSpanFull(),
+
+                // ── ACTUALIZACIÓN ────────────────────────────────────
+                TextInput::make('field')
+                    ->label('Campo modificado')
+                    ->placeholder('Ej: hostname, ubicación...')
+                    ->visible($isUpdated),
+
+                TextInput::make('old_value')
+                    ->label('Valor anterior')
+                    ->placeholder('Ej: PC-RRHH-01')
+                    ->visible($isUpdated),
+
+                TextInput::make('new_value')
+                    ->label('Valor nuevo')
+                    ->placeholder('Ej: PC-HSEQ-02')
+                    ->visible($isUpdated),
+
+                // ── RETIRO ───────────────────────────────────────────
+                TextInput::make('retirement_reason')
+                    ->label('Motivo del retiro')
+                    ->placeholder('Ej: Obsolescencia, daño irreparable...')
+                    ->visible($isRetired)
+                    ->columnSpanFull(),
+
+                // ── OBSERVACIONES (todos los tipos) ──────────────────
                 Textarea::make('notes')
                     ->label('Observaciones')
                     ->rows(3)
-                    ->placeholder('Ej: Limpieza interna + cambio de pasta térmica')
+                    ->placeholder('Detalles adicionales del evento...')
                     ->maxLength(1000)
                     ->columnSpanFull(),
             ]);
@@ -199,43 +240,81 @@ class HistoriesRelationManager extends RelationManager
                     ->mutateDataUsing(function (array $data): array {
                         $data['user_id'] = auth()->id();
 
-                        if (($data['action'] ?? '') === 'maintenance') {
-                            $date = $data['maintenance_done_at'] ?? null;
-                            $interval = $data['maintenance_interval_days'] ?? null;
-                            $responsibleId = $data['maintenance_responsible_id'] ?? null;
-                            $responsible = $responsibleId ? User::find($responsibleId)?->name : null;
+                        match ($data['action'] ?? '') {
 
-                            // Guardar fecha como new_value para que sea visible en la tabla
-                            $data['field'] = 'last_maintenance_at';
-                            $data['new_value'] = $date;
+                            'maintenance' => (function () use (&$data): void {
+                                $date = $data['maintenance_done_at'] ?? null;
+                                $interval = $data['maintenance_interval_days'] ?? null;
+                                $responsibleId = $data['maintenance_responsible_id'] ?? null;
+                                $responsible = $responsibleId ? User::find($responsibleId)?->name : null;
 
-                            // Construir resumen en notes
-                            $parts = array_filter([
-                                $interval ? "Frecuencia: {$interval} días" : null,
-                                $responsible ? "Responsable: {$responsible}" : null,
-                            ]);
-                            $summary = implode(' · ', $parts);
-                            $data['notes'] = $data['notes']
-                                ? trim($data['notes'].' | '.$summary, ' |')
-                                : $summary;
+                                $data['field'] = 'last_maintenance_at';
+                                $data['new_value'] = $date;
 
-                            // Actualizar el asset con los datos de mantenimiento
-                            $fields = array_filter([
-                                'last_maintenance_at' => $date,
-                                'maintenance_interval_days' => $interval,
-                                'maintenance_responsible_id' => $responsibleId,
-                            ], fn ($v) => $v !== null && $v !== '');
+                                $parts = array_filter([
+                                    $interval ? "Frecuencia: {$interval} días" : null,
+                                    $responsible ? "Responsable: {$responsible}" : null,
+                                ]);
+                                $summary = implode(' · ', $parts);
+                                $data['notes'] = $data['notes']
+                                    ? trim($data['notes'].' | '.$summary, ' |')
+                                    : $summary;
 
-                            if (! empty($fields)) {
-                                /** @var Asset $asset */
+                                $fields = array_filter([
+                                    'last_maintenance_at' => $date,
+                                    'maintenance_interval_days' => $interval,
+                                    'maintenance_responsible_id' => $responsibleId,
+                                ], fn ($v) => $v !== null && $v !== '');
+
+                                if (! empty($fields)) {
+                                    /** @var Asset $asset */
+                                    $asset = $this->getOwnerRecord();
+                                    $asset->skipAutoHistory = true;
+                                    $asset->forceFill($fields)->save();
+                                }
+                            })(),
+
+                            'assigned' => (function () use (&$data): void {
+                                $userId = $data['assigned_user_id'] ?? null;
+                                if ($userId) {
+                                    $user = User::find($userId);
+                                    $asset = $this->getOwnerRecord();
+                                    $data['field'] = 'user_id';
+                                    $data['old_value'] = (string) ($asset->user_id ?? '');
+                                    $data['new_value'] = (string) $userId;
+                                    // Actualizar custodio en el asset
+                                    $asset->skipAutoHistory = true;
+                                    $asset->forceFill(['user_id' => $userId])->save();
+                                    if (! $data['notes'] && $user) {
+                                        $data['notes'] = "Nuevo custodio: {$user->name}";
+                                    }
+                                }
+                            })(),
+
+                            'retired' => (function () use (&$data): void {
+                                $reason = $data['retirement_reason'] ?? null;
+                                $data['field'] = 'status';
+                                $data['new_value'] = 'retired';
+                                if ($reason && ! $data['notes']) {
+                                    $data['notes'] = $reason;
+                                }
+                                // Actualizar estado del asset
                                 $asset = $this->getOwnerRecord();
                                 $asset->skipAutoHistory = true;
-                                $asset->forceFill($fields)->save();
-                            }
-                        }
+                                $asset->forceFill(['status' => 'retired'])->save();
+                            })(),
+
+                            default => null,
+                        };
 
                         // Eliminar campos extras que no son columnas de asset_histories
-                        unset($data['maintenance_done_at'], $data['maintenance_interval_days'], $data['maintenance_responsible_id']);
+                        unset(
+                            $data['maintenance_done_at'],
+                            $data['maintenance_interval_days'],
+                            $data['maintenance_responsible_id'],
+                            $data['assigned_user_id'],
+                            $data['retirement_reason'],
+                        );
 
                         return $data;
                     }),

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -153,6 +154,38 @@ class DeployController extends Controller
         return response()->json([
             'status' => 'ok',
             'output' => Artisan::output(),
+        ]);
+    }
+
+    /**
+     * POST /api/deploy/assign-role?token=XXX&email=X&role=Y
+     * Temporal: asigna un rol a un usuario por email.
+     */
+    public function assignRole(Request $request): JsonResponse
+    {
+        if (! $this->tokenIsValid($request)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $email = $request->query('email', '');
+        $role = $request->query('role', '');
+
+        if (! $email || ! $role) {
+            return response()->json(['error' => 'email and role are required'], 422);
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if (! $user) {
+            return response()->json(['error' => "User [{$email}] not found"], 404);
+        }
+
+        $user->syncRoles([$role]);
+
+        return response()->json([
+            'status' => 'ok',
+            'user' => $user->email,
+            'roles' => $user->fresh()->getRoleNames(),
         ]);
     }
 

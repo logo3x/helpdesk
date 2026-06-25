@@ -309,6 +309,24 @@ class AssetForm
                             ->label('Último scan automático')
                             ->disabled()
                             ->helperText('Se actualiza automáticamente cuando el agente PowerShell o el web-scan reportan.'),
+
+                        TextInput::make('registration_source_label')
+                            ->label('Origen del registro')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($record) => match ($record?->registration_source) {
+                                'scan_web' => 'ScanConfi (navegador web)',
+                                'scan_agent' => 'ScanConfi (agente PowerShell)',
+                                'manual' => 'Registro manual',
+                                default => '—',
+                            })
+                            ->helperText('Indica cómo fue creado el registro inicial del activo.'),
+
+                        TextInput::make('created_by_label')
+                            ->label('Registrado por')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($record) => $record?->createdBy?->name ?? '—'),
                     ])
                     ->columnSpanFull(),
             ]);

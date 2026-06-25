@@ -56,6 +56,9 @@ class Asset extends Model
         'field',
         'location_zone',
         'management_area',
+        // Registro
+        'created_by_user_id',
+        'registration_source',
         // Sistema operativo y hardware
         'os_name',
         'os_version',
@@ -114,6 +117,15 @@ class Asset extends Model
      */
     protected static function booted(): void
     {
+        static::creating(function (self $asset): void {
+            if (! $asset->created_by_user_id && auth()->id()) {
+                $asset->created_by_user_id = auth()->id();
+            }
+            if (! $asset->registration_source) {
+                $asset->registration_source = 'manual';
+            }
+        });
+
         static::saving(function (self $asset): void {
             // Recalcula next_maintenance_at siempre que tengamos ambos campos,
             // ya sea porque cambiaron ahora o porque next_maintenance_at está vacío
@@ -181,6 +193,12 @@ class Asset extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     /** @return BelongsTo<Department, $this> */
@@ -307,6 +325,6 @@ class Asset extends Model
             return $existing;
         }
 
-        return static::create(['hostname' => $hostname, 'type' => 'desktop', 'status' => 'active']);
+        return static::create(['hostname' => $hostname, 'type' => 'desktop', 'status' => 'active', 'registration_source' => 'scan_agent']);
     }
 }

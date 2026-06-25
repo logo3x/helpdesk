@@ -45,6 +45,7 @@ class AssetLifecycle extends Page
             'department',
             'project',
             'maintenanceResponsible',
+            'createdBy',
             'handovers.receivedBy',
             'handovers.deliveredBy',
             'histories.user',
@@ -99,6 +100,12 @@ class AssetLifecycle extends Page
         $events = [];
 
         // 1. Creación del activo (siempre el evento más antiguo).
+        $registrationSource = match ($this->record->registration_source) {
+            'scan_web' => 'ScanConfi (navegador web)',
+            'scan_agent' => 'ScanConfi (agente PowerShell)',
+            'manual' => 'Registro manual',
+            default => null,
+        };
         $events[] = [
             'date' => $this->record->created_at,
             'type' => 'created',
@@ -106,11 +113,13 @@ class AssetLifecycle extends Page
             'color' => 'primary',
             'title' => 'Activo registrado',
             'description' => 'Se creó el registro del activo en el inventario.',
-            'meta' => [
+            'meta' => array_filter([
                 'TAG' => $this->record->asset_tag,
                 'Hostname' => $this->record->hostname,
                 'Serial' => $this->record->serial_number,
-            ],
+                'Origen' => $registrationSource,
+                'Registrado por' => $this->record->createdBy?->name,
+            ]),
         ];
 
         // 2. Actas de entrega.

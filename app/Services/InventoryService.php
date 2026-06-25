@@ -47,6 +47,7 @@ class InventoryService
                 'ip_address' => $ip,
                 'last_scan_at' => now(),
                 'last_scan_status' => 'web_scan',
+                'registration_source' => 'scan_web',
             ]);
         }
 

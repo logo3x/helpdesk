@@ -156,6 +156,26 @@ class DeployController extends Controller
         ]);
     }
 
+    /** POST /api/deploy/flush-cache?token=XXX — limpia cache de permisos Spatie + cache general */
+    public function flushCache(Request $request): JsonResponse
+    {
+        if (! $this->tokenIsValid($request)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        Artisan::call('permission:cache-reset');
+        $permOutput = Artisan::output();
+
+        Artisan::call('cache:clear');
+        $cacheOutput = Artisan::output();
+
+        return response()->json([
+            'status' => 'ok',
+            'permission_cache' => trim($permOutput),
+            'cache_clear' => trim($cacheOutput),
+        ]);
+    }
+
     protected function tokenIsValid(Request $request): bool
     {
         $expected = (string) config('deploy.token', '');

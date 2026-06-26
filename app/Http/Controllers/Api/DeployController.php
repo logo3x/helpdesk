@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Process;
 
 /**
@@ -153,6 +155,52 @@ class DeployController extends Controller
         return response()->json([
             'status' => 'ok',
             'output' => Artisan::output(),
+        ]);
+    }
+
+    /** POST /api/deploy/fix-admin?token=XXX — fuerza super_admin a luis.oviedo@confipetrol.com */
+    public function fixAdmin(Request $request): JsonResponse
+    {
+        if (! $this->tokenIsValid($request)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $email = $request->query('email', 'luis.oviedo@confipetrol.com');
+        $user = User::where('email', $email)->first();
+
+        if (! $user) {
+            $found = User::where('email', 'like', '%oviedo%')->pluck('email');
+
+            return response()->json(['error' => 'not found', 'similar' => $found]);
+        }
+
+        // Fuerza la relación directamente en BD, bypaseando cualquier cache
+        DB::table('model_has_roles')
+            ->where('model_type', 'App\\Models\\User')
+            ->where('model_id', $user->id)
+            ->delete();
+
+        $role = DB::table('roles')->where('name', 'super_admin')->first();
+        if ($role) {
+            DB::table('model_has_roles')->insert([
+                'role_id' => $role->id,
+                'model_type' => 'App\\Models\\User',
+                'model_id' => $user->id,
+            ]);
+        }
+
+        Artisan::call('permission:cache-reset');
+
+        $roles = DB::table('model_has_roles')
+            ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->where('model_has_roles.model_id', $user->id)
+            ->pluck('roles.name');
+
+        return response()->json([
+            'status' => 'ok',
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'roles_in_db' => $roles,
         ]);
     }
 

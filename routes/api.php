@@ -43,7 +43,6 @@ Route::middleware('throttle:5,1')
         Route::get('log', [DeployController::class, 'log']);
         Route::post('migrate', [DeployController::class, 'migrate']);
         Route::post('flush-cache', [DeployController::class, 'flushCache']);
-        Route::post('fix-admin', [DeployController::class, 'fixAdmin']);
     });
 
 // ── Kactus webhook ───────────────────────────────────────────

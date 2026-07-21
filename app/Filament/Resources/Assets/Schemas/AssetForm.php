@@ -45,7 +45,8 @@ class AssetForm
                                 TextInput::make('sap_code')
                                     ->label('Código SAP')
                                     ->placeholder('Ej: OECC1528050500003236')
-                                    ->maxLength(60),
+                                    ->maxLength(60)
+                                    ->unique(table: 'assets', column: 'sap_code', ignorable: fn ($record) => $record),
 
                                 TextInput::make('hostname')
                                     ->label('Hostname')
@@ -55,7 +56,8 @@ class AssetForm
                                 TextInput::make('serial_number')
                                     ->label('Serial / Service Tag')
                                     ->placeholder('9580WW3')
-                                    ->maxLength(255),
+                                    ->maxLength(255)
+                                    ->unique(table: 'assets', column: 'serial_number', ignorable: fn ($record) => $record),
 
                                 Select::make('type')
                                     ->label('Tipo')

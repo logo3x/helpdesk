@@ -299,10 +299,8 @@ class AssetsTable
                     ->tooltip('Ver hoja de vida (timeline completo)')
                     ->icon('heroicon-o-clock')
                     ->color('gray')
-                    ->url(fn (Asset $record) => route(
-                        'filament.'.(filament()->getCurrentPanel()?->getId() ?? 'admin').'.resources.assets.lifecycle',
-                        ['record' => $record],
-                    )),
+                    ->url(fn (Asset $record): string => url("/assets/{$record->id}/edit/pdf"))
+                    ->openUrlInNewTab(),
 
                 // ── Acciones secundarias en menú ⋮ ─────────────────────
                 ActionGroup::make([
@@ -331,12 +329,10 @@ class AssetsTable
                             $newUser = User::findOrFail($data['user_id']);
                             $oldUserId = $record->user_id;
 
-                            // Skip auto-history: el observer del modelo Asset
-                            // registraría un evento "updated" genérico; aquí
-                            // creamos uno específico con label "Custodio asignado".
                             $record->skipAutoHistory = true;
                             $record->forceFill([
                                 'user_id' => $newUser->id,
+                                'custodian_name' => $newUser->name,
                                 'department_id' => $newUser->department_id ?? $record->department_id,
                             ])->save();
 
@@ -384,16 +380,24 @@ class AssetsTable
                         ->action(function (Asset $record, array $data): void {
                             // Skip auto-history: el evento "maintenance" se
                             // crea con su label propio, no como "updated".
+                            $interval = $data['interval'] ?? $record->maintenance_interval_days;
                             $record->skipAutoHistory = true;
                             $record->forceFill([
                                 'last_maintenance_at' => $data['done_at'],
-                                'maintenance_interval_days' => $data['interval'] ?? $record->maintenance_interval_days,
+                                'maintenance_interval_days' => $interval,
                             ])->save(); // El booted() hook recalcula next_maintenance_at.
+
+                            $parts = array_filter([
+                                $interval ? "Frecuencia: {$interval} días" : null,
+                                $data['notes'] ?? null,
+                            ]);
 
                             $record->histories()->create([
                                 'user_id' => auth()->id(),
                                 'action' => 'maintenance',
-                                'notes' => $data['notes'] ?? null,
+                                'field' => 'last_maintenance_at',
+                                'new_value' => $data['done_at'],
+                                'notes' => implode(' | ', $parts) ?: null,
                             ]);
 
                             Notification::make()

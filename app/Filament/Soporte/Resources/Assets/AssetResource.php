@@ -88,7 +88,10 @@ class AssetResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return static::userCanWrite();
+        // Agentes pueden abrir la ficha para ver y registrar eventos,
+        // pero el form está en modo lectura (AssetForm no tiene ->disabled()
+        // global — el permiso de guardar lo controla canEdit en Filament).
+        return static::canAccess();
     }
 
     public static function canDelete(Model $record): bool

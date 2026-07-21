@@ -42,7 +42,6 @@ class HistoriesRelationManager extends RelationManager
     {
         $isMaintenance = fn ($get) => $get('action') === 'maintenance';
         $isAssigned = fn ($get) => $get('action') === 'assigned';
-        $isUpdated = fn ($get) => $get('action') === 'updated';
         $isRetired = fn ($get) => $get('action') === 'retired';
 
         return $schema
@@ -53,10 +52,7 @@ class HistoriesRelationManager extends RelationManager
                     ->options([
                         'maintenance' => '🔧 Mantenimiento',
                         'assigned' => '👤 Asignación',
-                        'updated' => '✏️ Actualización',
                         'retired' => '📦 Retiro',
-                        'created' => '✅ Creación',
-                        'scanned' => '🖥️ Scan automático',
                     ])
                     ->required()
                     ->native(false)
@@ -100,22 +96,6 @@ class HistoriesRelationManager extends RelationManager
                     ->placeholder('Seleccionar usuario')
                     ->visible($isAssigned)
                     ->columnSpanFull(),
-
-                // ── ACTUALIZACIÓN ────────────────────────────────────
-                TextInput::make('field')
-                    ->label('Campo modificado')
-                    ->placeholder('Ej: hostname, ubicación...')
-                    ->visible($isUpdated),
-
-                TextInput::make('old_value')
-                    ->label('Valor anterior')
-                    ->placeholder('Ej: PC-RRHH-01')
-                    ->visible($isUpdated),
-
-                TextInput::make('new_value')
-                    ->label('Valor nuevo')
-                    ->placeholder('Ej: PC-HSEQ-02')
-                    ->visible($isUpdated),
 
                 // ── RETIRO ───────────────────────────────────────────
                 TextInput::make('retirement_reason')
@@ -228,10 +208,10 @@ class HistoriesRelationManager extends RelationManager
                     ->options([
                         'maintenance' => 'Mantenimiento',
                         'assigned' => 'Asignación',
-                        'scanned' => 'Scan',
-                        'updated' => 'Actualización',
                         'retired' => 'Retiro',
-                        'created' => 'Creación',
+                        'updated' => 'Actualización (auto)',
+                        'created' => 'Creación (auto)',
+                        'scanned' => 'Scan (auto)',
                     ]),
             ])
             ->headerActions([
@@ -337,12 +317,15 @@ class HistoriesRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
-                    ->modalHeading('Editar entrada del historial'),
-                DeleteAction::make(),
+                    ->modalHeading('Editar entrada del historial')
+                    ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte', 'tecnico_campo'])),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])),
                 ]),
             ]);
     }

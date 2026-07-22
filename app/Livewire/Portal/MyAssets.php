@@ -4,6 +4,7 @@ namespace App\Livewire\Portal;
 
 use App\Models\Asset;
 use App\Models\AssetHandover;
+use App\Models\MaintenanceSurvey;
 use App\Models\User;
 use App\Notifications\AssetHandoverConfirmedNotification;
 use Filament\Notifications\Notification;
@@ -61,11 +62,36 @@ class MyAssets extends Component
             ->send();
     }
 
+    public function acceptAsset(int $assetId): void
+    {
+        $asset = Asset::where('id', $assetId)
+            ->where('user_id', auth()->id())
+            ->whereNull('accepted_at')
+            ->first();
+
+        if (! $asset) {
+            return;
+        }
+
+        $asset->forceFill([
+            'accepted_at' => now(),
+            'accepted_by_user_id' => auth()->id(),
+        ])->save();
+
+        Notification::make()
+            ->title('Activo confirmado')
+            ->body('Has confirmado la recepción del activo.')
+            ->success()
+            ->send();
+    }
+
     public function render(): View
     {
+        $userId = auth()->id();
+
         /** @var LengthAwarePaginator<Asset> $assets */
         $assets = Asset::query()
-            ->where('user_id', auth()->id())
+            ->where('user_id', $userId)
             ->when($this->search, fn ($q, $s) => $q->where(fn ($q) => $q
                 ->where('asset_tag', 'like', "%{$s}%")
                 ->orWhere('hostname', 'like', "%{$s}%")
@@ -75,15 +101,24 @@ class MyAssets extends Component
             ))
             ->with([
                 'project:id,code,name',
-                'handovers' => fn ($q) => $q->where('received_by_user_id', auth()->id())
+                'acceptedBy:id,name',
+                'handovers' => fn ($q) => $q->where('received_by_user_id', $userId)
                     ->whereNull('received_confirmed_at')
                     ->latest('delivered_at'),
             ])
             ->latest()
             ->paginate(10);
 
+        // Encuestas de mantenimiento pendientes del usuario
+        $pendingSurveys = MaintenanceSurvey::query()
+            ->where('user_id', $userId)
+            ->whereNull('responded_at')
+            ->with('asset:id,hostname,asset_tag,manufacturer,model')
+            ->get();
+
         return view('livewire.portal.my-assets', [
             'assets' => $assets,
+            'pendingSurveys' => $pendingSurveys,
         ]);
     }
 }

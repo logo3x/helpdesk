@@ -59,6 +59,9 @@ class Asset extends Model
         // Registro
         'created_by_user_id',
         'registration_source',
+        // Aceptación por custodio
+        'accepted_at',
+        'accepted_by_user_id',
         // Sistema operativo y hardware
         'os_name',
         'os_version',
@@ -106,6 +109,7 @@ class Asset extends Model
             'purchased_at' => 'date',
             'warranty_expires_at' => 'date',
             'purchase_cost' => 'decimal:2',
+            'accepted_at' => 'datetime',
         ];
     }
 
@@ -199,6 +203,18 @@ class Asset extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function acceptedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'accepted_by_user_id');
+    }
+
+    /** @return HasMany<MaintenanceSurvey, $this> */
+    public function maintenanceSurveys(): HasMany
+    {
+        return $this->hasMany(MaintenanceSurvey::class);
     }
 
     /** @return BelongsTo<Department, $this> */

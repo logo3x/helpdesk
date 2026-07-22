@@ -24,6 +24,34 @@
         </flux:text>
     </div>
 
+    {{-- Encuestas de mantenimiento pendientes --}}
+    @if ($pendingSurveys->isNotEmpty())
+        <div class="mb-5 space-y-2">
+            @foreach ($pendingSurveys as $survey)
+                <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/60 dark:bg-amber-950/30">
+                    <div class="flex items-center gap-2">
+                        <flux:icon name="star" class="size-4 text-amber-500" />
+                        <div>
+                            <flux:text size="sm" class="font-semibold text-amber-800 dark:text-amber-200">
+                                Encuesta de mantenimiento pendiente
+                            </flux:text>
+                            <flux:text size="xs" class="text-amber-600 dark:text-amber-400">
+                                {{ $survey->asset->hostname ?? $survey->asset->asset_tag ?? "Activo #{$survey->asset->id}" }}
+                                @if ($survey->asset->manufacturer || $survey->asset->model)
+                                    · {{ trim(($survey->asset->manufacturer ?? '').' '.($survey->asset->model ?? '')) }}
+                                @endif
+                            </flux:text>
+                        </div>
+                    </div>
+                    <flux:button :href="route('portal.maintenance-survey', $survey->token)" wire:navigate
+                                 size="sm" variant="primary" icon="star">
+                        Calificar mantenimiento
+                    </flux:button>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
     {{-- Filtro --}}
     <div class="mb-5">
         <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass"
@@ -60,6 +88,12 @@
                                     <span class="text-sm font-bold text-zinc-900 dark:text-zinc-100">
                                         {{ $asset->asset_tag ?? '— sin TAG —' }}
                                     </span>
+                                    {{-- Badge aceptación --}}
+                                    @if ($asset->accepted_at)
+                                        <flux:badge size="sm" color="green" icon="check-circle">
+                                            Aceptado {{ $asset->accepted_at->translatedFormat('d/m/Y') }}
+                                        </flux:badge>
+                                    @endif
                                 </div>
 
                                 <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -79,7 +113,7 @@
                             </div>
                         </div>
 
-                        {{-- Estado + Proyecto --}}
+                        {{-- Estado + Proyecto + Aceptar botón --}}
                         <div class="flex flex-col items-end gap-1.5">
                             @php($status = $asset->status ?? 'active')
                             <flux:badge :color="$status === 'active' ? 'green' : 'amber'" size="sm">
@@ -91,6 +125,15 @@
                                     <flux:icon name="briefcase" class="size-3" />
                                     {{ $asset->project->code }}
                                 </div>
+                            @endif
+
+                            {{-- Botón aceptar (si no ha sido aceptado aún) --}}
+                            @if (! $asset->accepted_at)
+                                <flux:button wire:click="acceptAsset({{ $asset->id }})"
+                                             wire:loading.attr="disabled"
+                                             size="xs" variant="filled" icon="check">
+                                    Aceptar activo
+                                </flux:button>
                             @endif
                         </div>
                     </div>

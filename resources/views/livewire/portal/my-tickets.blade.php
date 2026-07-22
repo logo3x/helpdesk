@@ -48,66 +48,96 @@
     {{-- Lista --}}
     <div class="space-y-2.5">
         @forelse ($tickets as $i => $ticket)
-            <a href="{{ route('portal.tickets.show', $ticket) }}" wire:navigate
-               class="ticket-item group block overflow-hidden rounded-xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:hover:border-zinc-600">
+            @php($survey = $ticket->satisfactionSurvey)
+            <div @class([
+                'ticket-item overflow-hidden rounded-xl border shadow-sm',
+                'border-amber-300 dark:border-amber-700' => $survey && $survey->isPending(),
+                'border-zinc-200/80 dark:border-zinc-700/80' => ! ($survey && $survey->isPending()),
+            ])>
+                <a href="{{ route('portal.tickets.show', $ticket) }}" wire:navigate
+                   class="group block bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:bg-zinc-900/80 dark:hover:border-zinc-600">
 
-                <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0 flex-1">
-                        {{-- Badges de estado / prioridad --}}
-                        <div class="mb-2 flex flex-wrap items-center gap-1.5">
-                            <span class="ticket-number-badge inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-mono font-semibold text-zinc-600 transition-transform duration-150 dark:bg-zinc-800 dark:text-zinc-300">
-                                {{ $ticket->number }}
-                            </span>
-                            <flux:badge size="sm" :color="match($ticket->status->value) {
-                                'nuevo' => 'sky',
-                                'asignado' => 'blue',
-                                'en_progreso' => 'amber',
-                                'pendiente_cliente' => 'zinc',
-                                'resuelto' => 'green',
-                                'cerrado' => 'zinc',
-                                'reabierto' => 'red',
-                                default => 'zinc',
-                            }">{{ $ticket->status->getLabel() }}</flux:badge>
-                            <flux:badge size="sm" :color="match($ticket->priority->value) {
-                                'planificada' => 'zinc',
-                                'baja' => 'sky',
-                                'media' => 'amber',
-                                'alta' => 'red',
-                                'critica' => 'red',
-                                default => 'zinc',
-                            }">{{ $ticket->priority->getLabel() }}</flux:badge>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            {{-- Badges de estado / prioridad --}}
+                            <div class="mb-2 flex flex-wrap items-center gap-1.5">
+                                <span class="ticket-number-badge inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-mono font-semibold text-zinc-600 transition-transform duration-150 dark:bg-zinc-800 dark:text-zinc-300">
+                                    {{ $ticket->number }}
+                                </span>
+                                <flux:badge size="sm" :color="match($ticket->status->value) {
+                                    'nuevo' => 'sky',
+                                    'asignado' => 'blue',
+                                    'en_progreso' => 'amber',
+                                    'pendiente_cliente' => 'zinc',
+                                    'resuelto' => 'green',
+                                    'cerrado' => 'zinc',
+                                    'reabierto' => 'red',
+                                    default => 'zinc',
+                                }">{{ $ticket->status->getLabel() }}</flux:badge>
+                                <flux:badge size="sm" :color="match($ticket->priority->value) {
+                                    'planificada' => 'zinc',
+                                    'baja' => 'sky',
+                                    'media' => 'amber',
+                                    'alta' => 'red',
+                                    'critica' => 'red',
+                                    default => 'zinc',
+                                }">{{ $ticket->priority->getLabel() }}</flux:badge>
+                                @if ($survey)
+                                    @if ($survey->isPending())
+                                        <flux:badge size="sm" color="amber" icon="star">Encuesta pendiente</flux:badge>
+                                    @else
+                                        <flux:badge size="sm" color="green" icon="star">
+                                            Calificado {{ str_repeat('★', $survey->rating) }}
+                                        </flux:badge>
+                                    @endif
+                                @endif
+                            </div>
+
+                            {{-- Asunto --}}
+                            <div class="text-sm font-semibold leading-snug text-zinc-900 group-hover:text-sky-600 transition-colors duration-150 dark:text-zinc-100 dark:group-hover:text-sky-400">
+                                {{ $ticket->subject }}
+                            </div>
+
+                            {{-- Meta --}}
+                            <div class="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-zinc-400">
+                                @if ($ticket->category)
+                                    <span class="inline-flex items-center gap-1">
+                                        <flux:icon name="tag" class="size-3" />
+                                        {{ $ticket->category->name }}
+                                    </span>
+                                @endif
+                                @if ($ticket->assignee)
+                                    <span class="text-zinc-300 dark:text-zinc-600">·</span>
+                                    <span class="inline-flex items-center gap-1">
+                                        <flux:icon name="user" class="size-3" />
+                                        {{ $ticket->assignee->name }}
+                                    </span>
+                                @endif
+                            </div>
                         </div>
 
-                        {{-- Asunto --}}
-                        <div class="text-sm font-semibold leading-snug text-zinc-900 group-hover:text-sky-600 transition-colors duration-150 dark:text-zinc-100 dark:group-hover:text-sky-400">
-                            {{ $ticket->subject }}
-                        </div>
-
-                        {{-- Meta --}}
-                        <div class="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-zinc-400">
-                            @if ($ticket->category)
-                                <span class="inline-flex items-center gap-1">
-                                    <flux:icon name="tag" class="size-3" />
-                                    {{ $ticket->category->name }}
-                                </span>
-                            @endif
-                            @if ($ticket->assignee)
-                                <span class="text-zinc-300 dark:text-zinc-600">·</span>
-                                <span class="inline-flex items-center gap-1">
-                                    <flux:icon name="user" class="size-3" />
-                                    {{ $ticket->assignee->name }}
-                                </span>
-                            @endif
+                        {{-- Tiempo + flecha --}}
+                        <div class="flex shrink-0 flex-col items-end gap-1.5">
+                            <flux:text size="xs" class="text-zinc-400">{{ $ticket->created_at->diffForHumans() }}</flux:text>
+                            <flux:icon name="chevron-right" class="size-4 text-zinc-300 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-sky-400" />
                         </div>
                     </div>
+                </a>
 
-                    {{-- Tiempo + flecha --}}
-                    <div class="flex shrink-0 flex-col items-end gap-1.5">
-                        <flux:text size="xs" class="text-zinc-400">{{ $ticket->created_at->diffForHumans() }}</flux:text>
-                        <flux:icon name="chevron-right" class="size-4 text-zinc-300 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-sky-400" />
+                {{-- Banner encuesta pendiente --}}
+                @if ($survey && $survey->isPending())
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-amber-200 bg-amber-50 px-4 py-2.5 dark:border-amber-800/60 dark:bg-amber-950/30">
+                        <div class="flex items-center gap-1.5 text-sm text-amber-700 dark:text-amber-300">
+                            <flux:icon name="star" class="size-4 shrink-0 text-amber-500" />
+                            ¿Cómo fue tu experiencia? Tu opinión nos ayuda a mejorar.
+                        </div>
+                        <flux:button :href="route('portal.survey', $survey->token)" wire:navigate
+                                     size="sm" variant="primary" icon="star">
+                            Calificar atención
+                        </flux:button>
                     </div>
-                </div>
-            </a>
+                @endif
+            </div>
         @empty
             <div class="rounded-xl border border-dashed border-zinc-300 py-14 text-center dark:border-zinc-600"
                  style="animation: fadeIn .4s ease both">

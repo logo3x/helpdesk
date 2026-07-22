@@ -211,6 +211,17 @@ class AssetsTable
                     ->label('MAC')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                // Aceptación por custodio
+                TextColumn::make('accepted_at')
+                    ->label('Aceptado')
+                    ->icon(fn ($record) => $record?->accepted_at ? 'heroicon-o-check-circle' : 'heroicon-o-clock')
+                    ->iconColor(fn ($record) => $record?->accepted_at ? 'success' : 'gray')
+                    ->date('d/m/Y')
+                    ->placeholder('No aceptado')
+                    ->sortable()
+                    ->description(fn ($record) => $record?->acceptedBy?->name ?? null)
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('department_id')
@@ -270,6 +281,14 @@ class AssetsTable
                 Filter::make('scan_problems')
                     ->label('Scan con errores parciales')
                     ->query(fn (Builder $q) => $q->whereIn('last_scan_status', ['partial', 'error']))
+                    ->toggle(),
+                Filter::make('accepted')
+                    ->label('Aceptados por custodio')
+                    ->query(fn (Builder $q) => $q->whereNotNull('accepted_at'))
+                    ->toggle(),
+                Filter::make('not_accepted')
+                    ->label('Sin aceptar por custodio')
+                    ->query(fn (Builder $q) => $q->whereNull('accepted_at'))
                     ->toggle(),
                 TrashedFilter::make(),
             ])

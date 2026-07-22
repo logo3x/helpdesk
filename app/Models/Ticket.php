@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -126,6 +127,12 @@ class Ticket extends Model implements HasMedia
     public function publicComments(): HasMany
     {
         return $this->hasMany(TicketComment::class)->where('is_private', false);
+    }
+
+    /** @return HasOne<SatisfactionSurvey, $this> */
+    public function satisfactionSurvey(): HasOne
+    {
+        return $this->hasOne(SatisfactionSurvey::class);
     }
 
     /**

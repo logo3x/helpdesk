@@ -40,6 +40,9 @@ class AssetHandover extends Model
         'template_version',
         'pdf_path',
         'signed_pdf_path',
+        'uploaded_signed_pdf_path',
+        'uploaded_signed_at',
+        'uploaded_by_user_id',
     ];
 
     protected function casts(): array
@@ -47,6 +50,7 @@ class AssetHandover extends Model
         return [
             'delivered_at' => 'datetime',
             'received_confirmed_at' => 'datetime',
+            'uploaded_signed_at' => 'datetime',
             'acta_number' => 'integer',
         ];
     }

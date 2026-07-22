@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\AutoCloseTicketsJob;
+use App\Jobs\AutoMarkMaintenanceSurveysPositiveJob;
 use App\Jobs\AutoMarkSurveysPositiveJob;
 use App\Jobs\CheckSlaBreachesJob;
 use App\Jobs\MaintenanceAlertJob;
@@ -18,9 +19,14 @@ Schedule::job(new AutoCloseTicketsJob)
     ->dailyAt('06:00')
     ->withoutOverlapping();
 
-// Auto-marca encuestas como 5★ si el cliente no respondió — diario 6:30am
+// Auto-marca encuestas de tickets como 5★ si el cliente no respondió — diario 6:30am
 Schedule::job(new AutoMarkSurveysPositiveJob)
     ->dailyAt('06:30')
+    ->withoutOverlapping();
+
+// Auto-marca encuestas de mantenimiento como 5★ tras 1 día sin respuesta — diario 6:45am
+Schedule::job(new AutoMarkMaintenanceSurveysPositiveJob)
+    ->dailyAt('06:45')
     ->withoutOverlapping();
 
 // Alertas de mantenimiento de activos — lunes 7am.

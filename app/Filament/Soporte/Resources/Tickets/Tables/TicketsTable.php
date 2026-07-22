@@ -35,6 +35,7 @@ class TicketsTable
                 'assignee:id,name',
                 'department:id,name',
                 'category:id,name',
+                'satisfactionSurvey',
             ]))
             ->columns([
                 TextColumn::make('number')
@@ -89,6 +90,29 @@ class TicketsTable
                     ->sortable()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('satisfactionSurvey.rating')
+                    ->label('Encuesta')
+                    ->icon(fn ($record) => match (true) {
+                        $record->satisfactionSurvey === null => 'heroicon-o-minus',
+                        $record->satisfactionSurvey->isPending() => 'heroicon-o-clock',
+                        default => 'heroicon-o-star',
+                    })
+                    ->iconColor(fn ($record) => match (true) {
+                        $record->satisfactionSurvey === null => 'gray',
+                        $record->satisfactionSurvey->isPending() => 'warning',
+                        $record->satisfactionSurvey->rating >= 4 => 'success',
+                        $record->satisfactionSurvey->rating === 3 => 'warning',
+                        default => 'danger',
+                    })
+                    ->formatStateUsing(fn ($state, $record) => match (true) {
+                        $record->satisfactionSurvey === null => '—',
+                        $record->satisfactionSurvey->isPending() => 'Pendiente',
+                        default => str_repeat('★', (int) $state).' ('.$state.'/5)',
+                    })
+                    ->tooltip(fn ($record) => $record->satisfactionSurvey?->comment)
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -137,6 +161,16 @@ class TicketsTable
                 Filter::make('assigned_to_me')
                     ->label('Asignados a mí')
                     ->query(fn (Builder $query) => $query->where('assigned_to_id', auth()->id())),
+
+                Filter::make('survey_pending')
+                    ->label('Encuesta pendiente')
+                    ->query(fn (Builder $q) => $q->whereHas('satisfactionSurvey', fn ($sq) => $sq->whereNull('responded_at')))
+                    ->toggle(),
+
+                Filter::make('survey_responded')
+                    ->label('Encuesta respondida')
+                    ->query(fn (Builder $q) => $q->whereHas('satisfactionSurvey', fn ($sq) => $sq->whereNotNull('responded_at')))
+                    ->toggle(),
 
                 TrashedFilter::make(),
             ])

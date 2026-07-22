@@ -44,7 +44,7 @@ class MyTickets extends Component
                 ->orWhere('subject', 'like', "%{$s}%")
             ))
             ->when($this->status, fn ($q, $s) => $q->where('status', $s))
-            ->with('category:id,name', 'assignee:id,name')
+            ->with('category:id,name', 'assignee:id,name', 'satisfactionSurvey')
             ->latest()
             ->paginate(10);
 

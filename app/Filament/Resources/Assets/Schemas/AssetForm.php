@@ -329,6 +329,16 @@ class AssetForm
                             ->disabled()
                             ->dehydrated(false)
                             ->formatStateUsing(fn ($record) => $record?->createdBy?->name ?? '—'),
+
+                        TextInput::make('accepted_at_label')
+                            ->label('Aceptado por custodio')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($record) => $record?->accepted_at
+                                ? ($record->acceptedBy?->name ?? '—').' — '.$record->accepted_at->translatedFormat('d/m/Y H:i')
+                                : 'No aceptado aún'
+                            )
+                            ->helperText('Fecha en que el custodio confirmó haber recibido el activo desde el portal.'),
                     ])
                     ->columnSpanFull(),
             ]);

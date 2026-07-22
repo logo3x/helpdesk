@@ -10,6 +10,7 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -105,6 +106,51 @@ class EditAsset extends EditRecord
 
                     // Devolver el PDF como descarga directa.
                     return $this->downloadHandover($handover);
+                }),
+
+            // ── Cargar acta firmada en físico ────────────────────
+            Action::make('uploadSignedHandover')
+                ->label('Cargar acta firmada')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->color('success')
+                ->tooltip('Sube el PDF o imagen del acta física firmada por el custodio')
+                ->modalHeading('Cargar acta de entrega firmada')
+                ->modalDescription('Selecciona el acta del handover y sube el PDF o imagen escaneada firmada.')
+                ->modalWidth('lg')
+                ->visible(fn () => $this->record->handovers()->exists())
+                ->schema([
+                    Select::make('handover_id')
+                        ->label('Acta de entrega')
+                        ->options(fn () => $this->record->handovers()
+                            ->get()
+                            ->mapWithKeys(fn ($h) => [
+                                $h->id => "Acta #{$h->acta_number} — ".($h->delivered_at?->format('d/m/Y') ?? ''),
+                            ]))
+                        ->required()
+                        ->native(false),
+
+                    FileUpload::make('signed_file')
+                        ->label('Archivo firmado (PDF o imagen)')
+                        ->disk('local')
+                        ->directory('handovers/signed')
+                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                        ->maxSize(10240)
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $handover = AssetHandover::findOrFail($data['handover_id']);
+
+                    $handover->forceFill([
+                        'uploaded_signed_pdf_path' => $data['signed_file'],
+                        'uploaded_signed_at' => now(),
+                        'uploaded_by_user_id' => auth()->id(),
+                    ])->save();
+
+                    Notification::make()
+                        ->title('Acta cargada correctamente')
+                        ->body("El archivo fue asociado al acta #{$handover->acta_number}.")
+                        ->success()
+                        ->send();
                 }),
 
             DeleteAction::make(),

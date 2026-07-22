@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Assets\RelationManagers;
 
+use App\Jobs\SendMaintenanceSurveyJob;
 use App\Models\Asset;
 use App\Models\Department;
 use App\Models\Project;
@@ -253,7 +254,7 @@ class HistoriesRelationManager extends RelationManager
                                     $asset->skipAutoHistory = true;
                                     $asset->forceFill($fields)->save();
 
-                                    // Notificar al responsable asignado (skipAutoHistory impide que lo haga el observer)
+                                    // Notificar al responsable asignado
                                     if ($responsibleId) {
                                         $responsibleUser = User::find($responsibleId);
                                         $assignedBy = auth()->user();
@@ -267,6 +268,9 @@ class HistoriesRelationManager extends RelationManager
                                             }
                                         }
                                     }
+
+                                    // Encuesta de satisfacción al custodio del activo
+                                    SendMaintenanceSurveyJob::dispatch($asset->refresh());
                                 }
                             })(),
 

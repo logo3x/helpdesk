@@ -10,8 +10,10 @@ use App\Livewire\Portal\CreateTicket;
 use App\Livewire\Portal\Dashboard as PortalDashboard;
 use App\Livewire\Portal\KbIndex;
 use App\Livewire\Portal\KbShow;
+use App\Livewire\Portal\MaintenanceSurveyResponse;
 use App\Livewire\Portal\MyAssets;
 use App\Livewire\Portal\MyTickets;
+use App\Livewire\Portal\SurveyResponse;
 use App\Livewire\Portal\ViewTicket;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -98,6 +100,12 @@ Route::middleware(['auth', 'verified', EnsureAslAccepted::class])->group(functio
 
         // Mis activos asignados (inventario en custodia del usuario).
         Route::get('assets', MyAssets::class)->name('assets.index');
+
+        // Encuesta de satisfacción de tickets
+        Route::get('survey/{token}', SurveyResponse::class)->name('survey');
+
+        // Encuesta de mantenimiento de activos
+        Route::get('maintenance-survey/{token}', MaintenanceSurveyResponse::class)->name('maintenance-survey');
 
         // Centro de ayuda (KB pública para usuarios finales). Solo
         // muestra artículos con status='published' (filtrado en el

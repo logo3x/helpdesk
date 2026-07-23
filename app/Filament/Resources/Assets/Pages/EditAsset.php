@@ -108,6 +108,43 @@ class EditAsset extends EditRecord
                     return $this->downloadHandover($handover);
                 }),
 
+            // ── Descargar acta firmada cargada manualmente ───────
+            Action::make('downloadSignedHandover')
+                ->label('Descargar acta firmada')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->tooltip('Descarga el PDF o imagen del acta física firmada')
+                ->visible(fn () => $this->record->handovers()
+                    ->whereNotNull('uploaded_signed_pdf_path')
+                    ->exists())
+                ->schema([
+                    Select::make('handover_id')
+                        ->label('Acta de entrega')
+                        ->options(fn () => $this->record->handovers()
+                            ->whereNotNull('uploaded_signed_pdf_path')
+                            ->get()
+                            ->mapWithKeys(fn ($h) => [
+                                $h->id => "Acta #{$h->acta_number} — ".($h->delivered_at?->format('d/m/Y') ?? '')
+                                    .' · Subida '.($h->uploaded_signed_at?->format('d/m/Y') ?? ''),
+                            ]))
+                        ->required()
+                        ->native(false),
+                ])
+                ->modalHeading('Descargar acta firmada')
+                ->modalSubmitActionLabel('Descargar')
+                ->modalWidth('md')
+                ->action(function (array $data): StreamedResponse {
+                    $handover = AssetHandover::findOrFail($data['handover_id']);
+
+                    $ext = pathinfo((string) $handover->uploaded_signed_pdf_path, PATHINFO_EXTENSION);
+                    $filename = sprintf('acta_%d_firmada.%s', $handover->acta_number, $ext ?: 'pdf');
+
+                    return Storage::disk('local')->download(
+                        $handover->uploaded_signed_pdf_path,
+                        $filename,
+                    );
+                }),
+
             // ── Cargar acta firmada en físico ────────────────────
             Action::make('uploadSignedHandover')
                 ->label('Cargar acta firmada')

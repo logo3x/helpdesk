@@ -112,7 +112,7 @@ class AssetResource extends Resource
     }
 
     /**
-     * Quién puede crear/editar registros (no agentes).
+     * Quién puede crear/editar registros.
      */
     protected static function userCanWrite(): bool
     {
@@ -129,7 +129,7 @@ class AssetResource extends Resource
             return false;
         }
 
-        return $user->hasAnyRole(['supervisor_soporte', 'tecnico_campo']);
+        return $user->hasAnyRole(['supervisor_soporte', 'tecnico_campo', 'agente_soporte']);
     }
 
     public static function form(Schema $schema): Schema

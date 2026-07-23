@@ -7,10 +7,12 @@ use App\Models\AssetHandover;
 use App\Models\MaintenanceSurvey;
 use App\Models\User;
 use App\Notifications\AssetHandoverConfirmedNotification;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Notification as MailNotification;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -73,10 +75,36 @@ class MyAssets extends Component
             return;
         }
 
+        $acceptedAt = now();
+
         $asset->forceFill([
-            'accepted_at' => now(),
+            'accepted_at' => $acceptedAt,
             'accepted_by_user_id' => auth()->id(),
         ])->save();
+
+        // Regenerar el PDF del handover más reciente con sello de aceptación web.
+        $handover = AssetHandover::query()
+            ->where('asset_id', $asset->id)
+            ->where('received_by_user_id', auth()->id())
+            ->latest('delivered_at')
+            ->first();
+
+        if ($handover) {
+            $handover->load(['receivedBy', 'deliveredBy', 'project']);
+            $pdf = Pdf::loadView('pdfs.asset-handover', [
+                'handover' => $handover,
+                'acceptedAt' => $acceptedAt->toDateTimeString(),
+            ])->setPaper('letter', 'portrait');
+
+            $path = sprintf(
+                'actas/%d_acta_%s_aceptada.pdf',
+                $handover->acta_number,
+                preg_replace('/[^A-Za-z0-9_-]/', '_', strtoupper($handover->receivedBy?->name ?? 'custodio')),
+            );
+
+            Storage::disk('local')->put($path, $pdf->output());
+            $handover->forceFill(['accepted_pdf_path' => $path])->save();
+        }
 
         Notification::make()
             ->title('Activo confirmado')

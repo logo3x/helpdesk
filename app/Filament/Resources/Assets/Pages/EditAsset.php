@@ -108,6 +108,29 @@ class EditAsset extends EditRecord
                     return $this->downloadHandover($handover);
                 }),
 
+            // ── Descargar acta con sello de aceptación web ───────
+            Action::make('downloadAcceptedHandover')
+                ->label('Descargar acta aceptada')
+                ->icon('heroicon-o-check-badge')
+                ->color('success')
+                ->tooltip('Descarga el PDF del acta con el sello de aceptación digital del custodio')
+                ->visible(fn () => $this->record->handovers()
+                    ->whereNotNull('accepted_pdf_path')
+                    ->exists())
+                ->action(function (): StreamedResponse {
+                    $handover = $this->record->handovers()
+                        ->whereNotNull('accepted_pdf_path')
+                        ->latest('delivered_at')
+                        ->firstOrFail();
+
+                    $filename = sprintf('acta_%d_%s_aceptada.pdf',
+                        $handover->acta_number,
+                        preg_replace('/[^A-Za-z0-9_-]/', '_', strtoupper($handover->receivedBy?->name ?? 'custodio')),
+                    );
+
+                    return Storage::disk('local')->download($handover->accepted_pdf_path, $filename);
+                }),
+
             // ── Descargar acta firmada cargada manualmente ───────
             Action::make('downloadSignedHandover')
                 ->label('Descargar acta firmada')

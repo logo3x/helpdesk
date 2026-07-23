@@ -43,6 +43,7 @@ class AssetHandover extends Model
         'uploaded_signed_pdf_path',
         'uploaded_signed_at',
         'uploaded_by_user_id',
+        'accepted_pdf_path',
     ];
 
     protected function casts(): array

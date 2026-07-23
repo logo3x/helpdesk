@@ -63,6 +63,16 @@
         }
         .sig-header { text-align: center; font-weight: bold; height: 16px; padding: 2px 6px; }
         .sig-line { height: 36px; text-align: center; padding-top: 22px; font-style: italic; color: #555; }
+        .sig-accepted {
+            height: 36px;
+            text-align: center;
+            padding: 4px 6px;
+            background: #e6f4ea;
+            border: 1px dashed #2e7d32;
+            color: #1b5e20;
+            font-size: 7pt;
+            font-weight: bold;
+        }
         .sig-row { padding: 2px 6px; }
     </style>
 </head>
@@ -215,7 +225,14 @@
     </tr>
     <tr>
         <td class="sig-line">&nbsp;</td>
+        @if (!empty($acceptedAt))
+        <td class="sig-accepted">
+            ✔ ACEPTADO DIGITALMENTE VÍA PORTAL WEB<br>
+            {{ \Carbon\Carbon::parse($acceptedAt)->format('d/m/Y H:i') }} UTC
+        </td>
+        @else
         <td class="sig-line">&nbsp;</td>
+        @endif
     </tr>
     <tr>
         <td class="sig-row"><strong>N° Identidad:</strong> {{ $handover->deliveredBy?->identification ?? '' }}</td>

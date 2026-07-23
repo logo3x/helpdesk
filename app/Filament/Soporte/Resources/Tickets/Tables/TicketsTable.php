@@ -9,6 +9,7 @@ use App\Enums\TicketUrgency;
 use App\Models\Category;
 use App\Models\Department;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -176,6 +177,19 @@ class TicketsTable
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
+                Action::make('viewSurvey')
+                    ->label('Ver encuesta')
+                    ->icon('heroicon-o-star')
+                    ->color('warning')
+                    ->tooltip('Ver resultado de encuesta de satisfacción')
+                    ->visible(fn ($record) => $record->satisfactionSurvey !== null && ! $record->satisfactionSurvey->isPending())
+                    ->modalHeading(fn ($record) => "Encuesta — Ticket {$record->number}")
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalContent(fn ($record) => view('filament.soporte.tickets.survey-modal', [
+                        'survey' => $record->satisfactionSurvey,
+                        'ticket' => $record,
+                    ])),
                 ViewAction::make(),
                 EditAction::make(),
             ])

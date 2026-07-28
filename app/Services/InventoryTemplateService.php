@@ -32,7 +32,7 @@ class InventoryTemplateService
         ['Fabricante', 16, 'HP', 'Marca del equipo: HP, Dell, Lenovo, Apple, etc.'],
         ['Modelo', 22, 'Elitebook 840 G8', 'Modelo del equipo.'],
         ['Codigo SAP', 14, 'SAP-100', 'Código contable del activo en SAP.'],
-        ['Tipo Activo', 14, 'laptop', 'Uno de: laptop, desktop, server, printer, monitor, phone, tablet, network, peripheral, other.'],
+        ['Tipo Activo', 14, 'laptop', 'Uno de: laptop, desktop, all_in_one, monitor, server, printer, phone, tablet, radio, antenna, network_kit, ups, other.'],
         ['Estado', 12, 'activo', 'Uno de: activo, inactivo, regular, baja. Se mapea a active/inactive/fair/retired.'],
         ['Custodio', 28, 'Juan Pérez', 'Nombre completo del responsable del equipo. Se crea el usuario si no existe.'],
         ['Identificacion', 16, '1098765432', 'Cédula del custodio. Si el usuario ya existe, se busca por aquí.'],

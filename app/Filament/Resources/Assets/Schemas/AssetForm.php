@@ -66,10 +66,15 @@ class AssetForm
                                         'desktop' => 'Desktop',
                                         'laptop' => 'Laptop',
                                         'all_in_one' => 'All-in-One',
+                                        'monitor' => 'Monitor',
                                         'server' => 'Servidor',
                                         'printer' => 'Impresora',
                                         'phone' => 'Teléfono / Celular',
                                         'tablet' => 'Tablet',
+                                        'radio' => 'Radio',
+                                        'antenna' => 'Antena',
+                                        'network_kit' => 'Kit de Red',
+                                        'ups' => 'UPS',
                                         'other' => 'Otro',
                                     ])
                                     ->default('desktop')

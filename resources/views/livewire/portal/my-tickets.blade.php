@@ -137,93 +137,92 @@
                         </flux:button>
                     </div>
                 @elseif ($survey && ! $survey->isPending())
-                    {{-- Resultado de encuesta ya respondida --}}
                     @php($dims = \App\Models\SatisfactionSurvey::DIMENSIONS)
                     @php($avgRating = $survey->averageRating() ?? $survey->rating ?? 0)
-                    <div
-                        x-data="{ open: false }"
-                        class="flex flex-wrap items-center justify-between gap-3 border-t border-green-200 bg-green-50 px-4 py-2.5 dark:border-green-800/60 dark:bg-green-950/30"
-                    >
+                    @php($modalId = 'survey-modal-'.$survey->id)
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-green-200 bg-green-50 px-4 py-2.5 dark:border-green-800/60 dark:bg-green-950/30">
                         <div class="flex items-center gap-1.5 text-sm text-green-700 dark:text-green-300">
-                            <flux:icon name="star" class="size-4 shrink-0 text-green-500" />
-                            Promedio {{ number_format($avgRating, 1) }}/5 — Respondido el {{ $survey->responded_at?->translatedFormat('d/m/Y') }}
+                            <span class="text-amber-400 text-base leading-none">{{ str_repeat('★', (int) round($avgRating)) }}{{ str_repeat('☆', 5 - (int) round($avgRating)) }}</span>
+                            {{ number_format($avgRating, 1) }}/5 — {{ $survey->responded_at?->translatedFormat('d/m/Y') }}
                         </div>
                         <button
                             type="button"
-                            @click="open = true"
+                            @click="$dispatch('open-survey-modal', { id: '{{ $modalId }}' })"
                             class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-green-700 ring-1 ring-green-300 hover:bg-green-100 dark:text-green-300 dark:ring-green-700 dark:hover:bg-green-900/40"
                         >
-                            Ver resultado
+                            Ver detalle
                         </button>
 
-                        {{-- Modal resultado --}}
-                        <div
-                            x-show="open"
-                            x-cloak
-                            @keydown.escape.window="open = false"
-                            class="fixed inset-0 z-50 flex items-center justify-center p-4"
-                        >
-                            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="open = false"></div>
-                            <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900 max-h-[90vh] overflow-y-auto">
-                                <button @click="open = false" class="absolute right-4 top-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
-                                    <flux:icon name="x-mark" class="size-5" />
-                                </button>
-                                <div class="mb-4 flex items-center gap-3">
-                                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
-                                        <flux:icon name="star" class="size-5 text-green-600 dark:text-green-400" />
+                        {{-- Modal con teleport al body para evitar z-index y overflow issues --}}
+                        <template x-teleport="body">
+                            <div
+                                x-data="{ open: false, id: '{{ $modalId }}' }"
+                                x-show="open"
+                                x-cloak
+                                @open-survey-modal.window="if ($event.detail.id === id) open = true"
+                                @keydown.escape.window="open = false"
+                                class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                                style="display: none"
+                            >
+                                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="open = false"></div>
+                                <div class="relative w-full max-w-md rounded-2xl bg-white shadow-2xl dark:bg-zinc-900 max-h-[85vh] flex flex-col">
+                                    {{-- Header del modal --}}
+                                    <div class="flex items-center gap-3 border-b border-zinc-100 dark:border-zinc-800 px-5 py-4 shrink-0">
+                                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
+                                            <span class="text-lg text-amber-500">★</span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Resultado de encuesta</h3>
+                                            <p class="text-xs text-zinc-500">{{ $survey->responded_at?->translatedFormat('d \d\e M\. Y, H:i') }}</p>
+                                        </div>
+                                        <button @click="open = false" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
+                                            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                        </button>
                                     </div>
-                                    <div>
-                                        <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Resultado de encuesta</h3>
-                                        <p class="text-xs text-zinc-500">{{ $survey->responded_at?->translatedFormat('d/m/Y H:i') }}</p>
-                                    </div>
-                                </div>
 
-                                {{-- Tabla de dimensiones --}}
-                                <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700 mb-4">
-                                    <table class="min-w-full text-sm">
-                                        <thead>
-                                            <tr class="bg-zinc-50 dark:bg-zinc-800">
-                                                <th class="py-2 pl-3 pr-2 text-left font-medium text-zinc-500 dark:text-zinc-400 text-xs">Dimensión</th>
-                                                @foreach([1,2,3,4,5] as $n)
-                                                    <th class="px-2 py-2 text-center text-xs font-bold text-zinc-500 dark:text-zinc-400">{{ $n }}</th>
-                                                @endforeach
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                                            @foreach($dims as $field => $label)
-                                                <tr>
-                                                    <td class="py-2 pl-3 pr-2 text-xs text-zinc-700 dark:text-zinc-300">{{ $label }}</td>
+                                    {{-- Cuerpo scrolleable --}}
+                                    <div class="overflow-y-auto p-5 space-y-3">
+                                        @foreach($dims as $field => $label)
+                                            @php($val = $survey->{$field} ?? 0)
+                                            <div class="flex items-center justify-between gap-3">
+                                                <span class="text-xs text-zinc-600 dark:text-zinc-400 leading-tight flex-1">{{ $label }}</span>
+                                                <div class="flex items-center gap-0.5 shrink-0">
                                                     @foreach([1,2,3,4,5] as $n)
-                                                        <td class="px-2 py-2 text-center">
-                                                            @if(($survey->{$field} ?? 0) >= $n)
-                                                                <span class="text-amber-400 text-base">★</span>
-                                                            @else
-                                                                <span class="text-zinc-300 dark:text-zinc-600 text-base">★</span>
-                                                            @endif
-                                                        </td>
+                                                        <span class="text-lg leading-none {{ $val >= $n ? 'text-amber-400' : 'text-zinc-200 dark:text-zinc-700' }}">★</span>
                                                     @endforeach
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                        <tfoot>
-                                            <tr class="bg-zinc-50 dark:bg-zinc-800 font-semibold">
-                                                <td class="py-2 pl-3 pr-2 text-xs text-zinc-700 dark:text-zinc-300">Promedio general</td>
-                                                <td colspan="5" class="px-2 py-2 text-center text-sm font-bold text-green-600 dark:text-green-400">
-                                                    {{ number_format($avgRating, 2) }} / 5
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
+                                                    <span class="ml-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 w-6 text-right">{{ $val }}/5</span>
+                                                </div>
+                                            </div>
+                                        @endforeach
 
-                                @if($survey->comment)
-                                    <div class="rounded-lg bg-zinc-50 p-3 text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                                        <p class="mb-1 text-xs font-medium uppercase tracking-wide text-zinc-400">Comentario</p>
-                                        <p>{{ $survey->comment }}</p>
+                                        {{-- Promedio --}}
+                                        <div class="mt-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20 px-4 py-3 flex items-center justify-between border border-amber-200/60 dark:border-amber-800/40">
+                                            <span class="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">Promedio general</span>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-amber-400 text-lg leading-none">{{ str_repeat('★', (int) round($avgRating)) }}{{ str_repeat('☆', 5 - (int) round($avgRating)) }}</span>
+                                                <span class="text-base font-bold text-amber-600 dark:text-amber-400">{{ number_format($avgRating, 1) }}/5</span>
+                                            </div>
+                                        </div>
+
+                                        @if($survey->comment)
+                                            <div class="rounded-xl bg-zinc-50 dark:bg-zinc-800/60 px-4 py-3">
+                                                <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-1.5">Comentario</p>
+                                                <p class="text-sm text-zinc-600 dark:text-zinc-400">{{ $survey->comment }}</p>
+                                            </div>
+                                        @endif
                                     </div>
-                                @endif
+
+                                    <div class="shrink-0 border-t border-zinc-100 dark:border-zinc-800 px-5 py-3">
+                                        <button
+                                            @click="open = false"
+                                            class="w-full rounded-lg bg-zinc-100 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+                                        >
+                                            Cerrar
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        </template>
                     </div>
                 @endif
             </div>

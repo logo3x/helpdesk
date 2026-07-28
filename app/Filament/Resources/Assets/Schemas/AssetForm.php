@@ -60,12 +60,6 @@ class AssetForm
                                     ->maxLength(255)
                                     ->unique(table: 'assets', column: 'serial_number', ignorable: fn ($record) => $record),
 
-                                TextInput::make('custodian_id_number')
-                                    ->label('Cédula del custodio')
-                                    ->placeholder('Ej: 12345678')
-                                    ->helperText('Se llena automáticamente al seleccionar el custodio.')
-                                    ->maxLength(30),
-
                                 Select::make('type')
                                     ->label('Tipo')
                                     ->options([
@@ -129,6 +123,11 @@ class AssetForm
                                     ->placeholder('Ej: Juan Pérez (si no tiene cuenta en el sistema)')
                                     ->helperText('Nombre libre cuando el custodio no tiene cuenta.')
                                     ->maxLength(150),
+
+                                TextInput::make('custodian_id_number')
+                                    ->label('Cédula del custodio')
+                                    ->placeholder('Ej: 12345678')
+                                    ->maxLength(30),
 
                                 Select::make('department_id')
                                     ->label('Departamento')

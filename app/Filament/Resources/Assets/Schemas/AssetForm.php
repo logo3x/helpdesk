@@ -139,7 +139,6 @@ class AssetForm
                                 TextInput::make('custodian_position')
                                     ->label('Cargo del custodio')
                                     ->placeholder('Ej: Técnico de campo')
-                                    ->helperText('Se auto-completa al seleccionar el custodio si tiene cargo registrado.')
                                     ->maxLength(150),
 
                                 Select::make('department_id')

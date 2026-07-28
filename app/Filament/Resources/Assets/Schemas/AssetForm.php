@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Assets\Schemas;
 
+use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -59,6 +60,12 @@ class AssetForm
                                     ->maxLength(255)
                                     ->unique(table: 'assets', column: 'serial_number', ignorable: fn ($record) => $record),
 
+                                TextInput::make('custodian_id_number')
+                                    ->label('Cédula del custodio')
+                                    ->placeholder('Ej: 12345678')
+                                    ->helperText('Se llena automáticamente al seleccionar el custodio.')
+                                    ->maxLength(30),
+
                                 Select::make('type')
                                     ->label('Tipo')
                                     ->options([
@@ -105,7 +112,17 @@ class AssetForm
                                     ->preload()
                                     ->placeholder('Sin asignar')
                                     ->helperText('Busca por nombre, correo o cédula.')
-                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->custodianLabel()),
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->custodianLabel())
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        if (! $state) {
+                                            return;
+                                        }
+                                        $user = User::find($state);
+                                        if ($user?->identification) {
+                                            $set('custodian_id_number', $user->identification);
+                                        }
+                                    }),
 
                                 TextInput::make('custodian_name')
                                     ->label('Nombre del custodio')

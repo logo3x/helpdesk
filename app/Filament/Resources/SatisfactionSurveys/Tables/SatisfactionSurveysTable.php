@@ -27,7 +27,20 @@ class SatisfactionSurveysTable
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
-                    ->url(fn ($record) => route('filament.admin.resources.tickets.view', $record->ticket_id)),
+                    ->url(function ($record) {
+                        if (! $record->ticket_id) {
+                            return null;
+                        }
+                        try {
+                            return route('filament.soporte.resources.tickets.view', $record->ticket_id);
+                        } catch (\Throwable) {
+                            try {
+                                return route('filament.admin.resources.tickets.view', $record->ticket_id);
+                            } catch (\Throwable) {
+                                return null;
+                            }
+                        }
+                    }),
 
                 TextColumn::make('ticket.subject')
                     ->label('Asunto')
@@ -93,12 +106,11 @@ class SatisfactionSurveysTable
 
                 SelectFilter::make('department')
                     ->label('Departamento')
-                    ->options(fn () => Department::where('is_active', true)->pluck('name', 'id')->all())
+                    ->options(fn () => Department::where('is_active', true)->orderBy('name')->pluck('name', 'id')->all())
                     ->query(fn (Builder $q, array $data) => $q->when(
                         $data['value'],
                         fn ($q, $v) => $q->whereHas('ticket', fn ($tq) => $tq->where('department_id', $v)),
-                    ))
-                    ->searchable(),
+                    )),
 
                 SelectFilter::make('rating_range')
                     ->label('Calificación promedio')

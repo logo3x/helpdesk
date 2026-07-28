@@ -29,7 +29,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
  *  - super_admin / admin            → todo
  *  - supervisor_soporte             → ver, crear, editar, borrar
  *  - tecnico_campo                  → ver, crear, editar (no borrar)
- *  - agente_soporte                 → solo lectura (ver listado + ficha)
+ *  - agente_soporte                 → ver, crear, editar (no borrar)
  *
  * La idea: el agente del help desk puede CONSULTAR el inventario para
  * resolver tickets (ej: "qué laptop tiene Juan Pérez"), pero no debe

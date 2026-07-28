@@ -138,18 +138,17 @@
                     </div>
                 @elseif ($survey && ! $survey->isPending())
                     {{-- Resultado de encuesta ya respondida --}}
+                    @php
+                        $dims = \App\Models\SatisfactionSurvey::DIMENSIONS;
+                        $avgRating = $survey->averageRating() ?? $survey->rating ?? 0;
+                    @endphp
                     <div
-                        x-data="{
-                            open: false,
-                            rating: {{ $survey->rating ?? 0 }},
-                            comment: @js($survey->comment ?? ''),
-                            respondedAt: @js($survey->responded_at?->translatedFormat('d/m/Y H:i') ?? '')
-                        }"
+                        x-data="{ open: false }"
                         class="flex flex-wrap items-center justify-between gap-3 border-t border-green-200 bg-green-50 px-4 py-2.5 dark:border-green-800/60 dark:bg-green-950/30"
                     >
                         <div class="flex items-center gap-1.5 text-sm text-green-700 dark:text-green-300">
                             <flux:icon name="star" class="size-4 shrink-0 text-green-500" />
-                            Calificado con {{ str_repeat('★', $survey->rating) }} el {{ $survey->responded_at?->translatedFormat('d/m/Y') }}
+                            Promedio {{ number_format($avgRating, 1) }}/5 — Respondido el {{ $survey->responded_at?->translatedFormat('d/m/Y') }}
                         </div>
                         <button
                             type="button"
@@ -167,33 +166,64 @@
                             class="fixed inset-0 z-50 flex items-center justify-center p-4"
                         >
                             <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="open = false"></div>
-                            <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900">
+                            <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900 max-h-[90vh] overflow-y-auto">
                                 <button @click="open = false" class="absolute right-4 top-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                                     <flux:icon name="x-mark" class="size-5" />
                                 </button>
                                 <div class="mb-4 flex items-center gap-3">
-                                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+                                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
                                         <flux:icon name="star" class="size-5 text-green-600 dark:text-green-400" />
                                     </div>
                                     <div>
                                         <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Resultado de encuesta</h3>
-                                        <p class="text-xs text-zinc-500" x-text="respondedAt"></p>
+                                        <p class="text-xs text-zinc-500">{{ $survey->responded_at?->translatedFormat('d/m/Y H:i') }}</p>
                                     </div>
                                 </div>
-                                <div class="mb-3 flex gap-1">
-                                    <template x-for="i in 5" :key="i">
-                                        <flux:icon name="star" :class="i <= rating ? 'text-amber-400 size-7' : 'text-zinc-300 size-7 dark:text-zinc-600'" />
-                                    </template>
+
+                                {{-- Tabla de dimensiones --}}
+                                <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700 mb-4">
+                                    <table class="min-w-full text-sm">
+                                        <thead>
+                                            <tr class="bg-zinc-50 dark:bg-zinc-800">
+                                                <th class="py-2 pl-3 pr-2 text-left font-medium text-zinc-500 dark:text-zinc-400 text-xs">Dimensión</th>
+                                                @foreach([1,2,3,4,5] as $n)
+                                                    <th class="px-2 py-2 text-center text-xs font-bold text-zinc-500 dark:text-zinc-400">{{ $n }}</th>
+                                                @endforeach
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                            @foreach($dims as $field => $label)
+                                                <tr>
+                                                    <td class="py-2 pl-3 pr-2 text-xs text-zinc-700 dark:text-zinc-300">{{ $label }}</td>
+                                                    @foreach([1,2,3,4,5] as $n)
+                                                        <td class="px-2 py-2 text-center">
+                                                            @if(($survey->{$field} ?? 0) >= $n)
+                                                                <span class="text-amber-400 text-base">★</span>
+                                                            @else
+                                                                <span class="text-zinc-300 dark:text-zinc-600 text-base">★</span>
+                                                            @endif
+                                                        </td>
+                                                    @endforeach
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="bg-zinc-50 dark:bg-zinc-800 font-semibold">
+                                                <td class="py-2 pl-3 pr-2 text-xs text-zinc-700 dark:text-zinc-300">Promedio general</td>
+                                                <td colspan="5" class="px-2 py-2 text-center text-sm font-bold text-green-600 dark:text-green-400">
+                                                    {{ number_format($avgRating, 2) }} / 5
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
                                 </div>
-                                <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                                    <span x-text="rating + '/5 — ' + ({1:'Muy insatisfecho',2:'Insatisfecho',3:'Regular',4:'Satisfecho',5:'Muy satisfecho'}[rating] || '')"></span>
-                                </p>
-                                <template x-if="comment">
-                                    <div class="mt-3 rounded-lg bg-zinc-50 p-3 text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+
+                                @if($survey->comment)
+                                    <div class="rounded-lg bg-zinc-50 p-3 text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                                         <p class="mb-1 text-xs font-medium uppercase tracking-wide text-zinc-400">Comentario</p>
-                                        <p x-text="comment"></p>
+                                        <p>{{ $survey->comment }}</p>
                                     </div>
-                                </template>
+                                @endif
                             </div>
                         </div>
                     </div>

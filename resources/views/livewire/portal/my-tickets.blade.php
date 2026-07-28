@@ -138,10 +138,8 @@
                     </div>
                 @elseif ($survey && ! $survey->isPending())
                     {{-- Resultado de encuesta ya respondida --}}
-                    @php
-                        $dims = \App\Models\SatisfactionSurvey::DIMENSIONS;
-                        $avgRating = $survey->averageRating() ?? $survey->rating ?? 0;
-                    @endphp
+                    @php($dims = \App\Models\SatisfactionSurvey::DIMENSIONS)
+                    @php($avgRating = $survey->averageRating() ?? $survey->rating ?? 0)
                     <div
                         x-data="{ open: false }"
                         class="flex flex-wrap items-center justify-between gap-3 border-t border-green-200 bg-green-50 px-4 py-2.5 dark:border-green-800/60 dark:bg-green-950/30"

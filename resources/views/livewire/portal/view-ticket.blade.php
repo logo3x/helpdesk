@@ -239,7 +239,46 @@
                         rows="3"
                         required
                     />
-                    <div class="mt-3 flex justify-end">
+                    <div class="mt-3 flex items-center justify-between gap-3">
+                        {{-- Botón: marcar como resuelto --}}
+                        <div x-data="{ open: false }">
+                            <flux:button
+                                type="button"
+                                variant="ghost"
+                                icon="check-circle"
+                                size="sm"
+                                class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+                                @click="open = true"
+                            >
+                                Marcar como resuelto
+                            </flux:button>
+
+                            {{-- Confirmación --}}
+                            <div x-show="open" x-cloak @keydown.escape.window="open = false"
+                                 class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                                <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="open = false"></div>
+                                <div class="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900">
+                                    <div class="mb-4 flex items-center gap-3">
+                                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
+                                            <flux:icon name="check-circle" class="size-5 text-emerald-600 dark:text-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">¿Confirmar solución?</h3>
+                                            <p class="text-xs text-zinc-500">Esto cerrará el ticket y recibirás una encuesta de satisfacción.</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-3 justify-end">
+                                        <flux:button type="button" variant="ghost" size="sm" @click="open = false">Cancelar</flux:button>
+                                        <flux:button type="button" variant="primary" size="sm" icon="check"
+                                                     wire:click="resolveByRequester" @click="open = false"
+                                                     wire:loading.attr="disabled">
+                                            Sí, está resuelto
+                                        </flux:button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <flux:button type="submit" variant="primary" icon="paper-airplane">
                             Enviar respuesta
                         </flux:button>

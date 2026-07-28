@@ -5,6 +5,7 @@ namespace App\Livewire\Portal;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Notifications\TicketCommentedNotification;
+use App\Services\TicketService;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -25,6 +26,19 @@ class ViewTicket extends Component
         abort_unless($ticket->requester_id === auth()->id(), 403);
 
         $this->ticket = $ticket;
+    }
+
+    public function resolveByRequester(): void
+    {
+        // Only the requester of an open ticket can self-resolve
+        abort_unless($this->ticket->requester_id === auth()->id(), 403);
+        abort_unless($this->ticket->status->isOpen(), 403);
+
+        app(TicketService::class)->close($this->ticket);
+
+        $this->ticket->refresh();
+
+        Flux::toast(text: 'Ticket marcado como resuelto. ¡Gracias por confirmarlo!', variant: 'success');
     }
 
     public function addComment(): void

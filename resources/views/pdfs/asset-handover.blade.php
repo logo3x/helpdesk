@@ -117,7 +117,7 @@
     </tr>
     <tr>
         <td class="label">CARGO</td>
-        <td class="value">{{ strtoupper($handover->receivedBy?->position ?? '—') }}</td>
+        <td class="value">{{ strtoupper($handover->receivedBy?->position ?? $handover->asset?->custodian_position ?? '—') }}</td>
     </tr>
     <tr>
         <td class="label">UBICACIÓN</td>

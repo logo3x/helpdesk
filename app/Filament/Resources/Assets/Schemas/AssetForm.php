@@ -120,6 +120,9 @@ class AssetForm
                                         if ($user?->identification) {
                                             $set('custodian_id_number', $user->identification);
                                         }
+                                        if ($user?->position) {
+                                            $set('custodian_position', $user->position);
+                                        }
                                     }),
 
                                 TextInput::make('custodian_name')
@@ -132,6 +135,12 @@ class AssetForm
                                     ->label('Cédula del custodio')
                                     ->placeholder('Ej: 12345678')
                                     ->maxLength(30),
+
+                                TextInput::make('custodian_position')
+                                    ->label('Cargo del custodio')
+                                    ->placeholder('Ej: Técnico de campo')
+                                    ->helperText('Se auto-completa al seleccionar el custodio si tiene cargo registrado.')
+                                    ->maxLength(150),
 
                                 Select::make('department_id')
                                     ->label('Departamento')

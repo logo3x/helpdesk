@@ -25,7 +25,7 @@ class Asset extends Model
     public const TRACKED_FIELDS = [
         'asset_tag', 'hostname', 'serial_number', 'sap_code', 'type',
         'manufacturer', 'model',
-        'user_id', 'custodian_name', 'custodian_id_number', 'department_id', 'project_id', 'field', 'location_zone',
+        'user_id', 'custodian_name', 'custodian_id_number', 'custodian_position', 'department_id', 'project_id', 'field', 'location_zone',
         'management_area',
         'status', 'notes',
         'last_maintenance_at', 'maintenance_interval_days', 'maintenance_responsible_id',
@@ -52,6 +52,7 @@ class Asset extends Model
         'user_id',
         'custodian_name',
         'custodian_id_number',
+        'custodian_position',
         'department_id',
         'project_id',
         'field',

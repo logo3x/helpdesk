@@ -83,9 +83,10 @@ class MyAssets extends Component
         ])->save();
 
         // Regenerar el PDF del handover más reciente con sello de aceptación web.
+        // No filtramos por received_by_user_id porque el acta puede haberse generado
+        // antes de que el custodio tuviera exactamente ese user_id (ej: cambios de cuenta).
         $handover = AssetHandover::query()
             ->where('asset_id', $asset->id)
-            ->where('received_by_user_id', auth()->id())
             ->latest('delivered_at')
             ->first();
 

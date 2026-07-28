@@ -113,7 +113,7 @@ class TicketsTable
                     })
                     ->tooltip(fn ($record) => $record->satisfactionSurvey?->comment)
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -178,11 +178,13 @@ class TicketsTable
             ->defaultSort('created_at', 'desc')
             ->recordActions([
                 Action::make('viewSurvey')
-                    ->label('Ver encuesta')
+                    ->label(fn ($record) => $record->satisfactionSurvey?->isPending() ? 'Encuesta pendiente' : 'Ver encuesta')
                     ->icon('heroicon-o-star')
-                    ->color('warning')
-                    ->tooltip('Ver resultado de encuesta de satisfacción')
-                    ->visible(fn ($record) => $record->satisfactionSurvey !== null && ! $record->satisfactionSurvey->isPending())
+                    ->color(fn ($record) => $record->satisfactionSurvey?->isPending() ? 'warning' : 'success')
+                    ->tooltip(fn ($record) => $record->satisfactionSurvey?->isPending()
+                        ? 'El usuario aún no ha respondido la encuesta'
+                        : 'Ver resultado de encuesta de satisfacción')
+                    ->visible(fn ($record) => $record->satisfactionSurvey !== null)
                     ->modalHeading(fn ($record) => "Encuesta — Ticket {$record->number}")
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar')

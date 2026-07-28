@@ -20,9 +20,8 @@ use Illuminate\Foundation\Auth\User as AuthUser;
  *   - supervisor_soporte / tecnico_campo: crear, editar y ver si su
  *     depto tiene `can_access_inventory = true`. Borrar solo
  *     supervisor.
- *   - agente_soporte: SOLO LECTURA (ver listado y ficha) cuando su
- *     depto tiene `can_access_inventory = true`. No crear/editar/borrar
- *     — el agente consulta el inventario para resolver tickets.
+ *   - agente_soporte: crear, editar y ver si su depto tiene
+ *     `can_access_inventory = true`. No borrar.
  *   - usuario_final: nunca.
  */
 class AssetPolicy
@@ -114,10 +113,6 @@ class AssetPolicy
         return $user->hasAnyRole(['supervisor_soporte', 'tecnico_campo', 'agente_soporte']);
     }
 
-    /**
-     * Regla de escritura: solo supervisor_soporte y tecnico_campo, no
-     * agente_soporte. Agente solo lee.
-     */
     protected function canWriteInventory(AuthUser $user): bool
     {
         if ($user->hasAnyRole(['super_admin', 'admin'])) {
@@ -128,6 +123,6 @@ class AssetPolicy
             return false;
         }
 
-        return $user->hasAnyRole(['supervisor_soporte', 'tecnico_campo']);
+        return $user->hasAnyRole(['supervisor_soporte', 'tecnico_campo', 'agente_soporte']);
     }
 }

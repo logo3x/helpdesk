@@ -77,7 +77,7 @@ class AssetsTable
                         'desktop' => 'Desktop',
                         'laptop' => 'Laptop',
                         'notebook' => 'Notebook',
-                        'all_in_one' => 'All-in-One',
+                        'all_in_one' => 'Todo en uno',
                         'monitor' => 'Monitor',
                         'server' => 'Servidor',
                         'printer' => 'Impresora',
@@ -241,9 +241,8 @@ class AssetsTable
                 SelectFilter::make('type')
                     ->label('Tipo')
                     ->options([
-                        'desktop' => 'Desktop',
                         'laptop' => 'Laptop',
-                        'all_in_one' => 'All-in-One',
+                        'all_in_one' => 'Todo en uno',
                         'monitor' => 'Monitor',
                         'server' => 'Servidor',
                         'printer' => 'Impresora',

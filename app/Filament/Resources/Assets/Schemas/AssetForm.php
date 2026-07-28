@@ -63,9 +63,8 @@ class AssetForm
                                 Select::make('type')
                                     ->label('Tipo')
                                     ->options([
-                                        'desktop' => 'Desktop',
                                         'laptop' => 'Laptop',
-                                        'all_in_one' => 'All-in-One',
+                                        'all_in_one' => 'Todo en uno',
                                         'monitor' => 'Monitor',
                                         'server' => 'Servidor',
                                         'printer' => 'Impresora',
@@ -77,7 +76,7 @@ class AssetForm
                                         'ups' => 'UPS',
                                         'other' => 'Otro',
                                     ])
-                                    ->default('desktop')
+                                    ->default('laptop')
                                     ->required()
                                     ->native(false),
 

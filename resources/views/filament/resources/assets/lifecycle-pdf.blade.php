@@ -39,13 +39,46 @@
         .spec-label { font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase; margin-bottom: 2px; }
         .spec-value { font-size: 12px; color: #1e293b; font-weight: 500; }
 
+        /* Filtros */
+        .filters-bar {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+            padding: 10px 16px; margin-bottom: 16px;
+        }
+        .filters-bar .filter-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; }
+        .filter-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 20px; border: 1px solid #e2e8f0;
+            background: #fff; font-size: 11px; font-weight: 500; color: #475569;
+            cursor: pointer; user-select: none; transition: all .15s;
+        }
+        .filter-chip:hover { border-color: #94a3b8; }
+        .filter-chip.active { border-color: currentColor; }
+        .filter-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+        /* colores por tipo */
+        .chip-created  { color: #6366f1; } .chip-created .dot  { background: #6366f1; }
+        .chip-handover { color: #f59e0b; } .chip-handover .dot { background: #f59e0b; }
+        .chip-history  { color: #64748b; } .chip-history .dot  { background: #94a3b8; }
+        .chip-scan     { color: #0ea5e9; } .chip-scan .dot     { background: #0ea5e9; }
+        /* estado inactivo (desmarcado) */
+        .filter-chip:not(.active) { opacity: .45; }
+        .filter-counter { margin-left: auto; font-size: 10px; color: #94a3b8; }
+
+        /* Botones de acción */
+        .action-bar { display: flex; gap: 8px; margin-bottom: 16px; justify-content: flex-end; }
+        .btn { padding: 6px 14px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; font-size: 12px; font-weight: 500; color: #334155; cursor: pointer; font-family: inherit; transition: background .15s; }
+        .btn:hover { background: #f1f5f9; }
+        .btn-primary { background: #1e293b; color: #fff; border-color: #1e293b; }
+        .btn-primary:hover { background: #334155; }
+
         /* Timeline */
         .timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
         .timeline-title { font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
         .timeline-count { font-size: 11px; color: #94a3b8; }
         .timeline { position: relative; padding-left: 24px; }
         .timeline::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: #e2e8f0; }
-        .event { position: relative; margin-bottom: 14px; }
+        .event { position: relative; margin-bottom: 14px; transition: opacity .2s; }
+        .event.hidden { display: none; }
         .event:last-child { margin-bottom: 0; }
         .event-dot { position: absolute; left: -21px; top: 10px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 2px #e2e8f0; }
         .dot-primary { background: #6366f1; box-shadow: 0 0 0 2px #e0e7ff; }
@@ -62,25 +95,26 @@
         .meta-label { color: #94a3b8; }
         .meta-value { color: #334155; font-weight: 600; }
 
+        /* Vacío */
+        .empty-msg { text-align: center; padding: 24px; color: #94a3b8; font-size: 12px; }
+
         /* Footer */
         .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; }
 
         @media print {
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .no-print { display: none; }
+            .no-print { display: none !important; }
             .page { padding: 16px; }
+            .event.hidden { display: none !important; }
         }
     </style>
 </head>
 <body>
 <div class="page">
 
-    {{-- Botón imprimir (solo en pantalla) --}}
-    <div class="no-print" style="text-align:right; margin-bottom:16px;">
-        <button onclick="window.print()"
-            style="background:#1e293b; color:#fff; border:none; padding:8px 20px; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit;">
-            🖨 Imprimir / Guardar PDF
-        </button>
+    {{-- ── Barra de acciones (solo pantalla) ──────────────────── --}}
+    <div class="action-bar no-print">
+        <button onclick="window.print()" class="btn btn-primary">🖨 Imprimir / Guardar PDF</button>
     </div>
 
     {{-- ── HEADER ─────────────────────────────────────────── --}}
@@ -200,21 +234,40 @@
         </div>
     @endif
 
+    {{-- ── FILTROS (solo pantalla) ─────────────────────────── --}}
+    @if (!empty($events))
+        @php
+            $typeLabels = ['created'=>'Creación','handover'=>'Actas','history'=>'Cambios','scan'=>'Scans'];
+            $presentTypes = collect($events)->pluck('type')->unique()->all();
+        @endphp
+        <div class="filters-bar no-print" id="filters-bar">
+            <span class="filter-label">Mostrar:</span>
+            @foreach ($typeLabels as $type => $label)
+                @if (in_array($type, $presentTypes))
+                    <span class="filter-chip chip-{{ $type }} active" data-type="{{ $type }}" onclick="toggleFilter('{{ $type }}', this)">
+                        <span class="dot"></span>{{ $label }}
+                    </span>
+                @endif
+            @endforeach
+            <span class="filter-counter" id="event-counter">{{ count($events) }} evento(s)</span>
+        </div>
+    @endif
+
     {{-- ── TIMELINE ────────────────────────────────────────── --}}
     <div class="timeline-header">
         <span class="timeline-title">Línea de tiempo</span>
-        <span class="timeline-count">{{ count($events) }} evento(s)</span>
+        <span class="timeline-count" id="timeline-count">{{ count($events) }} evento(s)</span>
     </div>
 
     @if (empty($events))
-        <p style="color:#94a3b8; font-size:12px; text-align:center; padding:20px;">Sin eventos registrados.</p>
+        <p class="empty-msg">Sin eventos registrados.</p>
     @else
-        <div class="timeline">
+        <div class="timeline" id="timeline">
             @foreach ($events as $event)
                 @php
                     $dotClass = ['primary'=>'dot-primary','warning'=>'dot-warning','info'=>'dot-info','gray'=>'dot-gray'][$event['color']] ?? 'dot-gray';
                 @endphp
-                <div class="event">
+                <div class="event" data-type="{{ $event['type'] }}">
                     <div class="event-dot {{ $dotClass }}"></div>
                     <div class="event-card">
                         <div class="event-top">
@@ -249,5 +302,38 @@
     </div>
 
 </div>
+
+<script>
+    var activeFilters = ['created', 'handover', 'history', 'scan'];
+
+    function toggleFilter(type, chip) {
+        var idx = activeFilters.indexOf(type);
+        if (idx > -1) {
+            activeFilters.splice(idx, 1);
+            chip.classList.remove('active');
+        } else {
+            activeFilters.push(type);
+            chip.classList.add('active');
+        }
+        applyFilters();
+    }
+
+    function applyFilters() {
+        var events = document.querySelectorAll('#timeline .event');
+        var visible = 0;
+        events.forEach(function(ev) {
+            if (activeFilters.indexOf(ev.dataset.type) > -1) {
+                ev.classList.remove('hidden');
+                visible++;
+            } else {
+                ev.classList.add('hidden');
+            }
+        });
+        var counter = document.getElementById('event-counter');
+        var tlCount = document.getElementById('timeline-count');
+        if (counter) counter.textContent = visible + ' evento(s)';
+        if (tlCount) tlCount.textContent = visible + ' evento(s)';
+    }
+</script>
 </body>
 </html>

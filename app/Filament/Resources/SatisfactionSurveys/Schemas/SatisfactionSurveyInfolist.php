@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\SatisfactionSurveys\Schemas;
 
 use App\Models\SatisfactionSurvey;
-use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class SatisfactionSurveyInfolist

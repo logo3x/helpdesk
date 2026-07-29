@@ -109,6 +109,7 @@ class AssetLifecycle extends Page
         $events[] = [
             'date' => $this->record->created_at,
             'type' => 'created',
+            'action' => '',
             'icon' => 'heroicon-o-sparkles',
             'color' => 'primary',
             'title' => 'Activo registrado',
@@ -127,6 +128,7 @@ class AssetLifecycle extends Page
             $events[] = [
                 'date' => $handover->delivered_at,
                 'type' => 'handover',
+                'action' => '',
                 'icon' => 'heroicon-o-document-text',
                 'color' => 'warning',
                 'title' => "Acta de entrega #{$handover->acta_number}",
@@ -142,9 +144,20 @@ class AssetLifecycle extends Page
 
         // 3. Cambios manuales registrados en AssetHistory.
         foreach ($this->record->histories as $history) {
+            // Para eventos de tipo 'updated', agrupamos por campo en el action
+            // para que los sub-filtros de la vista puedan distinguirlos.
+            $subAction = match ($history->action) {
+                'assigned', 'unassigned' => 'assigned',
+                'maintenance' => 'maintenance',
+                'retired' => 'retired',
+                'updated' => 'updated_'.$history->field,
+                default => $history->action ?? 'other',
+            };
+
             $events[] = [
                 'date' => $history->created_at,
                 'type' => 'history',
+                'action' => $subAction,
                 'icon' => 'heroicon-o-pencil-square',
                 'color' => 'gray',
                 'title' => $this->labelForAction($history->action, $history->field),
@@ -164,6 +177,7 @@ class AssetLifecycle extends Page
             $events[] = [
                 'date' => $scan->created_at,
                 'type' => 'scan',
+                'action' => '',
                 'icon' => 'heroicon-o-signal',
                 'color' => 'info',
                 'title' => 'Scan recibido ('.($scan->source ?: 'desconocido').')',

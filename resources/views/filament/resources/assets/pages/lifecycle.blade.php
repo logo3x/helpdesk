@@ -65,22 +65,41 @@
         @if (empty($events))
             <p class="text-sm text-gray-500">Este activo aún no tiene eventos registrados.</p>
         @else
-            {{-- Filtros + imprimir --}}
+            {{-- Extraer acciones únicas de eventos history para sub-filtros --}}
+            @php
+                $historySubtypes = collect($events)
+                    ->where('type', 'history')
+                    ->map(fn ($e) => ['action' => $e['action'] ?? '', 'title' => $e['title']])
+                    ->unique('action')
+                    ->filter(fn ($e) => $e['action'] !== '')
+                    ->values()
+                    ->all();
+            @endphp
+
             <div
                 x-data="{
                     filters: { created: true, handover: true, history: true, scan: true },
-                    get visible() {
-                        return Object.entries(this.filters)
-                            .filter(([,v]) => v)
-                            .map(([k]) => k);
+                    historySubtypes: @js(array_column($historySubtypes, 'action')),
+                    activeSubtypes: @js(array_column($historySubtypes, 'action')),
+                    showEvent(type, action) {
+                        if (!this.filters[type]) return false;
+                        if (type === 'history' && action !== '') {
+                            return this.activeSubtypes.includes(action);
+                        }
+                        return true;
                     },
-                    print() {
-                        window.print();
-                    }
+                    toggleSubtype(action) {
+                        if (this.activeSubtypes.includes(action)) {
+                            this.activeSubtypes = this.activeSubtypes.filter(a => a !== action);
+                        } else {
+                            this.activeSubtypes.push(action);
+                        }
+                    },
+                    print() { window.print(); }
                 }"
                 class="mb-4"
             >
-                {{-- Fila de checkboxes + botón imprimir --}}
+                {{-- Fila principal de checkboxes + botón imprimir --}}
                 <div class="flex flex-wrap items-center gap-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/50 print:hidden">
                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">Mostrar:</span>
 
@@ -128,12 +147,34 @@
                     </div>
                 </div>
 
+                {{-- Sub-filtros por tipo de evento (solo si hay más de un subtipo de historia) --}}
+                @if (count($historySubtypes) > 1)
+                    <div
+                        x-show="filters.history"
+                        x-cloak
+                        class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-xs dark:border-gray-700 dark:bg-gray-900/40 print:hidden"
+                    >
+                        <span class="shrink-0 text-gray-400 dark:text-gray-500">Tipo de cambio:</span>
+                        @foreach ($historySubtypes as $sub)
+                            <label class="flex cursor-pointer items-center gap-1.5 text-gray-600 dark:text-gray-400 select-none">
+                                <input
+                                    type="checkbox"
+                                    :checked="activeSubtypes.includes('{{ $sub['action'] }}')"
+                                    @change="toggleSubtype('{{ $sub['action'] }}')"
+                                    class="rounded border-gray-300 text-gray-500"
+                                >
+                                {{ $sub['title'] }}
+                            </label>
+                        @endforeach
+                    </div>
+                @endif
+
                 {{-- Timeline --}}
                 <ol class="relative ml-3 mt-4 border-s border-gray-200 dark:border-gray-700">
                     @foreach ($events as $event)
                         <li
                             class="mb-6 ms-6"
-                            x-show="visible.includes('{{ $event['type'] }}')"
+                            x-show="showEvent('{{ $event['type'] }}', '{{ $event['action'] ?? '' }}')"
                             x-cloak
                         >
                             <span @class([

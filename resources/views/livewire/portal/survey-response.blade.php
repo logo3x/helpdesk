@@ -27,9 +27,8 @@
 
                 <div class="p-6 space-y-1">
                     @foreach(\App\Models\SatisfactionSurvey::DIMENSIONS as $field => $label)
-                        @php($fieldVal = $this->$field)
                         <div
-                            x-data="{ hover: 0, value: @entangle('{{ $field }}').live }"
+                            x-data="{ hover: 0, value: $wire.entangle('{{ $field }}').live }"
                             class="flex items-center justify-between gap-4 rounded-xl px-4 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                         >
                             <span class="flex-1 text-sm font-medium text-zinc-700 dark:text-zinc-300 leading-tight">

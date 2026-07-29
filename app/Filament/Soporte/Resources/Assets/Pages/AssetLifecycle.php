@@ -28,6 +28,7 @@ class AssetLifecycle extends AdminAssetLifecycle
             'department',
             'project',
             'maintenanceResponsible',
+            'createdBy',
             'handovers.receivedBy',
             'handovers.deliveredBy',
             'histories.user',

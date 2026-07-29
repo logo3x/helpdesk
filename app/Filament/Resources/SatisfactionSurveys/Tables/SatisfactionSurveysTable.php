@@ -106,7 +106,6 @@ class SatisfactionSurveysTable
 
                 SelectFilter::make('department')
                     ->label('Departamento')
-                    ->attribute('ticket.department_id')
                     ->options(fn () => Department::where('is_active', true)->orderBy('name')->pluck('name', 'id')->all())
                     ->query(fn (Builder $q, array $data) => $q->when(
                         $data['value'],

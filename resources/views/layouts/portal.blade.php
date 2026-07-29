@@ -88,6 +88,9 @@
                 <flux:navbar.item icon="inbox" :href="route('portal.tickets.index')" :current="request()->routeIs('portal.tickets.index')" wire:navigate>
                     Mis tickets
                 </flux:navbar.item>
+                <flux:navbar.item icon="computer-desktop" :href="route('portal.assets.index')" :current="request()->routeIs('portal.assets.*')" wire:navigate>
+                    Activos
+                </flux:navbar.item>
                 <flux:navbar.item icon="book-open" :href="route('portal.kb.index')" :current="request()->routeIs('portal.kb.*')" wire:navigate>
                     Ayuda
                 </flux:navbar.item>

@@ -127,12 +127,17 @@
                                 </div>
                             @endif
 
-                            {{-- Botón aceptar (si no ha sido aceptado aún) --}}
+                            {{-- Botón aceptar o descargar acta --}}
                             @if (! $asset->accepted_at)
                                 <flux:button wire:click="acceptAsset({{ $asset->id }})"
                                              wire:loading.attr="disabled"
                                              size="xs" variant="filled" icon="check">
                                     Aceptar activo
+                                </flux:button>
+                            @else
+                                <flux:button :href="route('portal.assets.handover-pdf', $asset)" target="_blank"
+                                             size="xs" variant="ghost" icon="arrow-down-tray">
+                                    Descargar acta
                                 </flux:button>
                             @endif
                         </div>

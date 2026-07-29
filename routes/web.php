@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AslController;
+use App\Http\Controllers\Assets\AssetHandoverPdfController;
 use App\Http\Controllers\Assets\AssetLifecyclePdfController;
 use App\Http\Controllers\Auth\AzureAuthController;
 use App\Http\Controllers\InventoryAgentController;
@@ -100,6 +101,9 @@ Route::middleware(['auth', 'verified', EnsureAslAccepted::class])->group(functio
 
         // Mis activos asignados (inventario en custodia del usuario).
         Route::get('assets', MyAssets::class)->name('assets.index');
+
+        // Descarga del acta de entrega aceptada por el custodio.
+        Route::get('assets/{asset}/acta', AssetHandoverPdfController::class)->name('assets.handover-pdf');
 
         // Encuesta de satisfacción de tickets
         Route::get('survey/{token}', SurveyResponse::class)->name('survey');

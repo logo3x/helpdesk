@@ -27,9 +27,8 @@ class WelcomeWidget extends Widget
         $firstName = explode(' ', (string) $user?->name)[0] ?? '';
 
         $myOpen = Ticket::query()
-            ->where('assigned_to', $user?->id)
+            ->where('assigned_to_id', $user?->id)
             ->whereNotIn('status', ['resuelto', 'cerrado'])
-            ->whereNull('deleted_at')
             ->count();
 
         $roles = $user?->getRoleNames()->implode(', ') ?? '';

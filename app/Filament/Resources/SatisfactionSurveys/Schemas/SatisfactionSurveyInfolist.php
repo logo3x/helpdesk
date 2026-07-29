@@ -12,9 +12,10 @@ class SatisfactionSurveyInfolist
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(1)
             ->components([
                 Section::make('Información del ticket')
-                    ->columns(3)
+                    ->columns(4)
                     ->schema([
                         TextEntry::make('ticket.number')
                             ->label('Ticket')
@@ -24,6 +25,11 @@ class SatisfactionSurveyInfolist
                             ->label('Asunto')
                             ->columnSpan(2),
 
+                        TextEntry::make('responded_at')
+                            ->label('Respondida')
+                            ->dateTime('d/m/Y H:i')
+                            ->placeholder('Pendiente'),
+
                         TextEntry::make('user.name')
                             ->label('Usuario'),
 
@@ -31,11 +37,6 @@ class SatisfactionSurveyInfolist
                             ->label('Departamento')
                             ->badge()
                             ->color('gray'),
-
-                        TextEntry::make('responded_at')
-                            ->label('Respondida')
-                            ->dateTime('d/m/Y H:i')
-                            ->placeholder('Pendiente'),
                     ]),
 
                 Section::make('Calificaciones por dimensión')
@@ -76,7 +77,7 @@ class SatisfactionSurveyInfolist
 
                         return $entries;
                     })
-                    ->columns(2),
+                    ->columns(3),
 
                 Section::make('Comentario del usuario')
                     ->schema([

@@ -4,9 +4,9 @@ namespace App\Filament\Resources\SatisfactionSurveys\Tables;
 
 use App\Models\Department;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -58,7 +58,7 @@ class SatisfactionSurveysTable
 
                 TextColumn::make('rating')
                     ->label('Promedio')
-                    ->formatStateUsing(function ($state, $record) {
+                    ->formatStateUsing(function ($record) {
                         $avg = $record->averageRating();
                         if ($avg === null) {
                             return '—';
@@ -104,21 +104,39 @@ class SatisfactionSurveysTable
                     ->query(fn (Builder $q) => $q->whereNull('responded_at'))
                     ->toggle(),
 
-                SelectFilter::make('department')
+                Filter::make('department')
                     ->label('Departamento')
-                    ->options(fn () => Department::where('is_active', true)->orderBy('name')->pluck('name', 'id')->all())
+                    ->form([
+                        Select::make('value')
+                            ->label('Departamento')
+                            ->options(fn () => Department::where('is_active', true)->orderBy('name')->pluck('name', 'id')->all())
+                            ->placeholder('Todos'),
+                    ])
                     ->query(fn (Builder $q, array $data) => $q->when(
-                        $data['value'],
+                        $data['value'] ?? null,
                         fn ($q, $v) => $q->whereHas('ticket', fn ($tq) => $tq->where('department_id', $v)),
-                    )),
+                    ))
+                    ->indicateUsing(function (array $data): ?string {
+                        if (! ($data['value'] ?? null)) {
+                            return null;
+                        }
 
-                SelectFilter::make('rating_range')
-                    ->label('Calificación promedio')
-                    ->attribute('rating')
-                    ->options([
-                        'high' => 'Alta (≥ 4)',
-                        'mid' => 'Media (3)',
-                        'low' => 'Baja (≤ 2)',
+                        $name = Department::find($data['value'])?->name;
+
+                        return $name ? "Depto: {$name}" : null;
+                    }),
+
+                Filter::make('rating_range')
+                    ->label('Calificación')
+                    ->form([
+                        Select::make('value')
+                            ->label('Calificación promedio')
+                            ->options([
+                                'high' => 'Alta (≥ 4)',
+                                'mid' => 'Media (3)',
+                                'low' => 'Baja (≤ 2)',
+                            ])
+                            ->placeholder('Todas'),
                     ])
                     ->query(function (Builder $q, array $data) {
                         return match ($data['value'] ?? null) {
@@ -126,6 +144,14 @@ class SatisfactionSurveysTable
                             'mid' => $q->where('rating', 3),
                             'low' => $q->where('rating', '<=', 2),
                             default => $q,
+                        };
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        return match ($data['value'] ?? null) {
+                            'high' => 'Calificación: Alta (≥ 4)',
+                            'mid' => 'Calificación: Media (3)',
+                            'low' => 'Calificación: Baja (≤ 2)',
+                            default => null,
                         };
                     }),
             ])

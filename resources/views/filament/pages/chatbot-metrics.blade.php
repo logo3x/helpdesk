@@ -18,16 +18,29 @@
         }
 
         .cm-chart-grid {
-            display: grid;
+            display: flex;
+            flex-wrap: wrap;
             gap: 1rem;
-            grid-template-columns: 1fr;
         }
-        @media (min-width: 1100px) {
-            .cm-chart-grid { grid-template-columns: 2fr 1fr; }
-        }
+        .cm-chart-main { flex: 1 1 520px; min-width: 0; }
+        .cm-chart-side { flex: 0 0 280px; min-width: 0; }
 
         .cm-icon { display:inline-block; width:1rem; height:1rem; vertical-align:middle; flex-shrink:0; }
         .cm-icon-sm { display:inline-block; width:0.75rem; height:0.75rem; vertical-align:middle; flex-shrink:0; }
+
+        .cm-table { width:100%; border-collapse:collapse; font-size:0.8125rem; }
+        .cm-table th { background:#f9fafb; padding:0.625rem 0.75rem; font-size:0.6875rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#9ca3af; border-bottom:2px solid #e5e7eb; }
+        .cm-table th.right { text-align:right; }
+        .cm-table th.center { text-align:center; }
+        .cm-table td { padding:0.625rem 0.75rem; border-bottom:1px solid #f3f4f6; color:#374151; vertical-align:middle; }
+        .cm-table td.right { text-align:right; }
+        .cm-table td.center { text-align:center; }
+        .cm-table tr:last-child td { border-bottom:none; }
+        .cm-table tr:hover td { background:#f9fafb; }
+        .cm-badge { display:inline-block; border-radius:9999px; padding:0.2rem 0.6rem; font-size:0.6875rem; font-weight:600; white-space:nowrap; }
+        .cm-neg-item { border-radius:0.75rem; border:1px solid #e5e7eb; background:#fafafa; overflow:hidden; margin-bottom:0.625rem; }
+        .cm-neg-meta { display:flex; align-items:center; justify-content:space-between; padding:0.4rem 1rem; background:#f3f4f6; border-bottom:1px solid #e5e7eb; font-size:0.75rem; color:#9ca3af; }
+        .cm-neg-body { padding:0.75rem 1rem; font-size:0.8125rem; color:#374151; line-height:1.6; }
     </style>
 
     {{-- ── Controles: ventana + filtro depto + export ─────────────── --}}
@@ -138,6 +151,7 @@
 
     {{-- ── Gráficos ─────────────────────────────────────────────────── --}}
     <div class="cm-section cm-chart-grid">
+        <div class="cm-chart-main">
         <x-filament::section>
             <x-slot name="heading">Evolución del CSAT y volumen</x-slot>
             <x-slot name="description">Línea naranja = % CSAT diario · Barras azules = mensajes del bot por día.</x-slot>
@@ -174,7 +188,9 @@
                     }"></canvas>
             </div>
         </x-filament::section>
+        </div>
 
+        <div class="cm-chart-side">
         <x-filament::section>
             <x-slot name="heading">Origen de respuestas</x-slot>
             <x-slot name="description">Distribución por fuente del periodo.</x-slot>
@@ -205,6 +221,7 @@
                 @endif
             </div>
         </x-filament::section>
+        </div>
     </div>
 
     @once
@@ -219,53 +236,44 @@
 
         @php
             $labels = [
-                'kb_high'   => ['KB alta confianza',     'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'],
-                'kb_medium' => ['KB confianza media',    'bg-lime-100 text-lime-700 dark:bg-lime-950/50 dark:text-lime-300'],
-                'flow'      => ['Flujo guiado',          'bg-sky-100 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300'],
-                'llm'       => ['LLM (con contexto KB)', 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300'],
-                'fallback'  => ['Fallback genérico',     'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300'],
-                'system'    => ['Sistema / escalación',  'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'],
-                null        => ['Sin clasificar',        'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500'],
+                'kb_high'   => ['KB alta confianza',     'background:#d1fae5;color:#065f46'],
+                'kb_medium' => ['KB confianza media',    'background:#ecfccb;color:#3f6212'],
+                'flow'      => ['Flujo guiado',          'background:#e0f2fe;color:#075985'],
+                'llm'       => ['LLM (con contexto KB)', 'background:#e0e7ff;color:#3730a3'],
+                'fallback'  => ['Fallback genérico',     'background:#fee2e2;color:#991b1b'],
+                'system'    => ['Sistema / escalación',  'background:#f4f4f5;color:#52525b'],
+                null        => ['Sin clasificar',        'background:#f4f4f5;color:#71717a'],
             ];
         @endphp
 
         @if (empty($sourceBreakdown))
-            <p class="text-sm text-zinc-500">Aún no hay respuestas registradas en este periodo.</p>
+            <p style="font-size:0.875rem;color:#71717a">Aún no hay respuestas registradas en este periodo.</p>
         @else
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+            <div style="overflow-x:auto">
+                <table class="cm-table">
                     <thead>
-                        <tr class="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-400 dark:border-zinc-700">
-                            <th class="px-3 py-2.5 text-left font-semibold">Origen</th>
-                            <th class="px-3 py-2.5 text-right font-semibold">Total</th>
-                            <th class="px-3 py-2.5 text-right font-semibold">👍</th>
-                            <th class="px-3 py-2.5 text-right font-semibold">👎</th>
-                            <th class="px-3 py-2.5 text-right font-semibold">CSAT</th>
+                        <tr>
+                            <th>Origen</th>
+                            <th class="right">Total</th>
+                            <th class="right">👍</th>
+                            <th class="right">👎</th>
+                            <th class="right">CSAT</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($sourceBreakdown as $row)
                             @php
-                                [$label, $color] = $labels[$row['source_kind']] ?? ['—','bg-zinc-100 text-zinc-600'];
+                                [$label, $badgeStyle] = $labels[$row['source_kind']] ?? ['—','background:#f4f4f5;color:#52525b'];
                                 $rated = $row['helpful'] + $row['not_helpful'];
                                 $csat  = $rated > 0 ? round(($row['helpful'] / $rated) * 100, 1) : null;
+                                $csatColor = $csat === null ? '#a1a1aa' : ($csat >= 70 ? '#059669' : ($csat >= 40 ? '#d97706' : '#dc2626'));
                             @endphp
-                            <tr class="border-b border-zinc-100 transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/40">
-                                <td class="px-3 py-2.5">
-                                    <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $color }}">{{ $label }}</span>
-                                </td>
-                                <td class="px-3 py-2.5 text-right font-semibold">{{ $row['total'] }}</td>
-                                <td class="px-3 py-2.5 text-right font-semibold text-emerald-600">{{ $row['helpful'] }}</td>
-                                <td class="px-3 py-2.5 text-right font-semibold text-rose-600">{{ $row['not_helpful'] }}</td>
-                                <td class="px-3 py-2.5 text-right">
-                                    @if ($csat !== null)
-                                        <span class="{{ $csat >= 70 ? 'text-emerald-600' : ($csat >= 40 ? 'text-amber-600' : 'text-rose-600') }} font-semibold">
-                                            {{ $csat }}%
-                                        </span>
-                                    @else
-                                        <span class="text-zinc-400">—</span>
-                                    @endif
-                                </td>
+                            <tr>
+                                <td><span class="cm-badge" style="{{ $badgeStyle }}">{{ $label }}</span></td>
+                                <td class="right" style="font-weight:600">{{ $row['total'] }}</td>
+                                <td class="right" style="font-weight:600;color:#059669">{{ $row['helpful'] }}</td>
+                                <td class="right" style="font-weight:600;color:#dc2626">{{ $row['not_helpful'] }}</td>
+                                <td class="right" style="font-weight:600;color:{{ $csatColor }}">{{ $csat !== null ? $csat.'%' : '—' }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -285,41 +293,34 @@
                 No hay artículos con votos negativos aún.
             </div>
         @else
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+            <div style="overflow-x:auto">
+                <table class="cm-table">
                     <thead>
-                        <tr class="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-400 dark:border-zinc-700">
-                            <th class="px-3 py-2.5 text-left font-semibold">Artículo</th>
-                            <th class="px-3 py-2.5 text-right font-semibold">Usado</th>
-                            <th class="px-3 py-2.5 text-right font-semibold">👍</th>
-                            <th class="px-3 py-2.5 text-right font-semibold">👎</th>
-                            <th class="px-3 py-2.5 text-right font-semibold">CSAT</th>
-                            <th class="px-3 py-2.5 text-center font-semibold">Detalle</th>
+                        <tr>
+                            <th>Artículo</th>
+                            <th class="right">Usado</th>
+                            <th class="right">👍</th>
+                            <th class="right">👎</th>
+                            <th class="right">CSAT</th>
+                            <th class="center">Detalle</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($topUnhelpful as $row)
-                            <tr class="border-b border-zinc-100 transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/40">
-                                <td class="px-3 py-2.5 text-zinc-700 dark:text-zinc-300">
-                                    {{ $row['title'] ?? '— (artículo eliminado #'.$row['article_id'].')' }}
-                                </td>
-                                <td class="px-3 py-2.5 text-right font-semibold">{{ $row['total'] }}</td>
-                                <td class="px-3 py-2.5 text-right font-semibold text-emerald-600">{{ $row['helpful'] }}</td>
-                                <td class="px-3 py-2.5 text-right font-semibold text-rose-600">{{ $row['not_helpful'] }}</td>
-                                <td class="px-3 py-2.5 text-right">
-                                    @if ($row['csat'] !== null)
-                                        <span class="font-semibold {{ $row['csat'] >= 60 ? 'text-emerald-600' : ($row['csat'] >= 30 ? 'text-amber-600' : 'text-rose-600') }}">
-                                            {{ $row['csat'] }}%
-                                        </span>
-                                    @else
-                                        <span class="text-zinc-400">—</span>
-                                    @endif
-                                </td>
-                                <td class="px-3 py-2.5 text-center">
+                            @php
+                                $csatColor = $row['csat'] === null ? '#a1a1aa' : ($row['csat'] >= 60 ? '#059669' : ($row['csat'] >= 30 ? '#d97706' : '#dc2626'));
+                            @endphp
+                            <tr>
+                                <td>{{ $row['title'] ?? '— (artículo eliminado #'.$row['article_id'].')' }}</td>
+                                <td class="right" style="font-weight:600">{{ $row['total'] }}</td>
+                                <td class="right" style="font-weight:600;color:#059669">{{ $row['helpful'] }}</td>
+                                <td class="right" style="font-weight:600;color:#dc2626">{{ $row['not_helpful'] }}</td>
+                                <td class="right" style="font-weight:600;color:{{ $csatColor }}">{{ $row['csat'] !== null ? $row['csat'].'%' : '—' }}</td>
+                                <td class="center">
                                     <button type="button" wire:click="showDrilldown({{ $row['article_id'] }})"
                                         style="display:inline-flex;align-items:center;gap:0.25rem;border-radius:0.5rem;background:#f4f4f5;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:500;color:#3f3f46;border:none;cursor:pointer">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="cm-icon-sm" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
-                                        Drill-down
+                                        Detalle
                                     </button>
                                 </td>
                             </tr>
@@ -420,23 +421,21 @@
         <x-slot name="heading">Últimos 10 mensajes marcados como "no me sirvió"</x-slot>
 
         @if (empty($recentNegatives))
-            <p class="text-sm text-zinc-400">No hay mensajes negativos recientes.</p>
+            <p style="font-size:0.875rem;color:#a1a1aa">No hay mensajes negativos recientes.</p>
         @else
-            <ul class="space-y-2.5 text-sm">
-                @foreach ($recentNegatives as $row)
-                    <li class="overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/60">
-                        <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-2 text-xs text-zinc-400 dark:border-zinc-800">
-                            <span>{{ $row['created_at']->translatedFormat('d M Y · H:i') }}</span>
-                            @if ($row['kb_title'])
-                                <span class="rounded-full bg-zinc-100 px-2 py-0.5 font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                                    KB: {{ $row['kb_title'] }}
-                                </span>
-                            @endif
-                        </div>
-                        <p class="px-4 py-3 text-zinc-700 dark:text-zinc-200">{{ $row['content'] }}</p>
-                    </li>
-                @endforeach
-            </ul>
+            @foreach ($recentNegatives as $row)
+                <div class="cm-neg-item">
+                    <div class="cm-neg-meta">
+                        <span>{{ $row['created_at']->translatedFormat('d M Y · H:i') }}</span>
+                        @if ($row['kb_title'])
+                            <span style="border-radius:9999px;background:#e4e4e7;padding:0.15rem 0.5rem;font-weight:500;color:#52525b">
+                                KB: {{ Str::limit($row['kb_title'], 40) }}
+                            </span>
+                        @endif
+                    </div>
+                    <p class="cm-neg-body">{{ Str::of($row['content'])->replaceMatches('/#{1,6}\s+/', '')->replaceMatches('/\*{1,2}([^*]+)\*{1,2}/', '$1')->limit(300) }}</p>
+                </div>
+            @endforeach
         @endif
     </x-filament::section>
 </x-filament-panels::page>

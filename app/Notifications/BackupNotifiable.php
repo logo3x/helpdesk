@@ -3,12 +3,10 @@
 namespace App\Notifications;
 
 use App\Models\User;
-use Illuminate\Notifications\Notifiable;
+use Spatie\Backup\Notifications\Notifiable as SpatieNotifiable;
 
-class BackupNotifiable
+class BackupNotifiable extends SpatieNotifiable
 {
-    use Notifiable;
-
     /**
      * Envía notificaciones de backup a todos los admins y super_admins.
      *

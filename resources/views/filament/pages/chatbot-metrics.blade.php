@@ -7,6 +7,24 @@
         }
         .cm-kpi  { animation: cmFadeUp .3s ease both; opacity: 0; }
         .cm-section { animation: cmFadeUp .35s ease .1s both; }
+
+        .cm-kpi-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(2, 1fr);
+        }
+        @media (min-width: 900px) {
+            .cm-kpi-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        .cm-chart-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: 1fr;
+        }
+        @media (min-width: 900px) {
+            .cm-chart-grid { grid-template-columns: 2fr 1fr; }
+        }
     </style>
 
     {{-- ── Controles: ventana + filtro depto + export ─────────────── --}}
@@ -65,7 +83,7 @@
         ];
     @endphp
 
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+    <div class="cm-kpi-grid"
          x-data="{}"
          x-init="document.querySelectorAll('.cm-kpi').forEach((el,i)=>{ el.style.animationDelay=(i*60)+'ms'; })">
         @foreach ($kpis as $kpi)
@@ -107,8 +125,8 @@
     </div>
 
     {{-- ── Gráficos ─────────────────────────────────────────────────── --}}
-    <div class="cm-section grid gap-4 lg:grid-cols-3">
-        <x-filament::section class="lg:col-span-2">
+    <div class="cm-section cm-chart-grid">
+        <x-filament::section>
             <x-slot name="heading">Evolución del CSAT y volumen</x-slot>
             <x-slot name="description">Línea naranja = % CSAT diario · Barras azules = mensajes del bot por día.</x-slot>
 

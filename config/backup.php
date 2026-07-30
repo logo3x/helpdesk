@@ -25,21 +25,11 @@ return [
                 /*
                  * The list of directories and files that will be included in the backup.
                  */
-                'include' => [
-                    base_path(),
-                    // storage_path(),  // Include if you use zero downtime deployments and don't follow symlinks
-                ],
+                // Solo BD — no se incluyen archivos del proyecto para que el backup
+                // desde la UI termine rápido. El código está en git.
+                'include' => [],
 
-                /*
-                 * These directories and files will be excluded from the backup.
-                 *
-                 * Directories used by the backup process will automatically be excluded.
-                 */
-                'exclude' => [
-                    base_path('vendor'),
-                    base_path('node_modules'),
-                    storage_path('framework'),
-                ],
+                'exclude' => [],
 
                 /*
                  * Determines if symlinks should be followed.

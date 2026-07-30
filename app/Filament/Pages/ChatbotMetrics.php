@@ -17,6 +17,7 @@ use BackedEnum;
 use Carbon\CarbonInterface;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +59,11 @@ class ChatbotMetrics extends Page
     public ?string $departmentId = null;
 
     public ?int $drilldownArticleId = null;
+
+    public function getMaxContentWidth(): MaxWidth|string|null
+    {
+        return MaxWidth::Full;
+    }
 
     public static function canAccess(): bool
     {

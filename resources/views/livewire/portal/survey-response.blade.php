@@ -29,9 +29,9 @@
                     @foreach(\App\Models\SatisfactionSurvey::DIMENSIONS as $field => $label)
                         <div
                             x-data="{ hover: 0, value: $wire.entangle('{{ $field }}').live }"
-                            class="flex items-center justify-between gap-4 rounded-xl px-4 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                            class="flex items-center justify-between gap-4 rounded-xl px-4 py-3 transition-colors hover:bg-sky-50 dark:hover:bg-zinc-700/60"
                         >
-                            <span class="flex-1 text-sm font-medium text-zinc-700 dark:text-zinc-300 leading-tight">
+                            <span class="flex-1 text-sm font-medium text-zinc-700 dark:text-zinc-200 leading-tight group-hover:text-zinc-900 dark:group-hover:text-white">
                                 {{ $label }}
                             </span>
                             <div class="flex items-center gap-1 shrink-0">
@@ -44,7 +44,7 @@
                                         class="text-2xl leading-none transition-transform duration-75 focus:outline-none"
                                         :class="{
                                             'text-amber-400 scale-110': (hover >= {{ $n }} || (hover === 0 && value >= {{ $n }})),
-                                            'text-zinc-200 dark:text-zinc-700': !(hover >= {{ $n }} || (hover === 0 && value >= {{ $n }}))
+                                            'text-zinc-300 dark:text-zinc-500': !(hover >= {{ $n }} || (hover === 0 && value >= {{ $n }}))
                                         }"
                                         aria-label="Calificación {{ $n }}"
                                     >★</button>

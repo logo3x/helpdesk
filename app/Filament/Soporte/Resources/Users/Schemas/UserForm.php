@@ -47,10 +47,13 @@ class UserForm
 
                         Select::make('role')
                             ->label('Rol')
-                            ->options([
-                                'usuario_final' => 'Usuario final (portal /soporte)',
-                                'agente_soporte' => 'Agente de soporte',
-                            ])
+                            ->options(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin'])
+                                ? [
+                                    'usuario_final' => 'Usuario final (portal /soporte)',
+                                    'agente_soporte' => 'Agente de soporte',
+                                ]
+                                : ['usuario_final' => 'Usuario final (portal /soporte)']
+                            )
                             ->default('usuario_final')
                             ->required()
                             ->dehydrated(false)

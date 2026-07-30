@@ -22,9 +22,12 @@
             gap: 1rem;
             grid-template-columns: 1fr;
         }
-        @media (min-width: 900px) {
+        @media (min-width: 1100px) {
             .cm-chart-grid { grid-template-columns: 2fr 1fr; }
         }
+
+        .cm-icon { display:inline-block; width:1rem; height:1rem; vertical-align:middle; flex-shrink:0; }
+        .cm-icon-sm { display:inline-block; width:0.75rem; height:0.75rem; vertical-align:middle; flex-shrink:0; }
     </style>
 
     {{-- ── Controles: ventana + filtro depto + export ─────────────── --}}
@@ -277,8 +280,8 @@
         <x-slot name="description">Click en una fila para ver los mensajes específicos que recibieron 👎 con ese artículo.</x-slot>
 
         @if (empty($topUnhelpful))
-            <div class="flex items-center gap-2 text-sm text-emerald-600">
-                <x-heroicon-o-check-circle class="size-4" />
+            <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;color:#059669">
+                <svg xmlns="http://www.w3.org/2000/svg" class="cm-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
                 No hay artículos con votos negativos aún.
             </div>
         @else
@@ -314,8 +317,8 @@
                                 </td>
                                 <td class="px-3 py-2.5 text-center">
                                     <button type="button" wire:click="showDrilldown({{ $row['article_id'] }})"
-                                        class="inline-flex items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700">
-                                        <x-heroicon-m-magnifying-glass class="size-3" />
+                                        style="display:inline-flex;align-items:center;gap:0.25rem;border-radius:0.5rem;background:#f4f4f5;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:500;color:#3f3f46;border:none;cursor:pointer">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="cm-icon-sm" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
                                         Drill-down
                                     </button>
                                 </td>
@@ -339,8 +342,8 @@
                         <p class="mt-0.5 text-xs text-zinc-400">Mensajes 👎 recibidos con este artículo</p>
                     </div>
                     <button type="button" wire:click="closeDrilldown"
-                        class="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800">
-                        <x-heroicon-m-x-mark class="size-4" />
+                        style="border-radius:0.5rem;padding:0.375rem;color:#a1a1aa;border:none;background:transparent;cursor:pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="cm-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
 
@@ -371,7 +374,7 @@
                                         wire:loading.attr="disabled"
                                         wire:target="createReviewTicket({{ $msg['id'] }})"
                                         class="inline-flex items-center gap-1.5 rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 transition hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60">
-                                        <x-heroicon-m-ticket class="size-3.5" />
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="cm-icon-sm" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z"/></svg>
                                         Crear ticket de revisión
                                     </button>
                                 </div>
@@ -389,21 +392,21 @@
         <x-slot name="description">Cada pregunta representa un artículo KB por escribir. Click en el botón para crearlo con el título pre-rellenado.</x-slot>
 
         @if (empty($fallbackQuestions))
-            <div class="flex items-center gap-2 text-sm text-emerald-600">
-                <x-heroicon-o-check-circle class="size-4" />
+            <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;color:#059669">
+                <svg xmlns="http://www.w3.org/2000/svg" class="cm-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
                 El bot está cubriendo todo.
             </div>
         @else
-            <ul class="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+            <ul style="font-size:0.875rem;border-top:1px solid #f4f4f5">
                 @foreach ($fallbackQuestions as $row)
-                    <li class="flex items-center justify-between gap-4 py-2.5">
-                        <span class="flex-1 text-zinc-700 dark:text-zinc-200">"{{ $row['question'] }}"</span>
-                        <span class="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-400">
+                    <li style="display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0.625rem 0;border-bottom:1px solid #f4f4f5">
+                        <span style="flex:1;color:#3f3f46">"{{ $row['question'] }}"</span>
+                        <span style="flex-shrink:0;border-radius:9999px;background:#fee2e2;padding:0.125rem 0.5rem;font-size:0.75rem;font-weight:600;color:#b91c1c">
                             {{ $row['count'] }}×
                         </span>
                         <a href="{{ $this->createKbFromGapUrl($row['question']) }}" target="_blank"
-                            class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-emerald-700">
-                            <x-heroicon-m-pencil-square class="size-3" />
+                            style="display:inline-flex;flex-shrink:0;align-items:center;gap:0.375rem;border-radius:0.5rem;background:#059669;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:600;color:#fff;text-decoration:none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="cm-icon-sm" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
                             Crear KB
                         </a>
                     </li>

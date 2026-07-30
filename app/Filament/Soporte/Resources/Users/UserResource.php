@@ -14,6 +14,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Users resource in the Support panel.
@@ -53,6 +54,23 @@ class UserResource extends Resource
     public static function canViewAny(): bool
     {
         return static::canAccess();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        $authUser = auth()->user();
+
+        if (! $authUser) {
+            return false;
+        }
+
+        // Admins y supervisores pueden editar cualquier usuario del resource.
+        if ($authUser->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])) {
+            return true;
+        }
+
+        // Agentes solo pueden editar usuarios_final.
+        return $record->hasRole('usuario_final');
     }
 
     public static function form(Schema $schema): Schema

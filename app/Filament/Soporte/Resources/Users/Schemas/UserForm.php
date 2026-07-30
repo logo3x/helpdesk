@@ -12,9 +12,8 @@ use Illuminate\Support\Facades\Hash;
 /**
  * Form for the Support panel's Users resource.
  *
- * Supervisors can only create agente_soporte users for their own
- * department. The role and department fields are pre-filled and
- * disabled to enforce this rule.
+ * Supervisors can create agente_soporte or usuario_final users.
+ * Department is forced to their own for supervisors.
  */
 class UserForm
 {
@@ -22,8 +21,7 @@ class UserForm
     {
         return $schema
             ->components([
-                Section::make('Nuevo agente del departamento')
-                    ->description('Crea un agente de soporte para tu departamento. El rol y departamento se asignan automáticamente.')
+                Section::make('Datos del usuario')
                     ->schema([
                         TextInput::make('name')
                             ->label('Nombre completo')
@@ -45,7 +43,18 @@ class UserForm
                             ->minLength(8)
                             ->dehydrateStateUsing(fn (?string $state) => filled($state) ? Hash::make($state) : null)
                             ->dehydrated(fn (?string $state) => filled($state))
-                            ->helperText('Mínimo 8 caracteres. El agente la puede cambiar luego desde su perfil.'),
+                            ->helperText('Mínimo 8 caracteres. El usuario la puede cambiar luego desde su perfil.'),
+
+                        Select::make('role')
+                            ->label('Rol')
+                            ->options([
+                                'usuario_final' => 'Usuario final (portal /soporte)',
+                                'agente_soporte' => 'Agente de soporte',
+                            ])
+                            ->default('usuario_final')
+                            ->required()
+                            ->dehydrated(false)
+                            ->helperText('Usuario final: accede al portal para abrir tickets. Agente: gestiona tickets en el panel soporte.'),
 
                         Select::make('department_id')
                             ->label('Departamento')
@@ -54,7 +63,7 @@ class UserForm
                             ->disabled(fn () => ! auth()->user()?->hasAnyRole(['super_admin', 'admin']))
                             ->dehydrated()
                             ->required()
-                            ->helperText('Los supervisores solo pueden crear agentes en su propio departamento.'),
+                            ->helperText('Los supervisores solo pueden crear usuarios en su propio departamento.'),
                     ])
                     ->columns(2),
             ]);

@@ -57,6 +57,7 @@ class UserForm
                             ->default('usuario_final')
                             ->required()
                             ->dehydrated(false)
+                            ->disabled(fn () => ! auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']))
                             ->helperText('Usuario final: accede al portal para abrir tickets. Agente: gestiona tickets en el panel soporte.'),
 
                         Select::make('department_id')

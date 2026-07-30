@@ -29,7 +29,13 @@ class CreateUser extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $role = $this->data['role'] ?? 'usuario_final';
+        $authUser = auth()->user();
+
+        // Agentes solo pueden crear usuario_final, sin importar lo que llegue en el form.
+        $role = ($authUser && $authUser->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']))
+            ? ($this->data['role'] ?? 'usuario_final')
+            : 'usuario_final';
+
         $this->record->assignRole($role);
     }
 

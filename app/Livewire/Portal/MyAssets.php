@@ -120,7 +120,10 @@ class MyAssets extends Component
 
         /** @var LengthAwarePaginator<Asset> $assets */
         $assets = Asset::query()
-            ->where('user_id', $userId)
+            ->where(fn ($q) => $q
+                ->where('user_id', $userId)
+                ->orWhereHas('secondaryCustodians', fn ($q) => $q->where('users.id', $userId))
+            )
             ->when($this->search, fn ($q, $s) => $q->where(fn ($q) => $q
                 ->where('asset_tag', 'like', "%{$s}%")
                 ->orWhere('hostname', 'like', "%{$s}%")

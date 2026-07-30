@@ -125,6 +125,17 @@ class AssetForm
                                         }
                                     }),
 
+                                Select::make('secondaryCustodians')
+                                    ->label('Custodios secundarios')
+                                    ->relationship('secondaryCustodians', 'name')
+                                    ->multiple()
+                                    ->searchable(['name', 'email', 'identification'])
+                                    ->preload()
+                                    ->placeholder('Sin custodios adicionales')
+                                    ->helperText('Usuarios que también tienen acceso al activo en "Mis activos".')
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->custodianLabel())
+                                    ->columnSpanFull(),
+
                                 TextInput::make('custodian_name')
                                     ->label('Nombre del custodio')
                                     ->placeholder('Ej: Juan Pérez (si no tiene cuenta en el sistema)')

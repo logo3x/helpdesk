@@ -28,17 +28,17 @@
     </style>
 
     {{-- ── Controles: ventana + filtro depto + export ─────────────── --}}
-    <div class="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
-        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem">
+        <p style="font-size:0.875rem;color:#71717a">
             Datos del chatbot en los últimos <strong>{{ $window }}</strong> días.
             @if ($selectedDepartmentId)
                 · Filtrado por departamento.
             @endif
         </p>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem">
             <select wire:model.live="window"
-                class="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-200 dark:border-zinc-700 dark:bg-zinc-900">
+                style="border-radius:0.5rem;border:1px solid #d4d4d8;background:#fff;padding:0.375rem 0.75rem;font-size:0.875rem">
                 <option value="7">Últimos 7 días</option>
                 <option value="30">Últimos 30 días</option>
                 <option value="90">Últimos 90 días</option>
@@ -46,7 +46,7 @@
             </select>
 
             <select wire:model.live="departmentId"
-                class="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-200 dark:border-zinc-700 dark:bg-zinc-900">
+                style="border-radius:0.5rem;border:1px solid #d4d4d8;background:#fff;padding:0.375rem 0.75rem;font-size:0.875rem">
                 <option value="">Todos los departamentos</option>
                 @foreach ($departments as $dept)
                     <option value="{{ $dept->id }}">{{ $dept->name }}</option>
@@ -54,8 +54,8 @@
             </select>
 
             <button type="button" wire:click="exportExcel"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
-                <x-heroicon-m-arrow-down-tray class="size-4" />
+                style="display:inline-flex;align-items:center;gap:0.375rem;border-radius:0.5rem;background:#059669;padding:0.375rem 0.75rem;font-size:0.875rem;font-weight:500;color:#fff;border:none;cursor:pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
                 Exportar Excel
             </button>
         </div>
@@ -76,10 +76,17 @@
         ];
 
         $colorMap = [
-            'sky'     => ['bg'=>'bg-sky-50 dark:bg-sky-950/40',     'icon'=>'text-sky-500'],
-            'indigo'  => ['bg'=>'bg-indigo-50 dark:bg-indigo-950/40','icon'=>'text-indigo-500'],
-            'amber'   => ['bg'=>'bg-amber-50 dark:bg-amber-950/40', 'icon'=>'text-amber-500'],
-            'emerald' => ['bg'=>'bg-emerald-50 dark:bg-emerald-950/40','icon'=>'text-emerald-500'],
+            'sky'     => ['bg'=>'#e0f2fe', 'icon'=>'#0ea5e9'],
+            'indigo'  => ['bg'=>'#e0e7ff', 'icon'=>'#6366f1'],
+            'amber'   => ['bg'=>'#fef3c7', 'icon'=>'#f59e0b'],
+            'emerald' => ['bg'=>'#d1fae5', 'icon'=>'#10b981'],
+        ];
+
+        $iconPaths = [
+            'chat-bubble-left-right' => 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.269-2.956-2.884-3.071a48.774 48.774 0 0 0-3.461-.21m-8.5 0a48.774 48.774 0 0 0-3.461.21C3.269 3.68 2 5.016 2 6.637v4.172c0 1.621 1.269 2.956 2.884 3.071a49.03 49.03 0 0 0 2.616.08l.002.001 3 3v-3.091a49.03 49.03 0 0 0 1.498-.093',
+            'cpu-chip'              => 'M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z',
+            'hand-thumb-up'         => 'M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V2.75a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m10.598-9.75H14.25M5.904 18.5c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 0 1-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 9.953 4.167 9.5 5 9.5h1.053c.472 0 .745.556.5.96a8.958 8.958 0 0 0-1.302 4.665c0 1.194.232 2.333.654 3.375Z',
+            'check-circle'          => 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
         ];
     @endphp
 
@@ -88,37 +95,39 @@
          x-init="document.querySelectorAll('.cm-kpi').forEach((el,i)=>{ el.style.animationDelay=(i*60)+'ms'; })">
         @foreach ($kpis as $kpi)
             @php $c = $colorMap[$kpi['color']]; @endphp
-            <div class="cm-kpi overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/80">
-                <div class="p-4">
-                    <div class="mb-3 flex items-center justify-between">
-                        <div class="flex h-9 w-9 items-center justify-center rounded-lg {{ $c['bg'] }}">
-                            <x-dynamic-component :component="'heroicon-o-'.$kpi['icon']" class="size-5 {{ $c['icon'] }}" />
+            <div class="cm-kpi" style="overflow:hidden;border-radius:0.75rem;border:1px solid #e4e4e7;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+                <div style="padding:1rem">
+                    <div style="margin-bottom:0.75rem;display:flex;align-items:center;justify-content:space-between">
+                        <div style="display:flex;width:2.25rem;height:2.25rem;align-items:center;justify-content:center;border-radius:0.5rem;background:{{ $c['bg'] }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem;height:1.25rem;color:{{ $c['icon'] }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconPaths[$kpi['icon']] }}" />
+                            </svg>
                         </div>
                         @if ($kpi['delta'])
                             @php
                                 $dir = $kpi['delta']['direction'];
                                 $pct = $kpi['delta']['pct'];
-                                $color = match(true) {
-                                    $dir === 'flat' => 'text-zinc-400 bg-zinc-50 dark:bg-zinc-800',
-                                    $dir === 'up'   => 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/50',
-                                    default         => 'text-rose-700 bg-rose-50 dark:bg-rose-950/50',
+                                $badgeStyle = match(true) {
+                                    $dir === 'flat' => 'color:#a1a1aa;background:#fafafa',
+                                    $dir === 'up'   => 'color:#047857;background:#d1fae5',
+                                    default         => 'color:#b91c1c;background:#fee2e2',
                                 };
                                 $arrow = match($dir) { 'up'=>'↑','down'=>'↓',default=>'→' };
                             @endphp
-                            <span class="rounded-full px-2 py-0.5 text-xs font-semibold {{ $color }}">
+                            <span style="border-radius:9999px;padding:0.125rem 0.5rem;font-size:0.75rem;font-weight:600;{{ $badgeStyle }}">
                                 {{ $arrow }} {{ abs($pct) }}%
                             </span>
                         @endif
                     </div>
-                    <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                    <div style="font-size:1.5rem;font-weight:700;color:#18181b">
                         @if ($kpi['value'] !== null)
                             {{ $kpi['value'] }}{{ $kpi['suffix'] }}
                         @else
-                            <span class="text-zinc-300">—</span>
+                            <span style="color:#d4d4d8">—</span>
                         @endif
                     </div>
-                    <div class="mt-0.5 text-sm font-medium text-zinc-500">{{ $kpi['label'] }}</div>
-                    <div class="mt-1 text-xs text-zinc-400">{{ $kpi['hint'] }} · vs periodo anterior</div>
+                    <div style="margin-top:0.125rem;font-size:0.875rem;font-weight:500;color:#71717a">{{ $kpi['label'] }}</div>
+                    <div style="margin-top:0.25rem;font-size:0.75rem;color:#a1a1aa">{{ $kpi['hint'] }} · vs periodo anterior</div>
                 </div>
             </div>
         @endforeach

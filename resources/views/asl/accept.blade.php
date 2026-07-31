@@ -6,14 +6,14 @@
     <style>
         :root {
             --ink: #1c1917;
-            --paper: #f9f7f4;
-            --line: #e2ddd6;
-            --accent: #b91c1c;
-            --accent-soft: #fef2f2;
-            --accent-dark: #991b1b;
-            --muted: #78716c;
-            --check: #16a34a;
-            --check-soft: #f0fdf4;
+            --paper: #f8f8f8;
+            --line: #e5e5e5;
+            --accent: #e07b39;
+            --accent-soft: #fff7f0;
+            --accent-dark: #c4622a;
+            --muted: #6b7280;
+            --check: #2563eb;
+            --check-soft: #eff6ff;
         }
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -127,7 +127,7 @@
         .asl-clause input[type="checkbox"]:checked::after { transform: scale(1); }
 
         .asl-clause input[type="checkbox"]:focus-visible {
-            outline: 2px solid var(--accent);
+            outline: 2px solid var(--check);
             outline-offset: 2px;
         }
 

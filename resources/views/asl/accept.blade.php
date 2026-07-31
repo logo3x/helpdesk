@@ -413,8 +413,8 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="asl-btn-accept" id="asl-submit" disabled>
-                        Aceptar y continuar
+                    <button type="button" class="asl-btn-accept" id="asl-submit">
+                        Aceptar todas y continuar
                     </button>
 
                     <button type="button" class="asl-btn-logout" id="asl-logout-btn">
@@ -452,12 +452,18 @@
             const checked = document.querySelectorAll('.asl-cb:checked').length;
             countEl.textContent = checked + ' / ' + total;
             fillEl.style.width  = (checked / total * 100) + '%';
-            submitEl.disabled   = checked !== total;
         }
 
         document.querySelectorAll('.asl-cb').forEach(cb =>
             cb.addEventListener('change', updateProgress)
         );
+
+        // Aceptar todas: marca todos los checkboxes y envía el formulario
+        submitEl.addEventListener('click', function () {
+            document.querySelectorAll('.asl-cb').forEach(cb => { cb.checked = true; });
+            updateProgress();
+            document.getElementById('asl-form').submit();
+        });
 
         // Logout
         document.getElementById('asl-logout-btn').addEventListener('click', function () {

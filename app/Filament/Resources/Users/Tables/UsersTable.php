@@ -11,6 +11,7 @@ use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Spatie\Permission\Models\Role;
@@ -79,6 +80,18 @@ class UsersTable
                         default => 'No vinculado a Kactus',
                     }),
 
+                IconColumn::make('asl_accepted_at')
+                    ->label('ASL')
+                    ->getStateUsing(fn (User $r) => $r->asl_accepted_at !== null)
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-clock')
+                    ->trueColor('success')
+                    ->falseColor('warning')
+                    ->tooltip(fn (User $r) => $r->asl_accepted_at
+                        ? 'Aceptado el '.$r->asl_accepted_at->format('d/m/Y H:i')
+                        : 'Pendiente de aceptación'),
+
                 TextColumn::make('last_login_at')
                     ->label('Último acceso')
                     ->dateTime('d/m/Y H:i')
@@ -108,6 +121,11 @@ class UsersTable
                 SelectFilter::make('department_id')
                     ->label('Departamento')
                     ->relationship('department', 'name'),
+
+                Filter::make('asl_pending')
+                    ->label('Sin aceptar ASL')
+                    ->query(fn ($query) => $query->whereNull('asl_accepted_at'))
+                    ->toggle(),
 
                 SelectFilter::make('kactus_status')
                     ->label('Estado Kactus')

@@ -18,6 +18,12 @@ trait ProfileValidationRules
         return [
             'name' => $this->nameRules(),
             'email' => $this->emailRules($userId),
+            'identification' => ['nullable', 'string', 'max:30'],
+            'position' => ['nullable', 'string', 'max:150'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'management_area' => ['nullable', 'string', 'max:120'],
+            'field' => ['nullable', 'string', 'max:100'],
+            'location_zone' => ['nullable', 'string', 'max:100'],
         ];
     }
 

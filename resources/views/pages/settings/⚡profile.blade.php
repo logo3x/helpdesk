@@ -14,14 +14,24 @@ new #[Layout('layouts.portal')] #[Title('Profile settings')] class extends Compo
 
     public string $name = '';
     public string $email = '';
+    public string $identification = '';
+    public string $position = '';
+    public string $phone = '';
+    public string $management_area = '';
+    public string $field = '';
+    public string $location_zone = '';
 
-    /**
-     * Mount the component.
-     */
     public function mount(): void
     {
-        $this->name = Auth::user()->name;
-        $this->email = Auth::user()->email;
+        $user = Auth::user();
+        $this->name = $user->name;
+        $this->email = $user->email;
+        $this->identification = $user->identification ?? '';
+        $this->position = $user->position ?? '';
+        $this->phone = $user->phone ?? '';
+        $this->management_area = $user->management_area ?? '';
+        $this->field = $user->field ?? '';
+        $this->location_zone = $user->location_zone ?? '';
     }
 
     /**
@@ -81,6 +91,13 @@ new #[Layout('layouts.portal')] #[Title('Profile settings')] class extends Compo
 
     <flux:heading class="sr-only">Configuración de perfil</flux:heading>
 
+    @if(session('asl_just_accepted'))
+        <flux:callout variant="success" icon="check-circle" class="mb-6">
+            <flux:callout.heading>¡Bienvenido! Acuerdos aceptados correctamente.</flux:callout.heading>
+            <flux:callout.text>Por favor completa tus datos laborales para que el equipo de soporte pueda asignarte activos correctamente.</flux:callout.text>
+        </flux:callout>
+    @endif
+
     <x-pages::settings.layout heading="Perfil" subheading="Actualiza tu nombre y correo electrónico">
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
             <flux:input wire:model="name" label="Nombre" type="text" required autofocus autocomplete="name" />
@@ -97,14 +114,26 @@ new #[Layout('layouts.portal')] #[Title('Profile settings')] class extends Compo
                                 Haz clic aquí para reenviar el correo de verificación.
                             </flux:link>
                         </flux:text>
-
                     </div>
                 @endif
             </div>
 
+            <flux:separator />
+
+            <flux:heading size="sm" class="text-zinc-600">Datos laborales</flux:heading>
+
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <flux:input wire:model="identification" label="Cédula / Identificación" type="text" autocomplete="off" placeholder="Ej: 12345678" />
+                <flux:input wire:model="position" label="Cargo" type="text" autocomplete="off" placeholder="Ej: Técnico de campo" />
+                <flux:input wire:model="phone" label="Teléfono" type="tel" autocomplete="tel" placeholder="Ej: 3001234567" />
+                <flux:input wire:model="management_area" label="Gerencia" type="text" autocomplete="off" placeholder="Ej: HSEQ, Operaciones" />
+                <flux:input wire:model="field" label="Campo" type="text" autocomplete="off" placeholder="Ej: PORE, SAN MARTIN" />
+                <flux:input wire:model="location_zone" label="Ubicación / Zona" type="text" autocomplete="off" placeholder="Ej: ZONA 4, Bodega central" />
+            </div>
+
             <div class="flex items-center gap-4">
                 <flux:button variant="primary" type="submit" data-test="update-profile-button">
-                    Guardar
+                    Guardar cambios
                 </flux:button>
             </div>
         </form>

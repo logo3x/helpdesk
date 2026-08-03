@@ -28,8 +28,17 @@ class AslController extends Controller
             return redirect()->route('login');
         }
 
-        if ($user->asl_accepted_at === null) {
+        $isNew = $user->asl_accepted_at === null;
+
+        if ($isNew) {
             $user->forceFill(['asl_accepted_at' => now()])->save();
+        }
+
+        // Si es la primera vez que acepta, lleva al perfil para completar datos laborales.
+        // Si ya había aceptado antes (acceso directo), respeta intended().
+        if ($isNew) {
+            return redirect()->route('profile.edit')
+                ->with('asl_just_accepted', true);
         }
 
         return redirect()->intended('/');

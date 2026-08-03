@@ -31,7 +31,7 @@ class EnsureAslAccepted
 
         // No interceptar la propia ruta de aceptación ni Livewire
         // updates (que viajan por POST a /livewire/update).
-        if ($request->routeIs('asl.show') || $request->routeIs('asl.accept') || $request->routeIs('logout')) {
+        if ($request->routeIs('asl.show') || $request->routeIs('asl.accept') || $request->routeIs('logout') || $request->routeIs('profile.edit')) {
             return $next($request);
         }
 

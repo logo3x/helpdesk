@@ -73,6 +73,41 @@ class UserForm
                     ])
                     ->columns(2),
 
+                Section::make('Datos laborales')
+                    ->description('Información de ubicación y cargo para auto-completar activos.')
+                    ->icon('heroicon-o-building-office')
+                    ->collapsed()
+                    ->schema([
+                        TextInput::make('identification')
+                            ->label('Cédula / Identificación')
+                            ->maxLength(30),
+
+                        TextInput::make('position')
+                            ->label('Cargo')
+                            ->maxLength(150),
+
+                        TextInput::make('phone')
+                            ->label('Teléfono')
+                            ->tel()
+                            ->maxLength(30),
+
+                        TextInput::make('management_area')
+                            ->label('Gerencia')
+                            ->placeholder('Ej: HSEQ, Operaciones')
+                            ->maxLength(120),
+
+                        TextInput::make('field')
+                            ->label('Campo')
+                            ->placeholder('Ej: PORE, SAN MARTIN')
+                            ->maxLength(100),
+
+                        TextInput::make('location_zone')
+                            ->label('Ubicación / Zona')
+                            ->placeholder('Ej: ZONA 4, Bodega central')
+                            ->maxLength(100),
+                    ])
+                    ->columns(2),
+
                 Section::make('Integración Kactus')
                     ->description('Datos sincronizados desde el sistema de nómina. Solo lectura — se actualizan automáticamente.')
                     ->icon('heroicon-o-arrow-path')

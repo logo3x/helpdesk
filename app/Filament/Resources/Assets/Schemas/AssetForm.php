@@ -117,12 +117,16 @@ class AssetForm
                                             return;
                                         }
                                         $user = User::find($state);
-                                        if ($user?->identification) {
-                                            $set('custodian_id_number', $user->identification);
+                                        if (! $user) {
+                                            return;
                                         }
-                                        if ($user?->position) {
-                                            $set('custodian_position', $user->position);
-                                        }
+                                        $set('custodian_name', $user->name);
+                                        $set('custodian_id_number', $user->identification ?? '');
+                                        $set('custodian_position', $user->position ?? '');
+                                        $set('department_id', $user->department_id);
+                                        $set('management_area', $user->management_area ?? '');
+                                        $set('field', $user->field ?? '');
+                                        $set('location_zone', $user->location_zone ?? '');
                                     }),
 
                                 Select::make('secondaryCustodians')

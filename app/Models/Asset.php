@@ -196,6 +196,15 @@ class Asset extends Model
         });
     }
 
+    /** Normaliza asset_tag vacío o "N/A" a null para no violar el índice UNIQUE. */
+    public function setAssetTagAttribute(?string $value): void
+    {
+        $normalized = trim((string) $value);
+        $this->attributes['asset_tag'] = ($normalized === '' || strtoupper($normalized) === 'N/A' || strtolower($normalized) === 'na')
+            ? null
+            : $normalized;
+    }
+
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {

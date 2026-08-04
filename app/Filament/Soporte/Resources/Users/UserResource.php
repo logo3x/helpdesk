@@ -93,7 +93,17 @@ class UserResource extends Resource
 
         $user = auth()->user();
 
-        if ($user && ! $user->hasAnyRole(['super_admin', 'admin']) && $user->department_id) {
+        if (! $user) {
+            return $query;
+        }
+
+        // Agentes solo ven usuarios_final (no otros agentes, supervisores, admins).
+        if ($user->hasRole('agente_soporte') && ! $user->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])) {
+            $query->role('usuario_final');
+        }
+
+        // Supervisores y agentes solo ven su propio departamento.
+        if (! $user->hasAnyRole(['super_admin', 'admin']) && $user->department_id) {
             $query->where('department_id', $user->department_id);
         }
 

@@ -44,10 +44,10 @@ class AssetHandoverPdfController extends Controller
             return $this->stream($handover, $path);
         }
 
-        // No hay ningún handover: generar un acta de aceptación mínima on-the-fly.
+        // No hay ningún handover: generar el acta oficial usando los datos del asset.
         $asset->load(['user', 'department', 'project']);
-        $pdfContent = Pdf::loadView('pdfs.asset-handover-accepted', [
-            'asset' => $asset,
+        $pdfContent = Pdf::loadView('pdfs.asset-handover-no-handover', [
+            'asset'      => $asset,
             'acceptedAt' => $asset->accepted_at->toDateTimeString(),
         ])->setPaper('letter', 'portrait')->output();
 

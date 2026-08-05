@@ -50,8 +50,36 @@ class MyAssets extends Component
             return;
         }
 
-        $handover->forceFill(['received_confirmed_at' => now()])->save();
-        $handover->load('asset');
+        $confirmedAt = now();
+
+        $handover->forceFill(['received_confirmed_at' => $confirmedAt])->save();
+        $handover->load(['asset', 'receivedBy', 'deliveredBy', 'project']);
+
+        // Marcar el activo como aceptado si aún no lo está.
+        $asset = $handover->asset;
+        if ($asset && ! $asset->accepted_at) {
+            $asset->forceFill([
+                'accepted_at' => $confirmedAt,
+                'accepted_by_user_id' => auth()->id(),
+            ])->save();
+        }
+
+        // Generar PDF aceptado con sello de confirmación.
+        if ($asset) {
+            $pdf = Pdf::loadView('pdfs.asset-handover', [
+                'handover' => $handover,
+                'acceptedAt' => $confirmedAt->toDateTimeString(),
+            ])->setPaper('letter', 'portrait');
+
+            $path = sprintf(
+                'actas/%d_acta_%s_aceptada.pdf',
+                $handover->acta_number,
+                preg_replace('/[^A-Za-z0-9_-]/', '_', strtoupper($handover->receivedBy?->name ?? 'custodio')),
+            );
+
+            Storage::disk('local')->put($path, $pdf->output());
+            $handover->forceFill(['accepted_pdf_path' => $path])->save();
+        }
 
         // Notificar por email al equipo de soporte (admins y supervisores)
         $recipients = User::role(['super_admin', 'admin', 'supervisor_soporte'])->get();

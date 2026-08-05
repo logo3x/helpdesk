@@ -3,655 +3,671 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="description" content="Helpdesk Confipetrol — plataforma interna de soporte. Tickets, base de conocimiento e inventario en una sola consola.">
+    <meta name="description" content="Helpdesk Confipetrol — plataforma interna de soporte técnico, gestión de activos y base de conocimiento.">
     <meta name="theme-color" content="#0c0a09">
 
-    <title>Helpdesk Confipetrol · Centro de operaciones de soporte</title>
+    <title>Helpdesk · Confipetrol</title>
 
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-    {{-- Tipografía: Fraunces (display serif con carácter editorial),
-         IBM Plex Sans (body humanista-técnico), IBM Plex Mono (datos). --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=fraunces:300,400,500,600,700|ibm-plex-sans:400,500,600|ibm-plex-mono:400,500,600&display=swap" rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        /* Hallmark · macrostructure: Long Document · tone: editorial-técnico · anchor hue: amber */
+        /*
+         * Hallmark · macrostructure: Workbench · tone: funcional-interno · anchor hue: amber
+         * pre-emit critique: P4 H5 E4 S5 R5 V4
+         * genre: editorial · nav: N9 edge-aligned · footer: Ft1 minimal
+         * designed-as-app: helpdesk-confipetrol
+         */
+
         :root {
-            /* Tokens OKLCH — sistema de color sin hex inline */
-            --color-accent:        oklch(62% 0.15 60);   /* amber corporativo */
-            --color-accent-deep:   oklch(50% 0.14 55);   /* amber oscuro hover */
-            --color-accent-glow:   oklch(62% 0.15 60 / 0.18);
-            --color-accent-ink:    oklch(15% 0.03 50);   /* texto sobre amber */
-            --color-emerald:       oklch(55% 0.14 158);
-            --color-sky:           oklch(52% 0.13 232);
-            --color-rule:          oklch(88% 0.005 60);
-            --color-rule-dark:     oklch(25% 0.005 60);
+            --color-accent:         oklch(62% 0.15 60);
+            --color-accent-deep:    oklch(50% 0.14 55);
+            --color-accent-glow:    oklch(62% 0.15 60 / 0.15);
+            --color-accent-ink:     oklch(15% 0.03 50);
+            --color-accent-surface: oklch(98% 0.012 60);
+            --color-accent-border:  oklch(88% 0.04 60);
+            --color-emerald:        oklch(55% 0.14 158);
+            --color-emerald-surface:oklch(97% 0.018 155);
+            --color-sky:            oklch(52% 0.13 232);
+            --color-sky-surface:    oklch(96% 0.02 232);
+            --color-rule:           oklch(88% 0.005 60);
+            --color-rule-dark:      oklch(22% 0.006 60);
+            --color-paper:          oklch(98.5% 0.003 60);
+            --color-paper-mid:      oklch(96% 0.005 60);
+            --color-paper-dark:     oklch(10% 0.006 60);
+            --color-ink:            oklch(16% 0.01 60);
+            --color-ink-2:          oklch(40% 0.008 60);
+            --color-ink-3:          oklch(58% 0.006 60);
 
             --font-display: 'Fraunces', Georgia, serif;
             --font-body:    'IBM Plex Sans', system-ui, sans-serif;
-            --font-mono:    'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+            --font-mono:    'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
-            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-            --dur-base: 280ms;
+            --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-in:      cubic-bezier(0.4, 0, 1, 1);
+            --dur-base:     250ms;
+            --dur-fast:     160ms;
 
+            --space-2xs: 0.375rem;
             --space-xs:  0.75rem;
             --space-sm:  1rem;
             --space-md:  1.5rem;
             --space-lg:  2.5rem;
             --space-xl:  4rem;
+            --space-2xl: 6rem;
+
+            --radius-sm:   4px;
+            --radius-md:   8px;
+            --radius-lg:   12px;
         }
+
+        html, body { overflow-x: clip; }
 
         body {
             font-family: var(--font-body);
             font-feature-settings: 'ss01', 'cv11';
+            background-color: var(--color-paper);
+            color: var(--color-ink);
+        }
+
+        .dark body {
+            background-color: var(--color-paper-dark);
+            color: oklch(92% 0.005 60);
         }
 
         .font-display {
             font-family: var(--font-display);
-            font-feature-settings: 'ss01';
             font-optical-sizing: auto;
-            letter-spacing: -0.02em;
+            letter-spacing: -0.025em;
         }
 
-        .font-mono {
-            font-family: var(--font-mono);
-        }
+        .font-mono { font-family: var(--font-mono); }
 
-        /* Grid blueprint sutil de fondo */
-        .blueprint-grid {
+        /* ── Barra de cuadrícula técnica — fondo sutil ─────────────── */
+        .grid-field {
             background-image:
-                linear-gradient(to right, oklch(45% 0.005 60 / 0.07) 1px, transparent 1px),
-                linear-gradient(to bottom, oklch(45% 0.005 60 / 0.07) 1px, transparent 1px);
-            background-size: 56px 56px;
+                linear-gradient(oklch(70% 0.003 60 / 0.08) 1px, transparent 1px),
+                linear-gradient(to right, oklch(70% 0.003 60 / 0.08) 1px, transparent 1px);
+            background-size: 40px 40px;
         }
-        .dark .blueprint-grid {
+        .dark .grid-field {
             background-image:
-                linear-gradient(to right, oklch(100% 0 0 / 0.04) 1px, transparent 1px),
-                linear-gradient(to bottom, oklch(100% 0 0 / 0.04) 1px, transparent 1px);
+                linear-gradient(oklch(100% 0 0 / 0.035) 1px, transparent 1px),
+                linear-gradient(to right, oklch(100% 0 0 / 0.035) 1px, transparent 1px);
         }
 
-        /* Tick marks horizontal — referencia visual al SLA timer */
-        .tick-rule {
-            background-image: linear-gradient(
-                to right,
-                currentColor 0,
-                currentColor 1px,
-                transparent 1px,
-                transparent 12px
-            );
-            background-size: 12px 100%;
-            background-repeat: repeat-x;
-            background-position: 0 50%;
-            height: 8px;
-        }
-
-        /* Animaciones */
-        @keyframes rise {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes glow-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-        .rise { animation: rise 0.7s var(--ease-out) both; }
-        .rise-1 { animation-delay: 0.05s; }
-        .rise-2 { animation-delay: 0.15s; }
-        .rise-3 { animation-delay: 0.25s; }
-        .rise-4 { animation-delay: 0.35s; }
-        .rise-5 { animation-delay: 0.45s; }
-        .rise-6 { animation-delay: 0.6s; }
-        .glow-pulse { animation: glow-pulse 2.4s ease-in-out infinite; }
-
-        @media (prefers-reduced-motion: reduce) {
-            .rise, .glow-pulse { animation: none !important; }
-        }
-
-        /* Estilo NOC: status indicator con halo */
-        .status-dot {
-            position: relative;
-        }
-        .status-dot::after {
-            content: '';
-            position: absolute;
-            inset: -4px;
-            border-radius: 9999px;
-            background: currentColor;
-            opacity: 0.2;
-            animation: glow-pulse 2.4s ease-in-out infinite;
-        }
-
-        /* Track cards: acento lateral sin lift — el card no se mueve */
-        .track-card {
-            position: relative;
-            transition: background-color var(--dur-base) var(--ease-out);
-        }
-        .track-card::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: var(--space-lg);
-            bottom: var(--space-lg);
-            width: 2px;
-            background: transparent;
-            transition: background var(--dur-base) var(--ease-out);
-        }
-        .track-card:hover::before {
-            background: var(--track-accent);
-        }
-
-        /* Botón sólido — sin degradado */
+        /* ── Botón primario ────────────────────────────────────────── */
         .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
             background: var(--color-accent);
-            box-shadow: 0 4px 16px -4px var(--color-accent-glow);
-            transition: background var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+            color: var(--color-accent-ink);
+            border-radius: var(--radius-md);
+            padding: 0.625rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            white-space: nowrap;
+            transition:
+                background var(--dur-fast) var(--ease-out),
+                box-shadow var(--dur-fast) var(--ease-out);
+            box-shadow: 0 1px 3px oklch(62% 0.15 60 / 0.25);
         }
         .btn-primary:hover {
             background: var(--color-accent-deep);
-            box-shadow: 0 6px 20px -4px var(--color-accent-glow);
+            box-shadow: 0 3px 10px oklch(62% 0.15 60 / 0.3);
         }
         .btn-primary:focus-visible {
             outline: 2px solid var(--color-accent);
             outline-offset: 3px;
         }
-        .btn-primary:active {
-            background: var(--color-accent-deep);
-            box-shadow: none;
+        .btn-primary:active { transform: translateY(1px); }
+
+        /* ── Botón fantasma ────────────────────────────────────────── */
+        .btn-ghost {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid var(--color-rule);
+            border-radius: var(--radius-md);
+            padding: 0.625rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+        }
+        .btn-ghost:hover { border-color: var(--color-ink-3); background: oklch(95% 0.003 60 / 0.5); }
+        .btn-ghost:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+        .dark .btn-ghost { border-color: var(--color-rule-dark); color: oklch(85% 0.005 60); }
+        .dark .btn-ghost:hover { border-color: oklch(45% 0.005 60); background: oklch(18% 0.005 60 / 0.6); }
+
+        /* ── Status dot pulsante ───────────────────────────────────── */
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.35; }
+        }
+        .dot-live {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 9999px;
+            background: var(--color-emerald);
+            animation: pulse-dot 2.2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        /* ── Tarjeta módulo ────────────────────────────────────────── */
+        .module-card {
+            position: relative;
+            border: 1px solid var(--color-rule);
+            border-radius: var(--radius-lg);
+            background: white;
+            padding: var(--space-md) var(--space-md) var(--space-lg);
+            transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+            overflow: hidden;
+        }
+        .module-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--module-stripe, transparent);
+            transition: opacity var(--dur-base) var(--ease-out);
+            opacity: 0;
+        }
+        .module-card:hover { border-color: oklch(75% 0.01 60); box-shadow: 0 4px 16px oklch(40% 0.005 60 / 0.08); }
+        .module-card:hover::after { opacity: 1; }
+        .dark .module-card { background: oklch(14% 0.007 60); border-color: var(--color-rule-dark); }
+        .dark .module-card:hover { border-color: oklch(35% 0.007 60); box-shadow: 0 4px 20px oklch(0% 0 0 / 0.3); }
+
+        /* ── Track de audiencia ────────────────────────────────────── */
+        .audience-row {
+            display: grid;
+            grid-template-columns: 140px 1fr auto;
+            align-items: start;
+            gap: var(--space-md);
+            padding: var(--space-md) 0;
+            border-top: 1px solid var(--color-rule);
+        }
+        .dark .audience-row { border-color: var(--color-rule-dark); }
+        @media (max-width: 767px) {
+            .audience-row { grid-template-columns: 1fr; }
+        }
+
+        /* ── Ficha de ticket (hero) ────────────────────────────────── */
+        .ticket-card {
+            border: 1px solid var(--color-rule);
+            border-radius: var(--radius-lg);
+            background: white;
+            overflow: hidden;
+            box-shadow: 0 8px 32px oklch(20% 0.005 60 / 0.12), 0 2px 8px oklch(20% 0.005 60 / 0.06);
+        }
+        .dark .ticket-card {
+            background: oklch(13% 0.007 60);
+            border-color: var(--color-rule-dark);
+            box-shadow: 0 8px 32px oklch(0% 0 0 / 0.45);
+        }
+        .ticket-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid var(--color-rule);
+            background: var(--color-paper-mid);
+        }
+        .dark .ticket-header {
+            background: oklch(15% 0.007 60);
+            border-color: var(--color-rule-dark);
+        }
+
+        /* ── Animaciones de entrada ─────────────────────────────────── */
+        @keyframes slide-up {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .enter { animation: slide-up 0.55s var(--ease-out) both; }
+        .enter-1 { animation-delay: 0.04s; }
+        .enter-2 { animation-delay: 0.12s; }
+        .enter-3 { animation-delay: 0.22s; }
+        .enter-4 { animation-delay: 0.34s; }
+        .enter-5 { animation-delay: 0.48s; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .enter, .dot-live { animation: none !important; opacity: 1; }
         }
     </style>
 </head>
-<body class="antialiased text-stone-800 bg-stone-50 dark:bg-stone-950 dark:text-stone-100 selection:bg-amber-300 selection:text-stone-900">
+<body class="antialiased selection:bg-amber-200 selection:text-stone-900 dark:selection:bg-amber-900 dark:selection:text-amber-100">
 
-{{-- ╔════════════════════════════════════════════════════════════════════════╗
-     │  TOP BAR — fija, marca + acceso                                        │
-     ╚════════════════════════════════════════════════════════════════════════╝ --}}
-<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-stone-50/80 dark:bg-stone-950/80 border-b border-stone-200/60 dark:border-stone-800/60">
-    <nav aria-label="Navegación principal" class="mx-auto max-w-7xl px-6 lg:px-10 h-16 flex items-center justify-between">
-        <a href="/" class="flex items-center gap-3 group">
-            <img src="{{ asset('images/logo-confipetrol-dark.png') }}" alt="Confipetrol"
-                 class="h-7 w-auto dark:hidden">
-            <img src="{{ asset('images/logo-confipetrol.png') }}" alt="Confipetrol"
-                 class="h-7 w-auto hidden dark:block">
-            <span class="hidden sm:flex items-center gap-2 pl-3 ml-1 border-l border-stone-300 dark:border-stone-700">
-                <span class="font-mono text-[11px] font-medium tracking-[0.18em] uppercase text-stone-500 dark:text-stone-400">Helpdesk</span>
-                <span class="font-mono text-[10px] text-amber-600 dark:text-amber-500">v1.9</span>
+{{-- ═══════════════════════════════════════════
+     NAV — N9 Edge-aligned
+     ═══════════════════════════════════════════ --}}
+<header class="fixed top-0 inset-x-0 z-50 bg-white/85 dark:bg-stone-950/85 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800/70">
+    <div class="mx-auto max-w-7xl px-6 lg:px-10 h-14 flex items-center justify-between">
+
+        {{-- Wordmark --}}
+        <a href="/" class="flex items-center gap-3 group" aria-label="Helpdesk Confipetrol — Inicio">
+            <img src="{{ asset('images/logo-confipetrol-dark.png') }}" alt="" aria-hidden="true"
+                 class="h-6 w-auto dark:hidden">
+            <img src="{{ asset('images/logo-confipetrol.png') }}" alt="" aria-hidden="true"
+                 class="h-6 w-auto hidden dark:block">
+            <span class="hidden sm:flex items-center gap-2.5 pl-3 ml-0.5 border-l border-stone-200 dark:border-stone-800">
+                <span class="font-mono text-[10px] font-medium tracking-[0.2em] uppercase text-stone-500 dark:text-stone-400">Helpdesk</span>
+                <span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">v1.9</span>
             </span>
         </a>
 
+        {{-- Acceso único --}}
         <div class="flex items-center gap-3">
-            <a href="#sistema" class="hidden md:inline font-mono text-xs tracking-widest uppercase text-stone-500 hover:text-amber-600 dark:text-stone-400 dark:hover:text-amber-500 transition">
-                Sistema
-            </a>
-            <a href="#tracks" class="hidden md:inline font-mono text-xs tracking-widest uppercase text-stone-500 hover:text-amber-600 dark:text-stone-400 dark:hover:text-amber-500 transition">
-                Audiencias
-            </a>
-            <span class="hidden md:inline-block w-px h-4 bg-stone-300 dark:bg-stone-700 mx-1"></span>
-
+            <span class="hidden sm:flex items-center gap-2 font-mono text-[10px] tracking-widest text-emerald-600 dark:text-emerald-500">
+                <span class="dot-live"></span>
+                Operativo
+            </span>
+            <span class="hidden sm:block w-px h-4 bg-stone-200 dark:bg-stone-800"></span>
             @auth
-                <a href="{{ route('dashboard') }}"
-                   class="btn-primary inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white">
-                    Entrar al panel
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                <a href="{{ route('dashboard') }}" class="btn-primary">
+                    Ir al panel
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                 </a>
             @else
-                <a href="{{ route('login') }}"
-                   class="btn-primary inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white">
+                <a href="{{ route('login') }}" class="btn-primary">
                     Iniciar sesión
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                 </a>
             @endauth
         </div>
-    </nav>
+    </div>
 </header>
 
-<main class="pt-16">
+<main class="pt-14">
 
-    {{-- ╔════════════════════════════════════════════════════════════════════╗
-         │  HERO — split asimétrico, blueprint sutil, mock ticket            │
-         ╚════════════════════════════════════════════════════════════════════╝ --}}
-    <section class="relative blueprint-grid overflow-hidden">
-        {{-- Halo amber atrás del hero --}}
-        <div class="absolute -top-40 right-1/4 w-[480px] h-[480px] rounded-full bg-amber-400/20 blur-[120px] pointer-events-none"></div>
-        <div class="absolute top-1/2 -left-40 w-[400px] h-[400px] rounded-full bg-emerald-400/10 blur-[120px] pointer-events-none dark:bg-emerald-500/15"></div>
+    {{-- ═══════════════════════════════════════════
+         HERO — Workbench: orientar, no convencer
+         Layout: texto izquierda + ficha operativa derecha
+         ═══════════════════════════════════════════ --}}
+    <section class="relative grid-field bg-stone-50 dark:bg-stone-950 border-b border-stone-200 dark:border-stone-800">
 
-        <div class="relative mx-auto max-w-7xl px-6 lg:px-10 pt-20 pb-32 md:pt-24 md:pb-40">
+        <div class="relative mx-auto max-w-7xl px-6 lg:px-10 pt-16 pb-20 md:pt-20 md:pb-28">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
 
-            {{-- Overline: status + timestamp NOC --}}
-            <div class="flex items-center gap-3 rise rise-1">
-                <span class="status-dot inline-block w-2 h-2 rounded-full bg-emerald-500 text-emerald-500"></span>
-                <span class="font-mono text-[11px] font-medium tracking-[0.22em] uppercase text-emerald-700 dark:text-emerald-400">
-                    Sistema operativo
-                </span>
-                <span class="text-stone-300 dark:text-stone-700">·</span>
-                <span class="font-mono text-[11px] tracking-[0.18em] text-stone-500 dark:text-stone-500">
-                    {{ now()->translatedFormat('d M Y · H:i') }}
-                </span>
-                <span class="hidden sm:inline text-stone-300 dark:text-stone-700">·</span>
-                <span class="hidden sm:inline font-mono text-[11px] tracking-[0.18em] text-stone-500 dark:text-stone-500">
-                    Confipetrol · CO
-                </span>
-            </div>
-
-            <div class="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
-
-                {{-- ── Columna izquierda: Headline editorial ─────────────── --}}
-                <div class="lg:col-span-7">
-                    <h1 class="rise rise-2 font-display text-[clamp(2.75rem,7vw,5.5rem)] font-light leading-[0.98] tracking-tight text-stone-900 dark:text-stone-50">
-                        Centro de
-                        <span class="font-semibold text-amber-600 dark:text-amber-500" style="text-decoration: underline; text-decoration-color: oklch(62% 0.15 60 / 0.35); text-underline-offset: 6px;">operaciones</span>
-                        <br class="hidden sm:block">
-                        de soporte
-                        <span class="font-medium text-stone-500 dark:text-stone-400">interno</span>.
-                    </h1>
-
-                    <div class="rise rise-3 mt-8 max-w-xl">
-                        <div class="text-amber-600 dark:text-amber-700 tick-rule mb-6"></div>
-                        <p class="text-base sm:text-lg text-stone-600 dark:text-stone-300 leading-relaxed">
-                            Tickets con SLA monitoreado, base de conocimiento con asistente IA,
-                            inventario de equipos y workflow por departamento. Construido a medida
-                            para los equipos de TI, RRHH, Compras y Operaciones de Confipetrol.
-                        </p>
+                {{-- Columna de texto — directa, sin ornamentos de ventas --}}
+                <div class="lg:max-w-lg">
+                    <div class="enter enter-1 flex items-center gap-2.5 mb-8">
+                        <div class="h-px w-10 bg-amber-400 dark:bg-amber-600"></div>
+                        <span class="font-mono text-[10px] tracking-[0.22em] uppercase text-amber-600 dark:text-amber-500">Plataforma interna · Confipetrol</span>
                     </div>
 
-                    <div class="rise rise-4 mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <h1 class="enter enter-2 font-display text-[clamp(2.5rem,5.5vw,4.25rem)] font-light leading-[1.02] tracking-tight text-stone-900 dark:text-stone-50" style="overflow-wrap: anywhere; min-width: 0;">
+                        Tu soporte.
+                        <br>
+                        <span class="font-semibold" style="color: var(--color-accent); text-decoration: underline; text-decoration-color: oklch(62% 0.15 60 / 0.3); text-underline-offset: 5px;">Todo en un lugar.</span>
+                    </h1>
+
+                    <p class="enter enter-3 mt-6 text-base sm:text-lg text-stone-600 dark:text-stone-300 leading-relaxed" style="max-width: 38ch;">
+                        Tickets con SLA, base de conocimiento con IA, inventario de equipos
+                        y control de acceso por rol. Sin hojas de cálculo, sin correos perdidos.
+                    </p>
+
+                    <div class="enter enter-4 mt-8 flex flex-wrap gap-3">
                         @auth
-                            <a href="{{ route('dashboard') }}"
-                               class="btn-primary inline-flex items-center justify-center gap-2 rounded-md px-7 py-3.5 text-sm font-semibold text-white">
-                                Ir al panel
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                            <a href="{{ route('dashboard') }}" class="btn-primary">
+                                Entrar al panel
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                             </a>
                         @else
-                            <a href="{{ route('login') }}"
-                               class="btn-primary inline-flex items-center justify-center gap-2 rounded-md px-7 py-3.5 text-sm font-semibold text-white">
+                            <a href="{{ route('login') }}" class="btn-primary">
                                 Iniciar sesión
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                             </a>
+                            @if(config('services.azure.client_id'))
+                                <a href="{{ route('auth.azure') }}" class="btn-ghost">
+                                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 23 23" fill="currentColor" aria-hidden="true"><path d="M1 1h10v10H1zM12 1h10v10H12zM1 12h10v10H1zM12 12h10v10H12z"/></svg>
+                                    Entrar con Azure
+                                </a>
+                            @endif
                         @endauth
+                    </div>
 
-                        <a href="#sistema"
-                           class="inline-flex items-center justify-center gap-2 rounded-md border border-stone-300 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur px-7 py-3.5 text-sm font-medium text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition">
-                            Ver capacidades
-                            <span class="font-mono text-[11px] text-stone-400">↓</span>
-                        </a>
+                    {{-- Tres stats de contexto rápido — datos reales, sin inventar métricas --}}
+                    <div class="enter enter-5 mt-10 pt-8 border-t border-stone-200 dark:border-stone-800 grid grid-cols-3 gap-4">
+                        <div>
+                            <div class="font-mono text-xs tracking-widest text-stone-400 dark:text-stone-500 mb-0.5">Módulos</div>
+                            <div class="font-display text-2xl font-medium text-stone-900 dark:text-stone-50">6</div>
+                        </div>
+                        <div>
+                            <div class="font-mono text-xs tracking-widest text-stone-400 dark:text-stone-500 mb-0.5">Paneles</div>
+                            <div class="font-display text-2xl font-medium text-stone-900 dark:text-stone-50">3</div>
+                        </div>
+                        <div>
+                            <div class="font-mono text-xs tracking-widest text-stone-400 dark:text-stone-500 mb-0.5">Roles</div>
+                            <div class="font-display text-2xl font-medium text-stone-900 dark:text-stone-50">7</div>
+                        </div>
                     </div>
                 </div>
 
-                {{-- ── Columna derecha: Mock ticket flotante ──────────────── --}}
-                <div class="lg:col-span-5 rise rise-5">
-                    <div class="relative">
-                        {{-- Etiqueta de "captura simulada" --}}
-                        <div class="absolute -top-7 right-0 flex items-center gap-2 font-mono text-[10px] tracking-[0.18em] uppercase text-stone-400 dark:text-stone-500">
-                            <span class="w-3 h-px bg-stone-400 dark:bg-stone-600"></span>
-                            Vista de ticket — /soporte
+                {{-- Columna derecha: ficha de ticket funcional --}}
+                <div class="lg:mt-4">
+                    <div class="ticket-card">
+                        {{-- Header funcional --}}
+                        <div class="ticket-header">
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono text-[10px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Helpdesk</span>
+                                <span class="text-stone-300 dark:text-stone-700">/</span>
+                                <span class="font-mono text-[10px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Soporte</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="dot-live"></span>
+                                <span class="font-mono text-[10px] tracking-widest text-emerald-600 dark:text-emerald-500">En vivo</span>
+                            </div>
                         </div>
 
-                        <div class="rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-2xl shadow-stone-900/10 dark:shadow-black/40 overflow-hidden">
-                            {{-- Header del panel de tickets --}}
-                            <div class="flex items-center justify-between px-5 py-3.5 border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950/50">
-                                <span class="font-mono text-[10px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Panel de soporte</span>
-                                <span class="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-widest text-emerald-600 dark:text-emerald-400">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 glow-pulse"></span>
-                                    En vivo
+                        {{-- Ticket activo --}}
+                        <div class="p-5">
+                            {{-- ID + status --}}
+                            <div class="flex items-start justify-between gap-4 mb-4">
+                                <div>
+                                    <div class="font-mono text-[10px] tracking-[0.18em] uppercase text-stone-400 dark:text-stone-500 mb-1">#TK-2481</div>
+                                    <p class="font-display text-lg font-medium leading-snug text-stone-900 dark:text-stone-50">
+                                        No conecta al wifi corporativo
+                                    </p>
+                                </div>
+                                <span class="shrink-0 inline-flex items-center gap-1.5 rounded px-2 py-1 font-mono text-[10px] font-medium" style="background: var(--color-accent-surface); color: oklch(48% 0.13 55); border: 1px solid var(--color-accent-border);">
+                                    <span style="display:inline-block; width:5px; height:5px; border-radius:9999px; background:var(--color-accent); flex-shrink:0;"></span>
+                                    En progreso
                                 </span>
                             </div>
 
-                            {{-- Contenido del ticket --}}
-                            <div class="p-5 space-y-4">
-                                {{-- Header del ticket --}}
-                                <div class="flex items-start justify-between gap-3">
-                                    <div>
-                                        <div class="font-mono text-[10px] tracking-[0.18em] uppercase text-stone-400">Ticket</div>
-                                        <div class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mt-0.5">No conecta al wifi corporativo</div>
-                                    </div>
-                                    <span class="shrink-0 inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[11px] font-mono font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:ring-amber-900">
-                                        <span class="w-1 h-1 rounded-full bg-amber-500 glow-pulse"></span>
-                                        En progreso
-                                    </span>
+                            {{-- Metadatos --}}
+                            <div class="grid grid-cols-2 gap-y-3 gap-x-6 py-3.5 border-y border-stone-100 dark:border-stone-800/60 mb-4">
+                                <div>
+                                    <div class="font-mono text-[9px] tracking-widest uppercase text-stone-400 dark:text-stone-500 mb-0.5">Solicitante</div>
+                                    <div class="text-sm text-stone-700 dark:text-stone-300">M. Ramírez · TI</div>
                                 </div>
-
-                                {{-- Meta grid --}}
-                                <div class="grid grid-cols-2 gap-y-2.5 gap-x-4 pt-3 border-t border-stone-100 dark:border-stone-800/60">
-                                    <div>
-                                        <div class="font-mono text-[10px] tracking-widest uppercase text-stone-400 mb-0.5">Solicitante</div>
-                                        <div class="text-sm text-stone-800 dark:text-stone-200">M. Ramírez · TI</div>
-                                    </div>
-                                    <div>
-                                        <div class="font-mono text-[10px] tracking-widest uppercase text-stone-400 mb-0.5">Asignado</div>
-                                        <div class="text-sm text-stone-800 dark:text-stone-200">Agente · TI</div>
-                                    </div>
-                                    <div>
-                                        <div class="font-mono text-[10px] tracking-widest uppercase text-stone-400 mb-0.5">Prioridad</div>
-                                        <div class="inline-flex items-center gap-1.5 text-sm">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                                            <span class="text-stone-800 dark:text-stone-200">Alta</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="font-mono text-[10px] tracking-widest uppercase text-stone-400 mb-0.5">Categoría</div>
-                                        <div class="text-sm text-stone-800 dark:text-stone-200">Conectividad</div>
+                                <div>
+                                    <div class="font-mono text-[9px] tracking-widest uppercase text-stone-400 dark:text-stone-500 mb-0.5">SLA restante</div>
+                                    <div class="font-mono text-sm text-orange-600 dark:text-orange-400">2h 14m</div>
+                                </div>
+                                <div>
+                                    <div class="font-mono text-[9px] tracking-widest uppercase text-stone-400 dark:text-stone-500 mb-0.5">Prioridad</div>
+                                    <div class="flex items-center gap-1.5 text-sm">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0"></span>
+                                        <span class="text-stone-700 dark:text-stone-300">Alta</span>
                                     </div>
                                 </div>
+                                <div>
+                                    <div class="font-mono text-[9px] tracking-widest uppercase text-stone-400 dark:text-stone-500 mb-0.5">Categoría</div>
+                                    <div class="text-sm text-stone-700 dark:text-stone-300">Conectividad</div>
+                                </div>
+                            </div>
 
-                                {{-- Última actividad --}}
-                                <div class="flex items-start gap-2.5 pt-4 border-t border-stone-100 dark:border-stone-800/60">
-                                    <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-semibold">A</div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-baseline gap-2 text-xs">
-                                            <span class="font-medium text-stone-700 dark:text-stone-300">Agente TI</span>
-                                            <span class="font-mono text-stone-400">·</span>
-                                            <span class="font-mono text-stone-400">primera respuesta</span>
-                                        </div>
-                                        <p class="mt-0.5 text-sm text-stone-700 dark:text-stone-300">
-                                            Hola, he tomado tu ticket y lo voy a revisar. Te contacto en breve con novedades.
-                                        </p>
+                            {{-- Última respuesta del agente --}}
+                            <div class="flex gap-3">
+                                <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-semibold text-white" style="background: var(--color-emerald);">A</div>
+                                <div class="min-w-0">
+                                    <div class="flex items-baseline gap-2 text-xs mb-0.5">
+                                        <span class="font-medium text-stone-700 dark:text-stone-300">Agente TI</span>
+                                        <span class="font-mono text-stone-400">·</span>
+                                        <span class="font-mono text-stone-400">primera respuesta</span>
                                     </div>
+                                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                                        Revisando el punto de acceso del sector. Te informo en breve.
+                                    </p>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        {{-- Anotación lateral tipo blueprint --}}
-                        <div class="hidden lg:flex absolute -left-32 top-12 items-center gap-2 -rotate-90 origin-right">
-                            <span class="w-12 h-px bg-stone-300 dark:bg-stone-700"></span>
-                            <span class="font-mono text-[10px] tracking-[0.2em] uppercase text-stone-400">Tiempo real</span>
-                        </div>
+                    {{-- Anotación tipo especificación técnica --}}
+                    <div class="mt-3 flex items-center gap-2 font-mono text-[10px] tracking-[0.18em] text-stone-400 dark:text-stone-500">
+                        <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Vista de panel de agente · actualización cada 5 min
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- ╔════════════════════════════════════════════════════════════════════╗
-         │  CAPABILITIES — sistema modular                                    │
-         ╚════════════════════════════════════════════════════════════════════╝ --}}
-    <section id="sistema" class="relative py-24 lg:py-32 bg-stone-50 dark:bg-stone-950">
+    {{-- ═══════════════════════════════════════════
+         MÓDULOS — Grid 2×2 funcional
+         Sin numeración ornamental, sin efectos de revelación
+         ═══════════════════════════════════════════ --}}
+    <section id="sistema" class="py-20 lg:py-28 bg-white dark:bg-stone-950">
         <div class="mx-auto max-w-7xl px-6 lg:px-10">
 
-            {{-- Section header --}}
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-16 lg:mb-24">
-                <div class="lg:col-span-4">
-                    <div class="font-mono text-[11px] tracking-[0.22em] uppercase text-amber-600 dark:text-amber-500 mb-4">Sistema</div>
-                    <h2 class="font-display text-4xl lg:text-5xl font-light leading-tight tracking-tight text-stone-900 dark:text-stone-50">
-                        Una sola consola.<br>
-                        <span class="font-medium text-stone-500 dark:text-stone-400">Múltiples capacidades.</span>
+            <div class="mb-12 lg:mb-16 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+                <div>
+                    <h2 class="font-display text-3xl lg:text-4xl font-light leading-tight text-stone-900 dark:text-stone-50" style="overflow-wrap: anywhere; min-width: 0;">
+                        Una sola consola,<br>
+                        <span class="font-semibold" style="color: var(--color-accent);">cuatro capacidades.</span>
                     </h2>
                 </div>
-                <div class="lg:col-span-7 lg:col-start-6">
-                    <p class="text-xl lg:text-2xl leading-relaxed text-stone-600 dark:text-stone-300">
-                        Helpdesk Confipetrol consolida lo que antes vivía en correos sueltos,
-                        hojas de cálculo y herramientas dispersas. Una plataforma integrada
-                        donde cada solicitud, cada equipo y cada respuesta tienen trazabilidad.
-                    </p>
-                </div>
+                <p class="sm:max-w-xs text-sm text-stone-500 dark:text-stone-400 leading-relaxed sm:text-right">
+                    Todo lo que los equipos de TI, RRHH, Compras y Operaciones necesitan, integrado y con trazabilidad.
+                </p>
             </div>
 
-            {{-- Capabilities grid: alterna layout --}}
-            <div class="space-y-px bg-stone-200 dark:bg-stone-800">
-                {{-- Tickets --}}
-                <div class="grid grid-cols-1 md:grid-cols-12 bg-stone-50 dark:bg-stone-950 hover:bg-white dark:hover:bg-stone-900 transition">
-                    <div class="md:col-span-1 p-6 md:p-8 font-mono text-[11px] tracking-[0.22em] text-stone-400 dark:text-stone-600 md:border-r border-stone-200 dark:border-stone-800">
-                        001
-                    </div>
-                    <div class="md:col-span-4 p-6 md:p-8 md:border-r border-stone-200 dark:border-stone-800">
-                        <div class="inline-flex items-center justify-center w-10 h-10 rounded-md bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-500 mb-3">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                {{-- Tickets & SLA --}}
+                <div class="module-card" style="--module-stripe: var(--color-accent);">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex items-center justify-center w-9 h-9 rounded-md" style="background: var(--color-accent-surface);">
+                            <svg class="w-5 h-5" style="color: var(--color-accent);" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>
                         </div>
-                        <h3 class="font-display text-2xl font-medium text-stone-900 dark:text-stone-50">Tickets &amp; SLA</h3>
+                        <span class="font-mono text-[9px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Módulo 1</span>
                     </div>
-                    <div class="md:col-span-7 p-6 md:p-8 text-stone-600 dark:text-stone-300 leading-relaxed">
-                        Prioridad ITIL automática (impacto × urgencia), SLA por departamento con monitoreo
-                        cada 5 minutos y escalación a 70/90/100%. Plantillas reutilizables, traslado entre
-                        áreas y workflow Nuevo → Asignado → En progreso → Resuelto → Cerrado.
-                    </div>
+                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-2">Tickets &amp; SLA</h3>
+                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                        Prioridad ITIL automática (impacto × urgencia). SLA por departamento, monitoreo cada 5 min y escalación a 70 / 90 / 100%. Flujo completo: Nuevo → Asignado → En progreso → Resuelto → Cerrado.
+                    </p>
                 </div>
 
-                {{-- KB + IA --}}
-                <div class="grid grid-cols-1 md:grid-cols-12 bg-stone-50 dark:bg-stone-950 hover:bg-white dark:hover:bg-stone-900 transition">
-                    <div class="md:col-span-1 p-6 md:p-8 font-mono text-[11px] tracking-[0.22em] text-stone-400 dark:text-stone-600 md:border-r border-stone-200 dark:border-stone-800">
-                        002
-                    </div>
-                    <div class="md:col-span-4 p-6 md:p-8 md:border-r border-stone-200 dark:border-stone-800">
-                        <div class="inline-flex items-center justify-center w-10 h-10 rounded-md bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-500 mb-3">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                {{-- Conocimiento & IA --}}
+                <div class="module-card" style="--module-stripe: var(--color-emerald);">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex items-center justify-center w-9 h-9 rounded-md" style="background: var(--color-emerald-surface);">
+                            <svg class="w-5 h-5" style="color: var(--color-emerald);" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                         </div>
-                        <h3 class="font-display text-2xl font-medium text-stone-900 dark:text-stone-50">Conocimiento &amp; IA</h3>
+                        <span class="font-mono text-[9px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Módulo 2</span>
                     </div>
-                    <div class="md:col-span-7 p-6 md:p-8 text-stone-600 dark:text-stone-300 leading-relaxed">
-                        Base de artículos por departamento con flujo formal de aprobación
-                        (agente → supervisor). Asistente IA con RAG sobre el contenido publicado.
-                        Redacción de artículos en lenguaje natural — el LLM los estructura en Markdown.
-                    </div>
+                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-2">Conocimiento &amp; IA</h3>
+                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                        Base de artículos por departamento con flujo de aprobación. Asistente IA con RAG sobre el contenido publicado. Redacción en lenguaje natural, estructura en Markdown.
+                    </p>
                 </div>
 
                 {{-- Inventario --}}
-                <div class="grid grid-cols-1 md:grid-cols-12 bg-stone-50 dark:bg-stone-950 hover:bg-white dark:hover:bg-stone-900 transition">
-                    <div class="md:col-span-1 p-6 md:p-8 font-mono text-[11px] tracking-[0.22em] text-stone-400 dark:text-stone-600 md:border-r border-stone-200 dark:border-stone-800">
-                        003
-                    </div>
-                    <div class="md:col-span-4 p-6 md:p-8 md:border-r border-stone-200 dark:border-stone-800">
-                        <div class="inline-flex items-center justify-center w-10 h-10 rounded-md bg-sky-100 dark:bg-sky-950/50 text-sky-600 dark:text-sky-500 mb-3">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                <div class="module-card" style="--module-stripe: var(--color-sky);">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex items-center justify-center w-9 h-9 rounded-md" style="background: var(--color-sky-surface);">
+                            <svg class="w-5 h-5" style="color: var(--color-sky);" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                         </div>
-                        <h3 class="font-display text-2xl font-medium text-stone-900 dark:text-stone-50">Inventario PCs</h3>
+                        <span class="font-mono text-[9px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Módulo 3</span>
                     </div>
-                    <div class="md:col-span-7 p-6 md:p-8 text-stone-600 dark:text-stone-300 leading-relaxed">
-                        Doble captura: web-scan automático al abrir el portal + agente PowerShell
-                        que se despliega con un solo comando. Hardware, software, BIOS y red por equipo.
-                        Configurable por departamento — solo IT lo ve por defecto.
-                    </div>
+                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-2">Inventario de equipos</h3>
+                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                        Doble captura: web-scan automático + agente PowerShell desplegable con un comando. Hardware, software, BIOS y red por equipo. Asignación digital de activos con acta firmada.
+                    </p>
                 </div>
 
-                {{-- Roles --}}
-                <div class="grid grid-cols-1 md:grid-cols-12 bg-stone-50 dark:bg-stone-950 hover:bg-white dark:hover:bg-stone-900 transition">
-                    <div class="md:col-span-1 p-6 md:p-8 font-mono text-[11px] tracking-[0.22em] text-stone-400 dark:text-stone-600 md:border-r border-stone-200 dark:border-stone-800">
-                        004
-                    </div>
-                    <div class="md:col-span-4 p-6 md:p-8 md:border-r border-stone-200 dark:border-stone-800">
-                        <div class="inline-flex items-center justify-center w-10 h-10 rounded-md bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 mb-3">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                {{-- Control de acceso --}}
+                <div class="module-card" style="--module-stripe: oklch(50% 0.005 60);">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex items-center justify-center w-9 h-9 rounded-md bg-stone-100 dark:bg-stone-800">
+                            <svg class="w-5 h-5 text-stone-600 dark:text-stone-400" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                         </div>
-                        <h3 class="font-display text-2xl font-medium text-stone-900 dark:text-stone-50">Control de acceso</h3>
+                        <span class="font-mono text-[9px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Módulo 4</span>
                     </div>
-                    <div class="md:col-span-7 p-6 md:p-8 text-stone-600 dark:text-stone-300 leading-relaxed">
-                        7 roles con scope por departamento. Login unificado vía Fortify + 2FA
-                        opcional, SSO Azure AD configurable. Cada agente solo ve lo que le
-                        compete; el supervisor su depto; el admin todo.
-                    </div>
+                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-2">Control de acceso</h3>
+                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                        7 roles con scope por departamento. Fortify + 2FA opcional y SSO Azure AD. Cada agente ve solo lo que le compete; el supervisor su área; el admin todo.
+                    </p>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- ╔════════════════════════════════════════════════════════════════════╗
-         │  TRACKS — tres audiencias                                          │
-         ╚════════════════════════════════════════════════════════════════════╝ --}}
-    <section id="tracks" class="relative py-24 lg:py-32 bg-white dark:bg-stone-900">
+    {{-- ═══════════════════════════════════════════
+         AUDIENCIAS — tres paneles, diseño horizontal
+         No como fichas de venta, sino como mapa del sistema
+         ═══════════════════════════════════════════ --}}
+    <section id="paneles" class="py-20 lg:py-28 bg-stone-50 dark:bg-stone-950 border-t border-stone-200 dark:border-stone-800">
         <div class="mx-auto max-w-7xl px-6 lg:px-10">
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-16">
-                <div class="lg:col-span-4">
-                    <div class="font-mono text-[11px] tracking-[0.22em] uppercase text-amber-600 dark:text-amber-500 mb-4">Audiencias</div>
-                    <h2 class="font-display text-4xl lg:text-5xl font-light leading-tight tracking-tight text-stone-900 dark:text-stone-50">
-                        Tres caminos.<br>
-                        <span class="font-medium text-stone-500 dark:text-stone-400">Un sistema.</span>
-                    </h2>
-                </div>
-                <div class="lg:col-span-7 lg:col-start-6">
-                    <p class="text-xl leading-relaxed text-stone-600 dark:text-stone-300">
-                        El mismo backend, tres interfaces especializadas. Cada una construida
-                        para que su audiencia sea productiva sin distracciones.
-                    </p>
-                </div>
+            <div class="mb-12">
+                <h2 class="font-display text-3xl lg:text-4xl font-light text-stone-900 dark:text-stone-50" style="overflow-wrap: anywhere; min-width: 0;">
+                    Tres paneles.<br>
+                    <span class="font-medium text-stone-500 dark:text-stone-400">El mismo motor.</span>
+                </h2>
             </div>
 
-            {{-- Tracks: layout asimétrico — usuario prominente, soporte compacto, admin horizontal --}}
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-px bg-stone-200 dark:bg-stone-800 border border-stone-200 dark:border-stone-800">
-
-                {{-- Usuario — columna ancha, más espacio visual --}}
-                <div class="track-card lg:col-span-5 bg-white dark:bg-stone-900 p-8 lg:p-12" style="--track-accent: var(--color-emerald);">
-                    <div class="font-mono text-[11px] tracking-[0.22em] uppercase text-emerald-600 dark:text-emerald-500 mb-4">
-                        Usuario final
-                    </div>
-                    <h3 class="font-display text-4xl font-medium text-stone-900 dark:text-stone-50 mb-5 leading-tight">
-                        Portal del solicitante
-                    </h3>
-                    <p class="text-stone-600 dark:text-stone-400 leading-relaxed mb-8 text-base">
-                        Crea solicitudes en segundos, sigue el progreso en tiempo real
-                        y consulta el centro de ayuda sin fricción.
+            {{-- Fila: Usuario final --}}
+            <div class="audience-row">
+                <div>
+                    <div class="font-mono text-[10px] tracking-[0.2em] uppercase mb-1" style="color: var(--color-emerald);">Usuario final</div>
+                    <div class="font-mono text-[10px] tracking-widest text-stone-400">/portal</div>
+                </div>
+                <div>
+                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-1">Portal del solicitante</h3>
+                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-3">
+                        Crea solicitudes, sigue el progreso en tiempo real, consulta el centro de ayuda y gestiona los activos asignados.
                     </p>
-                    <ul class="space-y-3 text-sm text-stone-700 dark:text-stone-300 mb-10">
-                        <li class="flex gap-3"><span class="font-mono text-emerald-600 dark:text-emerald-500 shrink-0">→</span>Dashboard con stats personales</li>
-                        <li class="flex gap-3"><span class="font-mono text-emerald-600 dark:text-emerald-500 shrink-0">→</span>Conversación tipo email con tu agente</li>
-                        <li class="flex gap-3"><span class="font-mono text-emerald-600 dark:text-emerald-500 shrink-0">→</span>Centro de ayuda + asistente IA</li>
-                        <li class="flex gap-3"><span class="font-mono text-emerald-600 dark:text-emerald-500 shrink-0">→</span>Encuesta de satisfacción al cerrar</li>
+                    <ul class="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-stone-500 dark:text-stone-400">
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-emerald);"></span>Mis tickets y su estado</li>
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-emerald);"></span>Centro de ayuda + IA</li>
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-emerald);"></span>Mis equipos asignados</li>
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-emerald);"></span>Encuesta de satisfacción</li>
                     </ul>
-                    <div class="pt-6 border-t border-stone-100 dark:border-stone-800 font-mono text-[11px] tracking-widest text-stone-400">
-                        / portal
-                    </div>
                 </div>
+                <div class="hidden md:block text-right">
+                    <span class="font-mono text-[10px] tracking-widest text-stone-400 dark:text-stone-500">Empleados</span>
+                </div>
+            </div>
 
-                {{-- Soporte + Admin — columna derecha apilada --}}
-                <div class="lg:col-span-7 flex flex-col gap-px bg-stone-200 dark:bg-stone-800">
+            {{-- Fila: Soporte --}}
+            <div class="audience-row">
+                <div>
+                    <div class="font-mono text-[10px] tracking-[0.2em] uppercase mb-1" style="color: var(--color-sky);">Soporte</div>
+                    <div class="font-mono text-[10px] tracking-widest text-stone-400">/soporte</div>
+                </div>
+                <div>
+                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-1">Panel de agentes</h3>
+                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-3">
+                        Gestión de tickets con todo el contexto: SLA visible, historial completo, plantillas reutilizables y traslado entre áreas en un clic.
+                    </p>
+                    <ul class="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-stone-500 dark:text-stone-400">
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-sky);"></span>Cola de tickets con SLA</li>
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-sky);"></span>Plantillas predefinidas</li>
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-sky);"></span>Traslado y escalación</li>
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-sky);"></span>Audit log de prioridad</li>
+                    </ul>
+                </div>
+                <div class="hidden md:block text-right">
+                    <span class="font-mono text-[10px] tracking-widest text-stone-400 dark:text-stone-500">Agentes TI / RRHH</span>
+                </div>
+            </div>
 
-                    {{-- Soporte — compacto horizontal --}}
-                    <div class="track-card flex-1 bg-white dark:bg-stone-900 p-8" style="--track-accent: var(--color-sky);">
-                        <div class="font-mono text-[11px] tracking-[0.22em] uppercase text-sky-600 dark:text-sky-500 mb-2">
-                            Soporte
-                        </div>
-                        <h3 class="font-display text-2xl font-medium text-stone-900 dark:text-stone-50 mb-3 leading-tight">
-                            Panel de agentes
-                        </h3>
-                        <p class="text-stone-600 dark:text-stone-400 leading-relaxed mb-5 text-sm">
-                            Atiende tickets con todo el contexto: SLA, historia,
-                            plantillas y respuestas predefinidas a un click.
-                        </p>
-                        <ul class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm text-stone-700 dark:text-stone-300">
-                            <li class="flex gap-2.5"><span class="font-mono text-sky-600 dark:text-sky-500 shrink-0">→</span>Stats por departamento</li>
-                            <li class="flex gap-2.5"><span class="font-mono text-sky-600 dark:text-sky-500 shrink-0">→</span>Plantilla en un paso</li>
-                            <li class="flex gap-2.5"><span class="font-mono text-sky-600 dark:text-sky-500 shrink-0">→</span>Traslado entre áreas</li>
-                            <li class="flex gap-2.5"><span class="font-mono text-sky-600 dark:text-sky-500 shrink-0">→</span>Audit log de prioridad</li>
-                        </ul>
-                        <div class="mt-5 pt-4 border-t border-stone-100 dark:border-stone-800 font-mono text-[11px] tracking-widest text-stone-400">
-                            / soporte
-                        </div>
-                    </div>
-
-                    {{-- Admin — franja horizontal densa --}}
-                    <div class="track-card bg-stone-950 dark:bg-stone-900 p-8" style="--track-accent: var(--color-accent);">
-                        <div class="font-mono text-[11px] tracking-[0.22em] uppercase text-amber-500 mb-2">
-                            Administración
-                        </div>
-                        <h3 class="font-display text-2xl font-medium text-stone-50 mb-3 leading-tight">
-                            Panel global
-                        </h3>
-                        <p class="text-stone-400 leading-relaxed mb-5 text-sm">
-                            Configuración total del sistema, usuarios, SLA, inventario
-                            y reportes ejecutivos para gerencia.
-                        </p>
-                        <ul class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm text-stone-300">
-                            <li class="flex gap-2.5"><span class="font-mono text-amber-500 shrink-0">→</span>Reporte SLA cross-depto</li>
-                            <li class="flex gap-2.5"><span class="font-mono text-amber-500 shrink-0">→</span>Config. departamentos</li>
-                            <li class="flex gap-2.5"><span class="font-mono text-amber-500 shrink-0">→</span>Inventario + tokens API</li>
-                            <li class="flex gap-2.5"><span class="font-mono text-amber-500 shrink-0">→</span>Respaldos automáticos</li>
-                        </ul>
-                        <div class="mt-5 pt-4 border-t border-stone-800 font-mono text-[11px] tracking-widest text-stone-600">
-                            / admin
-                        </div>
-                    </div>
+            {{-- Fila: Admin --}}
+            <div class="audience-row" style="border-bottom: 1px solid var(--color-rule);">
+                <div>
+                    <div class="font-mono text-[10px] tracking-[0.2em] uppercase mb-1" style="color: var(--color-accent);">Admin</div>
+                    <div class="font-mono text-[10px] tracking-widest text-stone-400">/admin</div>
+                </div>
+                <div>
+                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-1">Panel global</h3>
+                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-3">
+                        Configuración total del sistema, usuarios, departamentos, SLA, inventario y reportes ejecutivos para gerencia.
+                    </p>
+                    <ul class="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-stone-500 dark:text-stone-400">
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="color: var(--color-accent); background: var(--color-accent);"></span>Reporte SLA global</li>
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="color: var(--color-accent); background: var(--color-accent);"></span>Config. departamentos</li>
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="color: var(--color-accent); background: var(--color-accent);"></span>Inventario + tokens API</li>
+                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="color: var(--color-accent); background: var(--color-accent);"></span>Respaldos automáticos</li>
+                    </ul>
+                </div>
+                <div class="hidden md:block text-right">
+                    <span class="font-mono text-[10px] tracking-widest text-stone-400 dark:text-stone-500">Super admin</span>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- ╔════════════════════════════════════════════════════════════════════╗
-         │  CTA FINAL — gradiente industrial                                  │
-         ╚════════════════════════════════════════════════════════════════════╝ --}}
-    <section class="relative overflow-hidden bg-stone-950 text-stone-50">
-        {{-- Blueprint sin halos — la textura sola es suficiente --}}
-        <div class="absolute inset-0 blueprint-grid opacity-50"></div>
+    {{-- ═══════════════════════════════════════════
+         CTA FINAL — Acceso
+         Layout: barra horizontal, no sección centrada
+         ═══════════════════════════════════════════ --}}
+    <section class="bg-stone-950 dark:bg-stone-950 border-t border-stone-800">
+        <div class="mx-auto max-w-7xl px-6 lg:px-10 py-14 lg:py-20">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                <div>
+                    <h2 class="font-display text-2xl sm:text-3xl font-light text-stone-50 mb-2" style="overflow-wrap: anywhere; min-width: 0;">
+                        Accede con tu cuenta corporativa.
+                    </h2>
+                    <p class="text-sm text-stone-400 leading-relaxed" style="max-width: 40ch;">
+                        Si trabajas en Confipetrol, ya tienes acceso. Solo inicia sesión con tu correo institucional o por Azure AD.
+                    </p>
+                </div>
 
-        <div class="relative mx-auto max-w-4xl px-6 lg:px-10 py-24 lg:py-32 text-left">
-            <div class="font-mono text-[11px] tracking-[0.22em] uppercase text-amber-500 mb-6">Acceso</div>
-
-            <h2 class="font-display text-4xl sm:text-5xl lg:text-6xl font-light leading-[1.05] tracking-tight">
-                Inicia sesión con tu<br>
-                <span class="font-semibold text-amber-500">cuenta corporativa</span>
-            </h2>
-
-            <p class="mt-8 max-w-lg text-xl text-stone-300 leading-relaxed">
-                Si ya tienes acceso a Confipetrol, no necesitas crear nada nuevo.
-                Una sola entrada, todos los permisos por rol.
-            </p>
-
-            <div class="mt-10 flex flex-col sm:flex-row items-start gap-4">
-                @auth
-                    <a href="{{ route('dashboard') }}"
-                       class="whitespace-nowrap inline-flex items-center justify-center gap-2 rounded-md bg-amber-500 hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500 focus-visible:outline-offset-3 text-stone-950 px-8 py-4 text-base font-semibold transition">
-                        Ir al panel
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                    </a>
-                @else
-                    <a href="{{ route('login') }}"
-                       class="whitespace-nowrap inline-flex items-center justify-center gap-2 rounded-md bg-amber-500 hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500 focus-visible:outline-offset-3 text-stone-950 px-8 py-4 text-base font-semibold transition">
-                        Iniciar sesión
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                    </a>
-
-                    @if(config('services.azure.client_id'))
-                        <a href="{{ route('auth.azure') }}"
-                           class="whitespace-nowrap inline-flex items-center justify-center gap-2 rounded-md border border-stone-700 bg-stone-900/50 backdrop-blur px-8 py-4 text-base font-medium text-stone-200 hover:bg-stone-900 hover:border-stone-600 transition">
-                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 23 23" fill="currentColor"><path d="M1 1h10v10H1zM12 1h10v10H12zM1 12h10v10H1zM12 12h10v10H12z"/></svg>
-                            Azure AD · SSO
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                    @auth
+                        <a href="{{ route('dashboard') }}"
+                           class="inline-flex items-center justify-center gap-2 rounded-md px-7 py-3.5 text-sm font-semibold whitespace-nowrap transition"
+                           style="background: var(--color-accent); color: var(--color-accent-ink);">
+                            Ir al panel
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                         </a>
-                    @endif
-                @endauth
-            </div>
-
-            <div class="mt-16 flex justify-center gap-6 font-mono text-[10px] tracking-[0.22em] uppercase text-stone-500">
-                <span class="flex items-center gap-2">
-                    <span class="status-dot w-1.5 h-1.5 rounded-full bg-emerald-500 text-emerald-500"></span>
-                    Sistema operativo
-                </span>
-                <span class="text-stone-700">·</span>
-                <span>Laravel {{ app()->version() }}</span>
+                    @else
+                        <a href="{{ route('login') }}"
+                           class="inline-flex items-center justify-center gap-2 rounded-md px-7 py-3.5 text-sm font-semibold whitespace-nowrap transition"
+                           style="background: var(--color-accent); color: var(--color-accent-ink);"
+                           onmouseover="this.style.background='oklch(50% 0.14 55)'"
+                           onmouseout="this.style.background='var(--color-accent)'"
+                           onfocus="this.style.outline='2px solid var(--color-accent)'"
+                           onfocusout="this.style.outline='none'">
+                            Iniciar sesión
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                        </a>
+                        @if(config('services.azure.client_id'))
+                            <a href="{{ route('auth.azure') }}"
+                               class="inline-flex items-center justify-center gap-2 rounded-md border border-stone-700 bg-stone-900 hover:bg-stone-800 hover:border-stone-600 px-7 py-3.5 text-sm font-medium text-stone-200 whitespace-nowrap transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3"
+                               style="focus-visible:outline-color: var(--color-accent);">
+                                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 23 23" fill="currentColor" aria-hidden="true"><path d="M1 1h10v10H1zM12 1h10v10H12zM1 12h10v10H1zM12 12h10v10H12z"/></svg>
+                                Azure AD · SSO
+                            </a>
+                        @endif
+                    @endauth
+                </div>
             </div>
         </div>
     </section>
 
-    {{-- ╔════════════════════════════════════════════════════════════════════╗
-         │  FOOTER                                                            │
-         ╚════════════════════════════════════════════════════════════════════╝ --}}
-    <footer class="bg-stone-50 dark:bg-stone-950 border-t border-stone-200 dark:border-stone-800">
-        <div class="mx-auto max-w-7xl px-6 lg:px-10 py-10">
-            <div class="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                <div class="flex items-center gap-3">
-                    <img src="{{ asset('images/logo-confipetrol-dark.png') }}" alt="Confipetrol"
-                         class="h-7 w-auto dark:hidden">
-                    <img src="{{ asset('images/logo-confipetrol.png') }}" alt="Confipetrol"
-                         class="h-7 w-auto hidden dark:block">
-                    <div class="border-l border-stone-300 dark:border-stone-700 pl-3 ml-1">
-                        <div class="font-mono text-[10px] tracking-[0.18em] uppercase text-stone-500">
-                            Helpdesk Confipetrol
-                        </div>
-                        <div class="font-mono text-[10px] text-stone-400">
-                            v1.9 · Plataforma interna · &copy; {{ date('Y') }}
-                        </div>
-                    </div>
-                </div>
+    {{-- ═══════════════════════════════════════════
+         FOOTER — Ft1 Minimal
+         ═══════════════════════════════════════════ --}}
+    <footer class="bg-stone-950 border-t border-stone-800/60">
+        <div class="mx-auto max-w-7xl px-6 lg:px-10 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 
-                <div class="flex items-center gap-6 font-mono text-[10px] tracking-[0.18em] uppercase text-stone-500">
-                    <a href="#sistema" class="hover:text-amber-600 transition">Sistema</a>
-                    <a href="#tracks" class="hover:text-amber-600 transition">Audiencias</a>
-                    <a href="{{ route('login') }}" class="hover:text-amber-600 transition">Acceder</a>
-                </div>
+            <div class="flex items-center gap-3">
+                <img src="{{ asset('images/logo-confipetrol.png') }}" alt="Confipetrol" class="h-5 w-auto opacity-60">
+                <span class="font-mono text-[10px] tracking-[0.18em] uppercase text-stone-600">
+                    Helpdesk · Plataforma interna · &copy; {{ date('Y') }}
+                </span>
             </div>
 
-            <div class="mt-8 pt-6 border-t border-stone-200 dark:border-stone-800 font-mono text-[10px] text-stone-400">
-                Construido con Laravel · Filament · Livewire · Tailwind v4
+            <div class="flex items-center gap-5 font-mono text-[10px] tracking-[0.18em] uppercase text-stone-600">
+                <a href="#sistema" class="hover:text-stone-400 transition">Sistema</a>
+                <a href="#paneles" class="hover:text-stone-400 transition">Paneles</a>
+                <a href="{{ route('login') }}" class="hover:text-stone-400 transition">Acceder</a>
+                <span class="flex items-center gap-1.5 text-stone-700">
+                    <span class="dot-live" style="background: var(--color-emerald); opacity: 0.6;"></span>
+                    Laravel {{ Illuminate\Foundation\Application::VERSION }}
+                </span>
             </div>
         </div>
     </footer>

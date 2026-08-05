@@ -1,0 +1,22 @@
+[
+  {
+    "date": "2026-08-05",
+    "macrostructure": "Workbench",
+    "theme": "editorial-custom (amber OKLCH · Fraunces + IBM Plex Sans)",
+    "theme_axes": "light / display-serif / warm",
+    "nav": "N9 edge-aligned",
+    "footer": "Ft1 minimal",
+    "enrichment": "ticket card (Tier-A functional mockup)",
+    "brief": "Helpdesk Confipetrol · landing interna · plataforma de soporte IT"
+  },
+  {
+    "date": "2026-08-05",
+    "macrostructure": "Long Document (audit-fixes only)",
+    "theme": "editorial-custom (amber OKLCH · Fraunces + IBM Plex Sans)",
+    "theme_axes": "light / display-serif / warm",
+    "nav": "N6 masthead-minimal",
+    "footer": "Ft2 two-column",
+    "enrichment": "ticket card (Tier-A functional mockup)",
+    "brief": "Helpdesk Confipetrol · landing interna · correcciones anti-slop (sesión previa)"
+  }
+]

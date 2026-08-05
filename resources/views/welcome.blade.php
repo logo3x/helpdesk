@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="description" content="Helpdesk Confipetrol — plataforma interna de soporte técnico, gestión de activos y base de conocimiento.">
-    <meta name="theme-color" content="#0c0a09">
+    <meta name="description" content="Helpdesk Confipetrol — pide ayuda técnica, sigue tu caso en tiempo real y consulta el centro de ayuda. Rápido y sin correos.">
+    <meta name="theme-color" content="#fafaf9">
 
     <title>Helpdesk · Confipetrol</title>
 
@@ -19,40 +19,39 @@
 
     <style>
         /*
-         * Hallmark · macrostructure: Workbench · tone: funcional-interno · anchor hue: amber
-         * pre-emit critique: P4 H5 E4 S5 R5 V4
-         * genre: editorial · nav: N9 edge-aligned · footer: Ft1 minimal
-         * designed-as-app: helpdesk-confipetrol
+         * Hallmark · macrostructure: Narrative Workflow · tone: empático-claro · anchor hue: amber
+         * pre-emit critique: P5 H5 E4 S5 R5 V5
+         * genre: editorial · nav: N5 floating pill · footer: Ft1 minimal
+         * designed-as-app: helpdesk-confipetrol · audience: usuario-final
          */
 
         :root {
-            --color-accent:         oklch(62% 0.15 60);
-            --color-accent-deep:    oklch(50% 0.14 55);
-            --color-accent-glow:    oklch(62% 0.15 60 / 0.15);
-            --color-accent-ink:     oklch(15% 0.03 50);
-            --color-accent-surface: oklch(98% 0.012 60);
-            --color-accent-border:  oklch(88% 0.04 60);
-            --color-emerald:        oklch(55% 0.14 158);
-            --color-emerald-surface:oklch(97% 0.018 155);
-            --color-sky:            oklch(52% 0.13 232);
-            --color-sky-surface:    oklch(96% 0.02 232);
-            --color-rule:           oklch(88% 0.005 60);
-            --color-rule-dark:      oklch(22% 0.006 60);
-            --color-paper:          oklch(98.5% 0.003 60);
-            --color-paper-mid:      oklch(96% 0.005 60);
-            --color-paper-dark:     oklch(10% 0.006 60);
-            --color-ink:            oklch(16% 0.01 60);
-            --color-ink-2:          oklch(40% 0.008 60);
-            --color-ink-3:          oklch(58% 0.006 60);
+            --color-accent:          oklch(62% 0.15 60);
+            --color-accent-deep:     oklch(50% 0.14 55);
+            --color-accent-glow:     oklch(62% 0.15 60 / 0.18);
+            --color-accent-ink:      oklch(15% 0.03 50);
+            --color-accent-surface:  oklch(98.5% 0.014 62);
+            --color-accent-border:   oklch(87% 0.05 62);
+            --color-emerald:         oklch(55% 0.14 158);
+            --color-emerald-surface: oklch(97% 0.018 155);
+            --color-sky:             oklch(52% 0.13 232);
+            --color-sky-surface:     oklch(96.5% 0.018 230);
+            --color-rule:            oklch(90% 0.004 60);
+            --color-rule-dark:       oklch(20% 0.006 60);
+            --color-paper:           oklch(99% 0.002 60);
+            --color-paper-warm:      oklch(97% 0.008 60);
+            --color-paper-dark:      oklch(9% 0.007 60);
+            --color-ink:             oklch(15% 0.01 60);
+            --color-ink-2:           oklch(38% 0.008 60);
+            --color-ink-3:           oklch(56% 0.006 60);
 
             --font-display: 'Fraunces', Georgia, serif;
             --font-body:    'IBM Plex Sans', system-ui, sans-serif;
             --font-mono:    'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
-            --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
-            --ease-in:      cubic-bezier(0.4, 0, 1, 1);
-            --dur-base:     250ms;
-            --dur-fast:     160ms;
+            --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+            --dur-base:  240ms;
+            --dur-fast:  150ms;
 
             --space-2xs: 0.375rem;
             --space-xs:  0.75rem;
@@ -60,11 +59,12 @@
             --space-md:  1.5rem;
             --space-lg:  2.5rem;
             --space-xl:  4rem;
-            --space-2xl: 6rem;
+            --space-2xl: 6.5rem;
 
-            --radius-sm:   4px;
-            --radius-md:   8px;
-            --radius-lg:   12px;
+            --radius-sm:  4px;
+            --radius-md:  8px;
+            --radius-lg:  14px;
+            --radius-xl:  20px;
         }
 
         html, body { overflow-x: clip; }
@@ -72,37 +72,23 @@
         body {
             font-family: var(--font-body);
             font-feature-settings: 'ss01', 'cv11';
-            background-color: var(--color-paper);
+            background: var(--color-paper);
             color: var(--color-ink);
         }
 
         .dark body {
-            background-color: var(--color-paper-dark);
-            color: oklch(92% 0.005 60);
+            background: var(--color-paper-dark);
+            color: oklch(91% 0.004 60);
         }
 
         .font-display {
             font-family: var(--font-display);
             font-optical-sizing: auto;
-            letter-spacing: -0.025em;
+            letter-spacing: -0.03em;
         }
-
         .font-mono { font-family: var(--font-mono); }
 
-        /* ── Barra de cuadrícula técnica — fondo sutil ─────────────── */
-        .grid-field {
-            background-image:
-                linear-gradient(oklch(70% 0.003 60 / 0.08) 1px, transparent 1px),
-                linear-gradient(to right, oklch(70% 0.003 60 / 0.08) 1px, transparent 1px);
-            background-size: 40px 40px;
-        }
-        .dark .grid-field {
-            background-image:
-                linear-gradient(oklch(100% 0 0 / 0.035) 1px, transparent 1px),
-                linear-gradient(to right, oklch(100% 0 0 / 0.035) 1px, transparent 1px);
-        }
-
-        /* ── Botón primario ────────────────────────────────────────── */
+        /* ── Botón primario ─────────────────────────────────────────── */
         .btn-primary {
             display: inline-flex;
             align-items: center;
@@ -110,223 +96,214 @@
             background: var(--color-accent);
             color: var(--color-accent-ink);
             border-radius: var(--radius-md);
-            padding: 0.625rem 1.25rem;
-            font-size: 0.875rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9375rem;
             font-weight: 600;
             white-space: nowrap;
-            transition:
-                background var(--dur-fast) var(--ease-out),
-                box-shadow var(--dur-fast) var(--ease-out);
-            box-shadow: 0 1px 3px oklch(62% 0.15 60 / 0.25);
+            box-shadow: 0 1px 4px var(--color-accent-glow);
+            transition: background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
         }
         .btn-primary:hover {
             background: var(--color-accent-deep);
-            box-shadow: 0 3px 10px oklch(62% 0.15 60 / 0.3);
+            box-shadow: 0 4px 14px var(--color-accent-glow);
         }
-        .btn-primary:focus-visible {
-            outline: 2px solid var(--color-accent);
-            outline-offset: 3px;
-        }
+        .btn-primary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
         .btn-primary:active { transform: translateY(1px); }
 
-        /* ── Botón fantasma ────────────────────────────────────────── */
         .btn-ghost {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            border: 1px solid var(--color-rule);
+            border: 1.5px solid var(--color-rule);
             border-radius: var(--radius-md);
-            padding: 0.625rem 1.25rem;
-            font-size: 0.875rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9375rem;
             font-weight: 500;
             white-space: nowrap;
+            background: transparent;
             transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
         }
-        .btn-ghost:hover { border-color: var(--color-ink-3); background: oklch(95% 0.003 60 / 0.5); }
+        .btn-ghost:hover { border-color: var(--color-ink-3); background: oklch(96% 0.004 60 / 0.6); }
         .btn-ghost:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
-        .dark .btn-ghost { border-color: var(--color-rule-dark); color: oklch(85% 0.005 60); }
-        .dark .btn-ghost:hover { border-color: oklch(45% 0.005 60); background: oklch(18% 0.005 60 / 0.6); }
+        .dark .btn-ghost { border-color: var(--color-rule-dark); color: oklch(84% 0.005 60); }
+        .dark .btn-ghost:hover { border-color: oklch(42% 0.006 60); background: oklch(16% 0.006 60); }
 
-        /* ── Status dot pulsante ───────────────────────────────────── */
-        @keyframes pulse-dot {
+        /* ── Dot pulsante ───────────────────────────────────────────── */
+        @keyframes dot-pulse {
             0%, 100% { opacity: 1; }
-            50%       { opacity: 0.35; }
+            50%       { opacity: 0.3; }
         }
         .dot-live {
             display: inline-block;
-            width: 6px;
-            height: 6px;
+            width: 7px; height: 7px;
             border-radius: 9999px;
             background: var(--color-emerald);
-            animation: pulse-dot 2.2s ease-in-out infinite;
             flex-shrink: 0;
+            animation: dot-pulse 2s ease-in-out infinite;
         }
 
-        /* ── Tarjeta módulo ────────────────────────────────────────── */
-        .module-card {
-            position: relative;
-            border: 1px solid var(--color-rule);
-            border-radius: var(--radius-lg);
-            background: white;
-            padding: var(--space-md) var(--space-md) var(--space-lg);
-            transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
-            overflow: hidden;
-        }
-        .module-card::after {
-            content: '';
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            height: 2px;
-            background: var(--module-stripe, transparent);
-            transition: opacity var(--dur-base) var(--ease-out);
-            opacity: 0;
-        }
-        .module-card:hover { border-color: oklch(75% 0.01 60); box-shadow: 0 4px 16px oklch(40% 0.005 60 / 0.08); }
-        .module-card:hover::after { opacity: 1; }
-        .dark .module-card { background: oklch(14% 0.007 60); border-color: var(--color-rule-dark); }
-        .dark .module-card:hover { border-color: oklch(35% 0.007 60); box-shadow: 0 4px 20px oklch(0% 0 0 / 0.3); }
-
-        /* ── Track de audiencia ────────────────────────────────────── */
-        .audience-row {
+        /* ── Etapa de workflow ──────────────────────────────────────── */
+        .stage {
             display: grid;
-            grid-template-columns: 140px 1fr auto;
+            grid-template-columns: 80px 1fr;
+            gap: 0 var(--space-lg);
             align-items: start;
-            gap: var(--space-md);
-            padding: var(--space-md) 0;
+            padding: var(--space-xl) 0;
             border-top: 1px solid var(--color-rule);
         }
-        .dark .audience-row { border-color: var(--color-rule-dark); }
-        @media (max-width: 767px) {
-            .audience-row { grid-template-columns: 1fr; }
+        .dark .stage { border-color: var(--color-rule-dark); }
+
+        @media (max-width: 640px) {
+            .stage { grid-template-columns: 1fr; gap: var(--space-sm); }
         }
 
-        /* ── Ficha de ticket (hero) ────────────────────────────────── */
-        .ticket-card {
+        .stage-number {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 6vw, 4.5rem);
+            font-weight: 300;
+            color: var(--color-accent);
+            line-height: 1;
+            letter-spacing: -0.04em;
+            opacity: 0.85;
+        }
+
+        /* ── Servicios — grid de items ──────────────────────────────── */
+        .service-item {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-sm);
+            padding: var(--space-md);
             border: 1px solid var(--color-rule);
             border-radius: var(--radius-lg);
             background: white;
-            overflow: hidden;
-            box-shadow: 0 8px 32px oklch(20% 0.005 60 / 0.12), 0 2px 8px oklch(20% 0.005 60 / 0.06);
+            transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
         }
-        .dark .ticket-card {
+        .service-item:hover {
+            border-color: oklch(78% 0.008 60);
+            box-shadow: 0 3px 12px oklch(30% 0.005 60 / 0.07);
+        }
+        .dark .service-item { background: oklch(13.5% 0.007 60); border-color: var(--color-rule-dark); }
+        .dark .service-item:hover { border-color: oklch(33% 0.007 60); }
+
+        /* ── Ticket de demostración (hero) ──────────────────────────── */
+        .demo-card {
+            border: 1px solid var(--color-rule);
+            border-radius: var(--radius-xl);
+            background: white;
+            overflow: hidden;
+            box-shadow: 0 12px 40px oklch(20% 0.005 60 / 0.1), 0 2px 8px oklch(20% 0.005 60 / 0.05);
+        }
+        .dark .demo-card {
             background: oklch(13% 0.007 60);
             border-color: var(--color-rule-dark);
-            box-shadow: 0 8px 32px oklch(0% 0 0 / 0.45);
-        }
-        .ticket-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.75rem 1.25rem;
-            border-bottom: 1px solid var(--color-rule);
-            background: var(--color-paper-mid);
-        }
-        .dark .ticket-header {
-            background: oklch(15% 0.007 60);
-            border-color: var(--color-rule-dark);
+            box-shadow: 0 12px 40px oklch(0% 0 0 / 0.45);
         }
 
-        /* ── Animaciones de entrada ─────────────────────────────────── */
-        @keyframes slide-up {
-            from { opacity: 0; transform: translateY(14px); }
+        /* ── Animación de entrada ───────────────────────────────────── */
+        @keyframes enter-up {
+            from { opacity: 0; transform: translateY(12px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-        .enter { animation: slide-up 0.55s var(--ease-out) both; }
-        .enter-1 { animation-delay: 0.04s; }
-        .enter-2 { animation-delay: 0.12s; }
-        .enter-3 { animation-delay: 0.22s; }
-        .enter-4 { animation-delay: 0.34s; }
-        .enter-5 { animation-delay: 0.48s; }
+        .enter   { animation: enter-up 0.55s var(--ease-out) both; }
+        .enter-1 { animation-delay: 0.05s; }
+        .enter-2 { animation-delay: 0.14s; }
+        .enter-3 { animation-delay: 0.26s; }
+        .enter-4 { animation-delay: 0.40s; }
+        .enter-5 { animation-delay: 0.56s; }
 
         @media (prefers-reduced-motion: reduce) {
             .enter, .dot-live { animation: none !important; opacity: 1; }
         }
     </style>
 </head>
-<body class="antialiased selection:bg-amber-200 selection:text-stone-900 dark:selection:bg-amber-900 dark:selection:text-amber-100">
+<body class="antialiased selection:bg-amber-200 selection:text-stone-900 dark:selection:bg-amber-900/60 dark:selection:text-amber-100">
 
-{{-- ═══════════════════════════════════════════
-     NAV — N9 Edge-aligned
-     ═══════════════════════════════════════════ --}}
-<header class="fixed top-0 inset-x-0 z-50 bg-white/85 dark:bg-stone-950/85 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800/70">
-    <div class="mx-auto max-w-7xl px-6 lg:px-10 h-14 flex items-center justify-between">
+{{-- ═══════════════════════════════════════════════════════
+     NAV — N5 Floating pill: logo + estado + acción
+     ═══════════════════════════════════════════════════════ --}}
+<header class="fixed top-0 inset-x-0 z-50 flex justify-center pt-3 px-4">
+    <nav aria-label="Navegación principal"
+         class="w-full max-w-4xl flex items-center justify-between px-4 py-2.5 rounded-2xl bg-white/90 dark:bg-stone-900/90 backdrop-blur-md border border-stone-200/80 dark:border-stone-800/70 shadow-sm shadow-stone-900/5">
 
-        {{-- Wordmark --}}
-        <a href="/" class="flex items-center gap-3 group" aria-label="Helpdesk Confipetrol — Inicio">
+        <a href="/" aria-label="Helpdesk Confipetrol — Inicio" class="flex items-center gap-3">
             <img src="{{ asset('images/logo-confipetrol-dark.png') }}" alt="" aria-hidden="true"
                  class="h-6 w-auto dark:hidden">
             <img src="{{ asset('images/logo-confipetrol.png') }}" alt="" aria-hidden="true"
                  class="h-6 w-auto hidden dark:block">
-            <span class="hidden sm:flex items-center gap-2.5 pl-3 ml-0.5 border-l border-stone-200 dark:border-stone-800">
-                <span class="font-mono text-[10px] font-medium tracking-[0.2em] uppercase text-stone-500 dark:text-stone-400">Helpdesk</span>
-                <span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">v1.9</span>
+            <span class="hidden sm:block font-mono text-[10px] tracking-[0.2em] uppercase text-stone-500 dark:text-stone-400 pl-3 ml-0.5 border-l border-stone-200 dark:border-stone-800">
+                Helpdesk
             </span>
         </a>
 
-        {{-- Acceso único --}}
         <div class="flex items-center gap-3">
             <span class="hidden sm:flex items-center gap-2 font-mono text-[10px] tracking-widest text-emerald-600 dark:text-emerald-500">
                 <span class="dot-live"></span>
-                Operativo
+                Disponible
             </span>
-            <span class="hidden sm:block w-px h-4 bg-stone-200 dark:bg-stone-800"></span>
+            <span class="hidden sm:block w-px h-3.5 bg-stone-200 dark:bg-stone-800"></span>
             @auth
-                <a href="{{ route('dashboard') }}" class="btn-primary">
-                    Ir al panel
+                <a href="{{ route('dashboard') }}"
+                   class="btn-primary !py-2 !px-4 !text-sm">
+                    Ir a mis tickets
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                 </a>
             @else
-                <a href="{{ route('login') }}" class="btn-primary">
-                    Iniciar sesión
+                <a href="{{ route('login') }}"
+                   class="btn-primary !py-2 !px-4 !text-sm">
+                    Ingresar
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                 </a>
             @endauth
         </div>
-    </div>
+    </nav>
 </header>
 
-<main class="pt-14">
+<main class="pt-20 sm:pt-24">
 
-    {{-- ═══════════════════════════════════════════
-         HERO — Workbench: orientar, no convencer
-         Layout: texto izquierda + ficha operativa derecha
-         ═══════════════════════════════════════════ --}}
-    <section class="relative grid-field bg-stone-50 dark:bg-stone-950 border-b border-stone-200 dark:border-stone-800">
+    {{-- ═══════════════════════════════════════════════════════
+         HERO — Pregunta directa al empleado, no declaración técnica
+         ═══════════════════════════════════════════════════════ --}}
+    <section class="relative bg-white dark:bg-stone-950">
+        {{-- Fondo cálido muy sutil --}}
+        <div class="absolute inset-0 bg-gradient-to-b from-amber-50/60 to-transparent dark:from-amber-950/15 dark:to-transparent pointer-events-none" aria-hidden="true"></div>
 
-        <div class="relative mx-auto max-w-7xl px-6 lg:px-10 pt-16 pb-20 md:pt-20 md:pb-28">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+        <div class="relative mx-auto max-w-5xl px-6 lg:px-8 pt-14 pb-20 md:pt-16 md:pb-28">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-10 items-center">
 
-                {{-- Columna de texto — directa, sin ornamentos de ventas --}}
-                <div class="lg:max-w-lg">
-                    <div class="enter enter-1 flex items-center gap-2.5 mb-8">
-                        <div class="h-px w-10 bg-amber-400 dark:bg-amber-600"></div>
-                        <span class="font-mono text-[10px] tracking-[0.22em] uppercase text-amber-600 dark:text-amber-500">Plataforma interna · Confipetrol</span>
+                {{-- Texto del hero --}}
+                <div>
+                    <div class="enter enter-1 inline-flex items-center gap-2.5 mb-7 px-3 py-1.5 rounded-full border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40">
+                        <span class="dot-live" style="background: var(--color-accent);"></span>
+                        <span class="font-mono text-[10px] tracking-[0.2em] uppercase text-amber-700 dark:text-amber-500">
+                            Soporte técnico interno · Confipetrol
+                        </span>
                     </div>
 
-                    <h1 class="enter enter-2 font-display text-[clamp(2.5rem,5.5vw,4.25rem)] font-light leading-[1.02] tracking-tight text-stone-900 dark:text-stone-50" style="overflow-wrap: anywhere; min-width: 0;">
-                        Tu soporte.
-                        <br>
-                        <span class="font-semibold" style="color: var(--color-accent); text-decoration: underline; text-decoration-color: oklch(62% 0.15 60 / 0.3); text-underline-offset: 5px;">Todo en un lugar.</span>
+                    <h1 class="enter enter-2 font-display font-light text-stone-900 dark:text-stone-50 leading-[1.06]"
+                        style="font-size: clamp(2.25rem, 5vw, 3.75rem); overflow-wrap: anywhere; min-width: 0;">
+                        ¿Tienes un problema?<br>
+                        <span class="font-semibold" style="color: var(--color-accent);">Lo resolvemos.</span>
                     </h1>
 
-                    <p class="enter enter-3 mt-6 text-base sm:text-lg text-stone-600 dark:text-stone-300 leading-relaxed" style="max-width: 38ch;">
-                        Tickets con SLA, base de conocimiento con IA, inventario de equipos
-                        y control de acceso por rol. Sin hojas de cálculo, sin correos perdidos.
+                    <p class="enter enter-3 mt-5 text-base sm:text-lg text-stone-600 dark:text-stone-300 leading-relaxed" style="max-width: 36ch;">
+                        Abre una solicitud desde cualquier equipo.
+                        Tu caso llega directo al equipo de soporte, que te escribe en cuanto lo toma.
+                        Sin correos. Sin espera en cola.
                     </p>
 
-                    <div class="enter enter-4 mt-8 flex flex-wrap gap-3">
+                    <div class="enter enter-4 mt-8 flex flex-wrap items-center gap-3">
                         @auth
                             <a href="{{ route('dashboard') }}" class="btn-primary">
-                                Entrar al panel
+                                Ver mis solicitudes
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                             </a>
                         @else
                             <a href="{{ route('login') }}" class="btn-primary">
-                                Iniciar sesión
+                                Pedir ayuda ahora
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                             </a>
                             @if(config('services.azure.client_id'))
-                                <a href="{{ route('auth.azure') }}" class="btn-ghost">
+                                <a href="{{ route('auth.azure') }}" class="btn-ghost text-sm">
                                     <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 23 23" fill="currentColor" aria-hidden="true"><path d="M1 1h10v10H1zM12 1h10v10H12zM1 12h10v10H1zM12 12h10v10H12z"/></svg>
                                     Entrar con Azure
                                 </a>
@@ -334,311 +311,288 @@
                         @endauth
                     </div>
 
-                    {{-- Tres stats de contexto rápido — datos reales, sin inventar métricas --}}
-                    <div class="enter enter-5 mt-10 pt-8 border-t border-stone-200 dark:border-stone-800 grid grid-cols-3 gap-4">
-                        <div>
-                            <div class="font-mono text-xs tracking-widest text-stone-400 dark:text-stone-500 mb-0.5">Módulos</div>
-                            <div class="font-display text-2xl font-medium text-stone-900 dark:text-stone-50">6</div>
-                        </div>
-                        <div>
-                            <div class="font-mono text-xs tracking-widest text-stone-400 dark:text-stone-500 mb-0.5">Paneles</div>
-                            <div class="font-display text-2xl font-medium text-stone-900 dark:text-stone-50">3</div>
-                        </div>
-                        <div>
-                            <div class="font-mono text-xs tracking-widest text-stone-400 dark:text-stone-500 mb-0.5">Roles</div>
-                            <div class="font-display text-2xl font-medium text-stone-900 dark:text-stone-50">7</div>
-                        </div>
-                    </div>
+                    <p class="enter enter-5 mt-5 text-xs text-stone-400 dark:text-stone-500">
+                        Accede con tu correo de Confipetrol · Tu cuenta ya existe
+                    </p>
                 </div>
 
-                {{-- Columna derecha: ficha de ticket funcional --}}
-                <div class="lg:mt-4">
-                    <div class="ticket-card">
-                        {{-- Header funcional --}}
-                        <div class="ticket-header">
+                {{-- Ilustración funcional: formulario de solicitud simplificado --}}
+                <div class="enter enter-3 lg:pl-4">
+                    <div class="demo-card">
+                        {{-- Header del formulario --}}
+                        <div class="flex items-center justify-between px-5 py-3.5 border-b border-stone-100 dark:border-stone-800"
+                             style="background: var(--color-paper-warm);">
                             <div class="flex items-center gap-2">
-                                <span class="font-mono text-[10px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Helpdesk</span>
-                                <span class="text-stone-300 dark:text-stone-700">/</span>
-                                <span class="font-mono text-[10px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Soporte</span>
+                                <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background: var(--color-accent);"></div>
+                                <span class="font-mono text-[10px] tracking-[0.2em] uppercase text-stone-500 dark:text-stone-400">Nueva solicitud</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span class="dot-live"></span>
-                                <span class="font-mono text-[10px] tracking-widest text-emerald-600 dark:text-emerald-500">En vivo</span>
-                            </div>
+                            <span class="font-mono text-[10px] text-stone-400 dark:text-stone-500">Helpdesk</span>
                         </div>
 
-                        {{-- Ticket activo --}}
-                        <div class="p-5">
-                            {{-- ID + status --}}
-                            <div class="flex items-start justify-between gap-4 mb-4">
-                                <div>
-                                    <div class="font-mono text-[10px] tracking-[0.18em] uppercase text-stone-400 dark:text-stone-500 mb-1">#TK-2481</div>
-                                    <p class="font-display text-lg font-medium leading-snug text-stone-900 dark:text-stone-50">
-                                        No conecta al wifi corporativo
-                                    </p>
+                        <div class="p-5 space-y-4">
+                            {{-- Campo: tipo --}}
+                            <div>
+                                <label class="block font-mono text-[10px] tracking-widest uppercase text-stone-400 dark:text-stone-500 mb-1.5">¿Qué tipo de problema tienes?</label>
+                                <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm text-stone-700 dark:text-stone-300">
+                                    <svg class="w-4 h-4 text-stone-400 dark:text-stone-500 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                    Computador / hardware
+                                    <svg class="w-3.5 h-3.5 ml-auto text-stone-300 dark:text-stone-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                                 </div>
-                                <span class="shrink-0 inline-flex items-center gap-1.5 rounded px-2 py-1 font-mono text-[10px] font-medium" style="background: var(--color-accent-surface); color: oklch(48% 0.13 55); border: 1px solid var(--color-accent-border);">
-                                    <span style="display:inline-block; width:5px; height:5px; border-radius:9999px; background:var(--color-accent); flex-shrink:0;"></span>
-                                    En progreso
+                            </div>
+
+                            {{-- Campo: descripción --}}
+                            <div>
+                                <label class="block font-mono text-[10px] tracking-widest uppercase text-stone-400 dark:text-stone-500 mb-1.5">Cuéntanos qué pasó</label>
+                                <div class="px-3 py-2.5 rounded-lg border-2 text-sm text-stone-700 dark:text-stone-300 leading-relaxed" style="border-color: var(--color-accent); background: var(--color-accent-surface);">
+                                    Mi computador no se conecta al wifi desde esta mañana. Probé reiniciarlo y sigue igual.
+                                    <span class="inline-block w-0.5 h-4 ml-0.5 align-text-bottom rounded-full animate-pulse" style="background: var(--color-accent);"></span>
+                                </div>
+                            </div>
+
+                            {{-- Botón de envío --}}
+                            <div class="flex items-center justify-between pt-1">
+                                <span class="text-xs text-stone-400 dark:text-stone-500">Tu agente responde pronto</span>
+                                <span class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white" style="background: var(--color-accent);">
+                                    Enviar
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                                 </span>
                             </div>
-
-                            {{-- Metadatos --}}
-                            <div class="grid grid-cols-2 gap-y-3 gap-x-6 py-3.5 border-y border-stone-100 dark:border-stone-800/60 mb-4">
-                                <div>
-                                    <div class="font-mono text-[9px] tracking-widest uppercase text-stone-400 dark:text-stone-500 mb-0.5">Solicitante</div>
-                                    <div class="text-sm text-stone-700 dark:text-stone-300">M. Ramírez · TI</div>
-                                </div>
-                                <div>
-                                    <div class="font-mono text-[9px] tracking-widest uppercase text-stone-400 dark:text-stone-500 mb-0.5">SLA restante</div>
-                                    <div class="font-mono text-sm text-orange-600 dark:text-orange-400">2h 14m</div>
-                                </div>
-                                <div>
-                                    <div class="font-mono text-[9px] tracking-widest uppercase text-stone-400 dark:text-stone-500 mb-0.5">Prioridad</div>
-                                    <div class="flex items-center gap-1.5 text-sm">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0"></span>
-                                        <span class="text-stone-700 dark:text-stone-300">Alta</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="font-mono text-[9px] tracking-widest uppercase text-stone-400 dark:text-stone-500 mb-0.5">Categoría</div>
-                                    <div class="text-sm text-stone-700 dark:text-stone-300">Conectividad</div>
-                                </div>
-                            </div>
-
-                            {{-- Última respuesta del agente --}}
-                            <div class="flex gap-3">
-                                <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-semibold text-white" style="background: var(--color-emerald);">A</div>
-                                <div class="min-w-0">
-                                    <div class="flex items-baseline gap-2 text-xs mb-0.5">
-                                        <span class="font-medium text-stone-700 dark:text-stone-300">Agente TI</span>
-                                        <span class="font-mono text-stone-400">·</span>
-                                        <span class="font-mono text-stone-400">primera respuesta</span>
-                                    </div>
-                                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-                                        Revisando el punto de acceso del sector. Te informo en breve.
-                                    </p>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
-                    {{-- Anotación tipo especificación técnica --}}
-                    <div class="mt-3 flex items-center gap-2 font-mono text-[10px] tracking-[0.18em] text-stone-400 dark:text-stone-500">
-                        <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Vista de panel de agente · actualización cada 5 min
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    {{-- ═══════════════════════════════════════════
-         MÓDULOS — Grid 2×2 funcional
-         Sin numeración ornamental, sin efectos de revelación
-         ═══════════════════════════════════════════ --}}
-    <section id="sistema" class="py-20 lg:py-28 bg-white dark:bg-stone-950">
-        <div class="mx-auto max-w-7xl px-6 lg:px-10">
-
-            <div class="mb-12 lg:mb-16 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-                <div>
-                    <h2 class="font-display text-3xl lg:text-4xl font-light leading-tight text-stone-900 dark:text-stone-50" style="overflow-wrap: anywhere; min-width: 0;">
-                        Una sola consola,<br>
-                        <span class="font-semibold" style="color: var(--color-accent);">cuatro capacidades.</span>
-                    </h2>
-                </div>
-                <p class="sm:max-w-xs text-sm text-stone-500 dark:text-stone-400 leading-relaxed sm:text-right">
-                    Todo lo que los equipos de TI, RRHH, Compras y Operaciones necesitan, integrado y con trazabilidad.
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                {{-- Tickets & SLA --}}
-                <div class="module-card" style="--module-stripe: var(--color-accent);">
-                    <div class="flex items-start justify-between gap-4 mb-4">
-                        <div class="flex items-center justify-center w-9 h-9 rounded-md" style="background: var(--color-accent-surface);">
-                            <svg class="w-5 h-5" style="color: var(--color-accent);" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>
-                        </div>
-                        <span class="font-mono text-[9px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Módulo 1</span>
-                    </div>
-                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-2">Tickets &amp; SLA</h3>
-                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-                        Prioridad ITIL automática (impacto × urgencia). SLA por departamento, monitoreo cada 5 min y escalación a 70 / 90 / 100%. Flujo completo: Nuevo → Asignado → En progreso → Resuelto → Cerrado.
-                    </p>
-                </div>
-
-                {{-- Conocimiento & IA --}}
-                <div class="module-card" style="--module-stripe: var(--color-emerald);">
-                    <div class="flex items-start justify-between gap-4 mb-4">
-                        <div class="flex items-center justify-center w-9 h-9 rounded-md" style="background: var(--color-emerald-surface);">
-                            <svg class="w-5 h-5" style="color: var(--color-emerald);" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                        </div>
-                        <span class="font-mono text-[9px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Módulo 2</span>
-                    </div>
-                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-2">Conocimiento &amp; IA</h3>
-                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-                        Base de artículos por departamento con flujo de aprobación. Asistente IA con RAG sobre el contenido publicado. Redacción en lenguaje natural, estructura en Markdown.
-                    </p>
-                </div>
-
-                {{-- Inventario --}}
-                <div class="module-card" style="--module-stripe: var(--color-sky);">
-                    <div class="flex items-start justify-between gap-4 mb-4">
-                        <div class="flex items-center justify-center w-9 h-9 rounded-md" style="background: var(--color-sky-surface);">
-                            <svg class="w-5 h-5" style="color: var(--color-sky);" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                        </div>
-                        <span class="font-mono text-[9px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Módulo 3</span>
-                    </div>
-                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-2">Inventario de equipos</h3>
-                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-                        Doble captura: web-scan automático + agente PowerShell desplegable con un comando. Hardware, software, BIOS y red por equipo. Asignación digital de activos con acta firmada.
-                    </p>
-                </div>
-
-                {{-- Control de acceso --}}
-                <div class="module-card" style="--module-stripe: oklch(50% 0.005 60);">
-                    <div class="flex items-start justify-between gap-4 mb-4">
-                        <div class="flex items-center justify-center w-9 h-9 rounded-md bg-stone-100 dark:bg-stone-800">
-                            <svg class="w-5 h-5 text-stone-600 dark:text-stone-400" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                        </div>
-                        <span class="font-mono text-[9px] tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500">Módulo 4</span>
-                    </div>
-                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-2">Control de acceso</h3>
-                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-                        7 roles con scope por departamento. Fortify + 2FA opcional y SSO Azure AD. Cada agente ve solo lo que le compete; el supervisor su área; el admin todo.
+                    <p class="mt-3 text-center font-mono text-[10px] tracking-[0.18em] text-stone-400 dark:text-stone-500">
+                        Así se ve el formulario al abrir una solicitud
                     </p>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- ═══════════════════════════════════════════
-         AUDIENCIAS — tres paneles, diseño horizontal
-         No como fichas de venta, sino como mapa del sistema
-         ═══════════════════════════════════════════ --}}
-    <section id="paneles" class="py-20 lg:py-28 bg-stone-50 dark:bg-stone-950 border-t border-stone-200 dark:border-stone-800">
-        <div class="mx-auto max-w-7xl px-6 lg:px-10">
+    {{-- ═══════════════════════════════════════════════════════
+         NARRATIVE WORKFLOW — 3 etapas del proceso
+         Vistas desde el empleado, no desde el sistema
+         ═══════════════════════════════════════════════════════ --}}
+    <section id="como-funciona" class="bg-stone-50 dark:bg-stone-950 border-t border-stone-100 dark:border-stone-900 py-20 lg:py-28">
+        <div class="mx-auto max-w-5xl px-6 lg:px-8">
 
-            <div class="mb-12">
-                <h2 class="font-display text-3xl lg:text-4xl font-light text-stone-900 dark:text-stone-50" style="overflow-wrap: anywhere; min-width: 0;">
-                    Tres paneles.<br>
-                    <span class="font-medium text-stone-500 dark:text-stone-400">El mismo motor.</span>
+            <div class="mb-6">
+                <h2 class="font-display text-3xl sm:text-4xl font-light text-stone-900 dark:text-stone-50 leading-tight" style="overflow-wrap: anywhere; min-width: 0;">
+                    Así funciona <span class="font-medium" style="color: var(--color-accent);">para ti.</span>
                 </h2>
             </div>
 
-            {{-- Fila: Usuario final --}}
-            <div class="audience-row">
+            {{-- Etapa 01: Abres tu solicitud --}}
+            <div class="stage">
+                <div class="stage-number">01</div>
                 <div>
-                    <div class="font-mono text-[10px] tracking-[0.2em] uppercase mb-1" style="color: var(--color-emerald);">Usuario final</div>
-                    <div class="font-mono text-[10px] tracking-widest text-stone-400">/portal</div>
-                </div>
-                <div>
-                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-1">Portal del solicitante</h3>
-                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-3">
-                        Crea solicitudes, sigue el progreso en tiempo real, consulta el centro de ayuda y gestiona los activos asignados.
+                    <h3 class="font-display text-2xl sm:text-3xl font-medium text-stone-900 dark:text-stone-50 mb-3 leading-snug">
+                        Abres tu solicitud
+                    </h3>
+                    <p class="text-base text-stone-600 dark:text-stone-300 leading-relaxed mb-5" style="max-width: 48ch;">
+                        Inicia sesión con tu correo de Confipetrol, describe el problema en tus propias palabras
+                        y selecciona el tipo de solicitud. Listo — menos de dos minutos.
                     </p>
-                    <ul class="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-stone-500 dark:text-stone-400">
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-emerald);"></span>Mis tickets y su estado</li>
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-emerald);"></span>Centro de ayuda + IA</li>
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-emerald);"></span>Mis equipos asignados</li>
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-emerald);"></span>Encuesta de satisfacción</li>
-                    </ul>
-                </div>
-                <div class="hidden md:block text-right">
-                    <span class="font-mono text-[10px] tracking-widest text-stone-400 dark:text-stone-500">Empleados</span>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 bg-white dark:bg-stone-800">
+                            <svg class="w-3 h-3 shrink-0" style="color: var(--color-accent);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            Sin instalar nada
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 bg-white dark:bg-stone-800">
+                            <svg class="w-3 h-3 shrink-0" style="color: var(--color-accent);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            Desde cualquier equipo
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 bg-white dark:bg-stone-800">
+                            <svg class="w-3 h-3 shrink-0" style="color: var(--color-accent);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            Adjunta capturas si quieres
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            {{-- Fila: Soporte --}}
-            <div class="audience-row">
+            {{-- Etapa 02: Tu agente actúa --}}
+            <div class="stage">
+                <div class="stage-number">02</div>
                 <div>
-                    <div class="font-mono text-[10px] tracking-[0.2em] uppercase mb-1" style="color: var(--color-sky);">Soporte</div>
-                    <div class="font-mono text-[10px] tracking-widest text-stone-400">/soporte</div>
-                </div>
-                <div>
-                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-1">Panel de agentes</h3>
-                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-3">
-                        Gestión de tickets con todo el contexto: SLA visible, historial completo, plantillas reutilizables y traslado entre áreas en un clic.
+                    <h3 class="font-display text-2xl sm:text-3xl font-medium text-stone-900 dark:text-stone-50 mb-3 leading-snug">
+                        Tu agente actúa
+                    </h3>
+                    <p class="text-base text-stone-600 dark:text-stone-300 leading-relaxed mb-5" style="max-width: 48ch;">
+                        El sistema asigna tu caso al equipo correcto según el tipo de solicitud.
+                        Tu agente te escribe cuando lo toma y te mantiene informado mientras trabaja.
+                        Puedes responder como si fuera un chat.
                     </p>
-                    <ul class="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-stone-500 dark:text-stone-400">
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-sky);"></span>Cola de tickets con SLA</li>
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-sky);"></span>Plantillas predefinidas</li>
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-sky);"></span>Traslado y escalación</li>
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="background: var(--color-sky);"></span>Audit log de prioridad</li>
-                    </ul>
-                </div>
-                <div class="hidden md:block text-right">
-                    <span class="font-mono text-[10px] tracking-widest text-stone-400 dark:text-stone-500">Agentes TI / RRHH</span>
+
+                    {{-- Mini-conversación ilustrativa --}}
+                    <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 overflow-hidden" style="max-width: 400px;">
+                        <div class="px-4 py-3 border-b border-stone-100 dark:border-stone-800 flex items-center gap-2">
+                            <span class="dot-live"></span>
+                            <span class="font-mono text-[10px] tracking-widest text-stone-400 dark:text-stone-500 uppercase">Caso #TK-2481 · En progreso</span>
+                        </div>
+                        <div class="p-4 space-y-3">
+                            <div class="flex gap-2.5">
+                                <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-semibold text-white" style="background: var(--color-emerald);">A</div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-medium text-stone-700 dark:text-stone-300 mb-0.5">Agente TI</p>
+                                    <div class="bg-stone-50 dark:bg-stone-800 rounded-lg px-3 py-2 text-sm text-stone-700 dark:text-stone-300 leading-snug">
+                                        Hola, tomé tu caso. ¿El wifi no aparece en la lista de redes o aparece pero no conecta?
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2.5 flex-row-reverse">
+                                <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-semibold text-white" style="background: var(--color-accent);">M</div>
+                                <div class="flex-1 min-w-0 text-right">
+                                    <p class="text-xs font-medium text-stone-700 dark:text-stone-300 mb-0.5">Tú</p>
+                                    <div class="inline-block text-left rounded-lg px-3 py-2 text-sm leading-snug text-white" style="background: var(--color-accent);">
+                                        Aparece pero dice "sin internet"
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {{-- Fila: Admin --}}
-            <div class="audience-row" style="border-bottom: 1px solid var(--color-rule);">
+            {{-- Etapa 03: Problema resuelto --}}
+            <div class="stage" style="border-bottom: 1px solid var(--color-rule);">
+                <div class="stage-number">03</div>
                 <div>
-                    <div class="font-mono text-[10px] tracking-[0.2em] uppercase mb-1" style="color: var(--color-accent);">Admin</div>
-                    <div class="font-mono text-[10px] tracking-widest text-stone-400">/admin</div>
-                </div>
-                <div>
-                    <h3 class="font-display text-xl font-medium text-stone-900 dark:text-stone-50 mb-1">Panel global</h3>
-                    <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-3">
-                        Configuración total del sistema, usuarios, departamentos, SLA, inventario y reportes ejecutivos para gerencia.
+                    <h3 class="font-display text-2xl sm:text-3xl font-medium text-stone-900 dark:text-stone-50 mb-3 leading-snug">
+                        Problema resuelto
+                    </h3>
+                    <p class="text-base text-stone-600 dark:text-stone-300 leading-relaxed mb-5" style="max-width: 48ch;">
+                        Cuando tu caso se cierra, te llega una notificación con el resumen de lo que se hizo.
+                        Puedes calificar la atención y reabrir el caso si el problema vuelve.
+                        Todo queda registrado en tu historial.
                     </p>
-                    <ul class="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-stone-500 dark:text-stone-400">
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="color: var(--color-accent); background: var(--color-accent);"></span>Reporte SLA global</li>
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="color: var(--color-accent); background: var(--color-accent);"></span>Config. departamentos</li>
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="color: var(--color-accent); background: var(--color-accent);"></span>Inventario + tokens API</li>
-                        <li class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full flex-shrink-0" style="color: var(--color-accent); background: var(--color-accent);"></span>Respaldos automáticos</li>
-                    </ul>
-                </div>
-                <div class="hidden md:block text-right">
-                    <span class="font-mono text-[10px] tracking-widest text-stone-400 dark:text-stone-500">Super admin</span>
+
+                    {{-- Estado resuelto --}}
+                    <div class="inline-flex items-center gap-3 rounded-xl border px-4 py-3" style="border-color: var(--color-emerald); background: var(--color-emerald-surface);">
+                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--color-emerald);">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium" style="color: oklch(38% 0.12 158);">Caso #TK-2481 · Resuelto</p>
+                            <p class="text-xs text-stone-500 dark:text-stone-400">Se actualizó el perfil de red del equipo · Hoy 14:32</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- ═══════════════════════════════════════════
-         CTA FINAL — Acceso
-         Layout: barra horizontal, no sección centrada
-         ═══════════════════════════════════════════ --}}
-    <section class="bg-stone-950 dark:bg-stone-950 border-t border-stone-800">
-        <div class="mx-auto max-w-7xl px-6 lg:px-10 py-14 lg:py-20">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-8">
-                <div>
-                    <h2 class="font-display text-2xl sm:text-3xl font-light text-stone-50 mb-2" style="overflow-wrap: anywhere; min-width: 0;">
-                        Accede con tu cuenta corporativa.
-                    </h2>
-                    <p class="text-sm text-stone-400 leading-relaxed" style="max-width: 40ch;">
-                        Si trabajas en Confipetrol, ya tienes acceso. Solo inicia sesión con tu correo institucional o por Azure AD.
-                    </p>
+    {{-- ═══════════════════════════════════════════════════════
+         SERVICIOS — Qué puedes pedir
+         En lenguaje del usuario, no de IT
+         ═══════════════════════════════════════════════════════ --}}
+    <section id="servicios" class="bg-white dark:bg-stone-950 py-20 lg:py-28 border-t border-stone-100 dark:border-stone-900">
+        <div class="mx-auto max-w-5xl px-6 lg:px-8">
+
+            <div class="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <h2 class="font-display text-3xl sm:text-4xl font-light text-stone-900 dark:text-stone-50 leading-tight" style="overflow-wrap: anywhere; min-width: 0;">
+                    ¿Qué puedes pedir?
+                </h2>
+                <p class="text-sm text-stone-400 dark:text-stone-500 sm:text-right sm:max-w-xs leading-relaxed">
+                    Estas son las categorías de ayuda que gestionamos. Si no ves la tuya, escríbelo en el campo de descripción.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+                <div class="service-item">
+                    <div class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--color-accent-surface);">
+                        <svg class="w-4.5 h-4.5" style="color: var(--color-accent); width:18px; height:18px;" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-stone-800 dark:text-stone-200 mb-0.5">Mi computador / equipo</p>
+                        <p class="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">Lento, no enciende, pantalla dañada, teclado, ratón</p>
+                    </div>
                 </div>
 
+                <div class="service-item">
+                    <div class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style="background: oklch(96% 0.018 232);">
+                        <svg style="color: var(--color-sky); width:18px; height:18px;" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-stone-800 dark:text-stone-200 mb-0.5">Internet y red</p>
+                        <p class="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">Sin conexión, wifi lento, VPN, accesos remotos</p>
+                    </div>
+                </div>
+
+                <div class="service-item">
+                    <div class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--color-emerald-surface);">
+                        <svg style="color: var(--color-emerald); width:18px; height:18px;" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-stone-800 dark:text-stone-200 mb-0.5">Accesos y contraseñas</p>
+                        <p class="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">Olvidé mi contraseña, no puedo entrar a un sistema, nuevo usuario</p>
+                    </div>
+                </div>
+
+                <div class="service-item">
+                    <div class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-stone-100 dark:bg-stone-800">
+                        <svg style="color: oklch(45% 0.007 60); width:18px; height:18px;" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-stone-800 dark:text-stone-200 mb-0.5">Impresoras y periféricos</p>
+                        <p class="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">No imprime, scanner, cámara web, monitores</p>
+                    </div>
+                </div>
+
+                <div class="service-item">
+                    <div class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style="background: oklch(97% 0.012 280);">
+                        <svg style="color: oklch(52% 0.13 280); width:18px; height:18px;" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-stone-800 dark:text-stone-200 mb-0.5">Software y aplicaciones</p>
+                        <p class="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">Instalar un programa, actualizar, error al abrir una app</p>
+                    </div>
+                </div>
+
+                <div class="service-item">
+                    <div class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style="background: oklch(97% 0.012 35);">
+                        <svg style="color: oklch(52% 0.12 35); width:18px; height:18px;" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-stone-800 dark:text-stone-200 mb-0.5">Otro problema</p>
+                        <p class="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">Si no encaja en ninguna categoría, descríbelo y lo asignamos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- ═══════════════════════════════════════════════════════
+         CTA FINAL — Una acción, directa
+         ═══════════════════════════════════════════════════════ --}}
+    <section class="bg-stone-950 border-t border-stone-900">
+        <div class="mx-auto max-w-5xl px-6 lg:px-8 py-16 lg:py-20">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                <div>
+                    <h2 class="font-display text-2xl sm:text-3xl font-light text-stone-50 mb-2 leading-snug" style="overflow-wrap: anywhere; min-width: 0;">
+                        ¿Tienes un problema ahora mismo?
+                    </h2>
+                    <p class="text-stone-400 text-sm leading-relaxed" style="max-width: 38ch;">
+                        Inicia sesión con tu cuenta de Confipetrol y abre una solicitud en menos de dos minutos.
+                    </p>
+                </div>
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
                     @auth
                         <a href="{{ route('dashboard') }}"
-                           class="inline-flex items-center justify-center gap-2 rounded-md px-7 py-3.5 text-sm font-semibold whitespace-nowrap transition"
-                           style="background: var(--color-accent); color: var(--color-accent-ink);">
-                            Ir al panel
+                           class="btn-primary justify-center">
+                            Ir a mis tickets
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                         </a>
                     @else
                         <a href="{{ route('login') }}"
-                           class="inline-flex items-center justify-center gap-2 rounded-md px-7 py-3.5 text-sm font-semibold whitespace-nowrap transition"
-                           style="background: var(--color-accent); color: var(--color-accent-ink);"
-                           onmouseover="this.style.background='oklch(50% 0.14 55)'"
-                           onmouseout="this.style.background='var(--color-accent)'"
-                           onfocus="this.style.outline='2px solid var(--color-accent)'"
-                           onfocusout="this.style.outline='none'">
-                            Iniciar sesión
+                           class="btn-primary justify-center">
+                            Pedir ayuda
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                         </a>
                         @if(config('services.azure.client_id'))
                             <a href="{{ route('auth.azure') }}"
-                               class="inline-flex items-center justify-center gap-2 rounded-md border border-stone-700 bg-stone-900 hover:bg-stone-800 hover:border-stone-600 px-7 py-3.5 text-sm font-medium text-stone-200 whitespace-nowrap transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3"
-                               style="focus-visible:outline-color: var(--color-accent);">
+                               class="inline-flex items-center justify-center gap-2 rounded-lg border border-stone-700 bg-stone-900 hover:bg-stone-800 px-6 py-3 text-sm font-medium text-stone-200 whitespace-nowrap transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-amber-500">
                                 <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 23 23" fill="currentColor" aria-hidden="true"><path d="M1 1h10v10H1zM12 1h10v10H12zM1 12h10v10H1zM12 12h10v10H12z"/></svg>
-                                Azure AD · SSO
+                                Azure AD
                             </a>
                         @endif
                     @endauth
@@ -647,32 +601,25 @@
         </div>
     </section>
 
-    {{-- ═══════════════════════════════════════════
+    {{-- ═══════════════════════════════════════════════════════
          FOOTER — Ft1 Minimal
-         ═══════════════════════════════════════════ --}}
-    <footer class="bg-stone-950 border-t border-stone-800/60">
-        <div class="mx-auto max-w-7xl px-6 lg:px-10 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-
+         ═══════════════════════════════════════════════════════ --}}
+    <footer class="bg-stone-950 border-t border-stone-900/80">
+        <div class="mx-auto max-w-5xl px-6 lg:px-8 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-                <img src="{{ asset('images/logo-confipetrol.png') }}" alt="Confipetrol" class="h-5 w-auto opacity-60">
-                <span class="font-mono text-[10px] tracking-[0.18em] uppercase text-stone-600">
-                    Helpdesk · Plataforma interna · &copy; {{ date('Y') }}
+                <img src="{{ asset('images/logo-confipetrol.png') }}" alt="Confipetrol" class="h-5 w-auto opacity-40">
+                <span class="font-mono text-[10px] tracking-[0.18em] uppercase text-stone-700">
+                    Helpdesk · Uso interno · &copy; {{ date('Y') }}
                 </span>
             </div>
-
-            <div class="flex items-center gap-5 font-mono text-[10px] tracking-[0.18em] uppercase text-stone-600">
-                <a href="#sistema" class="hover:text-stone-400 transition">Sistema</a>
-                <a href="#paneles" class="hover:text-stone-400 transition">Paneles</a>
-                <a href="{{ route('login') }}" class="hover:text-stone-400 transition">Acceder</a>
-                <span class="flex items-center gap-1.5 text-stone-700">
-                    <span class="dot-live" style="background: var(--color-emerald); opacity: 0.6;"></span>
-                    Laravel {{ Illuminate\Foundation\Application::VERSION }}
-                </span>
+            <div class="flex items-center gap-5 font-mono text-[10px] tracking-[0.16em] uppercase text-stone-700">
+                <a href="#como-funciona" class="hover:text-stone-400 transition-colors">Cómo funciona</a>
+                <a href="#servicios" class="hover:text-stone-400 transition-colors">Servicios</a>
+                <a href="{{ route('login') }}" class="hover:text-stone-400 transition-colors">Ingresar</a>
             </div>
         </div>
     </footer>
 
 </main>
-
 </body>
 </html>

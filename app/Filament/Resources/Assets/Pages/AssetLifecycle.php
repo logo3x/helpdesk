@@ -46,6 +46,7 @@ class AssetLifecycle extends Page
             'project',
             'maintenanceResponsible',
             'createdBy',
+            'acceptedBy',
             'handovers.receivedBy',
             'handovers.deliveredBy',
             'histories.user',
@@ -142,7 +143,24 @@ class AssetLifecycle extends Page
             ];
         }
 
-        // 3. Cambios manuales registrados en AssetHistory.
+        // 3. Aceptación digital del custodio (si ocurrió).
+        if ($this->record->accepted_at) {
+            $events[] = [
+                'date' => $this->record->accepted_at,
+                'type' => 'accepted',
+                'action' => 'accepted',
+                'icon' => 'heroicon-o-check-badge',
+                'color' => 'success',
+                'title' => 'Activo aceptado digitalmente',
+                'description' => 'El custodio confirmó la recepción del equipo a través del Portal de Helpdesk.',
+                'meta' => array_filter([
+                    'Custodio' => $this->record->acceptedBy?->name ?? $this->record->user?->name,
+                    'Fecha' => $this->record->accepted_at->translatedFormat('d/m/Y H:i'),
+                ]),
+            ];
+        }
+
+        // 4. Cambios manuales registrados en AssetHistory.
         foreach ($this->record->histories as $history) {
             // Para eventos de tipo 'updated', agrupamos por campo en el action
             // para que los sub-filtros de la vista puedan distinguirlos.

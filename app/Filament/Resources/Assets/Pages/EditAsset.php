@@ -6,6 +6,7 @@ use App\Filament\Resources\Assets\AssetResource;
 use App\Models\AssetHandover;
 use App\Models\User;
 use App\Services\AssetHandoverService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -114,21 +115,64 @@ class EditAsset extends EditRecord
                 ->icon('heroicon-o-check-badge')
                 ->color('success')
                 ->tooltip('Descarga el PDF del acta con el sello de aceptación digital del custodio')
-                ->visible(fn () => $this->record->handovers()
-                    ->whereNotNull('accepted_pdf_path')
-                    ->exists())
+                ->visible(fn () => $this->record->accepted_at !== null)
                 ->action(function (): StreamedResponse {
+                    // Caso 1: hay handover con PDF ya generado.
                     $handover = $this->record->handovers()
                         ->whereNotNull('accepted_pdf_path')
                         ->latest('delivered_at')
-                        ->firstOrFail();
+                        ->first();
 
-                    $filename = sprintf('acta_%d_%s_aceptada.pdf',
-                        $handover->acta_number,
-                        preg_replace('/[^A-Za-z0-9_-]/', '_', strtoupper($handover->receivedBy?->name ?? 'custodio')),
+                    if ($handover && Storage::disk('local')->exists($handover->accepted_pdf_path)) {
+                        $filename = sprintf('acta_%d_%s_aceptada.pdf',
+                            $handover->acta_number,
+                            preg_replace('/[^A-Za-z0-9_-]/', '_', strtoupper($handover->receivedBy?->name ?? 'custodio')),
+                        );
+
+                        return Storage::disk('local')->download($handover->accepted_pdf_path, $filename);
+                    }
+
+                    // Caso 2: hay handover pero sin PDF aceptado — generarlo ahora.
+                    $handover = $this->record->handovers()->latest('delivered_at')->first();
+
+                    if ($handover) {
+                        $handover->load(['receivedBy', 'deliveredBy', 'project']);
+                        $pdf = Pdf::loadView('pdfs.asset-handover', [
+                            'handover' => $handover,
+                            'acceptedAt' => $this->record->accepted_at->toDateTimeString(),
+                        ])->setPaper('letter', 'portrait');
+
+                        $path = sprintf(
+                            'actas/%d_acta_%s_aceptada.pdf',
+                            $handover->acta_number,
+                            preg_replace('/[^A-Za-z0-9_-]/', '_', strtoupper($handover->receivedBy?->name ?? 'custodio')),
+                        );
+
+                        Storage::disk('local')->put($path, $pdf->output());
+                        $handover->forceFill(['accepted_pdf_path' => $path])->save();
+
+                        $filename = sprintf('acta_%d_%s_aceptada.pdf',
+                            $handover->acta_number,
+                            preg_replace('/[^A-Za-z0-9_-]/', '_', strtoupper($handover->receivedBy?->name ?? 'custodio')),
+                        );
+
+                        return Storage::disk('local')->download($path, $filename);
+                    }
+
+                    // Caso 3: sin handover — generar acta oficial con datos del asset.
+                    $this->record->loadMissing(['user', 'department', 'project']);
+                    $pdfContent = Pdf::loadView('pdfs.asset-handover-no-handover', [
+                        'asset' => $this->record,
+                        'acceptedAt' => $this->record->accepted_at->toDateTimeString(),
+                    ])->setPaper('letter', 'portrait')->output();
+
+                    $filename = "acta_{$this->record->id}_aceptada.pdf";
+
+                    return response()->streamDownload(
+                        fn () => print ($pdfContent),
+                        $filename,
+                        ['Content-Type' => 'application/pdf'],
                     );
-
-                    return Storage::disk('local')->download($handover->accepted_pdf_path, $filename);
                 }),
 
             // ── Descargar acta firmada cargada manualmente ───────

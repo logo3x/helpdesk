@@ -145,8 +145,8 @@
         /* ── Etapa de workflow ──────────────────────────────────────── */
         .stage {
             display: grid;
-            grid-template-columns: 80px 1fr;
-            gap: 0 var(--space-lg);
+            grid-template-columns: 96px 1fr;
+            gap: 0 var(--space-xl);
             align-items: start;
             padding: var(--space-xl) 0;
             border-top: 1px solid var(--color-rule);
@@ -159,12 +159,13 @@
 
         .stage-number {
             font-family: var(--font-display);
-            font-size: clamp(3rem, 6vw, 4.5rem);
+            font-size: clamp(3.5rem, 7vw, 5rem);
             font-weight: 300;
             color: var(--color-accent);
             line-height: 1;
             letter-spacing: -0.04em;
-            opacity: 0.85;
+            opacity: 0.7;
+            padding-top: 0.15em;
         }
 
         /* ── Servicios — grid de items ──────────────────────────────── */
@@ -267,7 +268,7 @@
         {{-- Fondo cálido muy sutil --}}
         <div class="absolute inset-0 bg-gradient-to-b from-amber-50/60 to-transparent dark:from-amber-950/15 dark:to-transparent pointer-events-none" aria-hidden="true"></div>
 
-        <div class="relative mx-auto max-w-5xl px-6 lg:px-8 pt-14 pb-20 md:pt-16 md:pb-28">
+        <div class="relative mx-auto max-w-5xl px-6 lg:px-8 pt-16 pb-24 md:pt-20 md:pb-32">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-10 items-center">
 
                 {{-- Texto del hero --}}
@@ -372,10 +373,10 @@
          NARRATIVE WORKFLOW — 3 etapas del proceso
          Vistas desde el empleado, no desde el sistema
          ═══════════════════════════════════════════════════════ --}}
-    <section id="como-funciona" class="bg-stone-50 dark:bg-stone-950 border-t border-stone-100 dark:border-stone-900 py-20 lg:py-28">
+    <section id="como-funciona" class="bg-stone-50 dark:bg-stone-950 border-t border-stone-100 dark:border-stone-900 py-24 lg:py-32">
         <div class="mx-auto max-w-5xl px-6 lg:px-8">
 
-            <div class="mb-6">
+            <div class="mb-14">
                 <h2 class="font-display text-3xl sm:text-4xl font-light text-stone-900 dark:text-stone-50 leading-tight" style="overflow-wrap: anywhere; min-width: 0;">
                     Así funciona <span class="font-medium" style="color: var(--color-accent);">para ti.</span>
                 </h2>
@@ -484,7 +485,7 @@
          SERVICIOS — Qué puedes pedir
          En lenguaje del usuario, no de IT
          ═══════════════════════════════════════════════════════ --}}
-    <section id="servicios" class="bg-white dark:bg-stone-950 py-20 lg:py-28 border-t border-stone-100 dark:border-stone-900">
+    <section id="servicios" class="bg-white dark:bg-stone-950 py-24 lg:py-32 border-t border-stone-100 dark:border-stone-900">
         <div class="mx-auto max-w-5xl px-6 lg:px-8">
 
             <div class="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">

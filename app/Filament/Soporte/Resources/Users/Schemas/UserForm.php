@@ -47,18 +47,26 @@ class UserForm
 
                         Select::make('role')
                             ->label('Rol')
-                            ->options(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin'])
+                            ->options(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])
                                 ? [
-                                    'usuario_final' => 'Usuario final (portal /soporte)',
+                                    'usuario_final' => 'Usuario final (portal)',
                                     'agente_soporte' => 'Agente de soporte',
                                 ]
-                                : ['usuario_final' => 'Usuario final (portal /soporte)']
+                                : ['usuario_final' => 'Usuario final (portal)']
                             )
                             ->default('usuario_final')
                             ->required()
                             ->dehydrated(false)
+                            // Pre-selecciona el rol actual al editar (el campo no
+                            // corresponde a una columna de users, así que sin
+                            // hidratación explícita queda vacío en Edit).
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                if ($record instanceof User) {
+                                    $component->state($record->roles->first()?->name);
+                                }
+                            })
                             ->disabled(fn () => ! auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']))
-                            ->helperText('Usuario final: accede al portal para abrir tickets. Agente: gestiona tickets en el panel soporte.'),
+                            ->helperText('Usuario final: abre tickets desde el portal. Agente de soporte: gestiona tickets del departamento.'),
 
                         Select::make('department_id')
                             ->label('Departamento')

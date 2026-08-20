@@ -197,28 +197,47 @@ class ScheduledMaintenanceForm
                     ->columnSpanFull()
                     ->visible(fn (Get $get, string $operation) => $operation === 'create' && ($get('creation_mode') ?? '') === 'bulk')
                     ->schema([
+                        // Contador arriba del select. Usamos hiddenLabel()
+                        // para no mostrar el nombre "camelCase" del componente.
                         Placeholder::make('bulk_asset_count')
-                            ->label('')
+                            ->hiddenLabel()
                             ->content(function (Get $get) {
-                                $count = count($get('bulk_asset_ids') ?? []);
-                                if ($count === 0) {
-                                    return new HtmlString('<div class="text-sm text-gray-500 dark:text-gray-400">Ningún activo seleccionado todavía.</div>');
+                                $selected = count($get('bulk_asset_ids') ?? []);
+                                $matching = self::bulkAssetsMatchingCount($get);
+
+                                if ($selected === 0) {
+                                    return new HtmlString(sprintf(
+                                        '<div class="text-sm text-gray-500 dark:text-gray-400">'
+                                        .'Hay <b>%d</b> activo(s) que matchean los filtros actuales. Empezá a escribir o hacé click en el campo de abajo para verlos y seleccionar.'
+                                        .'</div>',
+                                        $matching,
+                                    ));
                                 }
 
-                                return new HtmlString('<div class="text-sm font-medium text-warning-600 dark:text-warning-400">'
-                                    ."Vas a crear <b>{$count}</b> mantenimiento(s) — uno por cada activo — con la misma fecha, agente y frecuencia."
-                                    .'</div>');
+                                return new HtmlString(sprintf(
+                                    '<div class="text-sm font-medium text-warning-600 dark:text-warning-400">'
+                                    .'Vas a crear <b>%d</b> mantenimiento(s) — uno por cada activo — con la misma fecha, agente y frecuencia.'
+                                    .' <span class="text-gray-500 dark:text-gray-400 font-normal">(%d activos matchean los filtros en total)</span>'
+                                    .'</div>',
+                                    $selected, $matching,
+                                ));
                             }),
 
+                        // Select con búsqueda server-side. Cada tecla dispara
+                        // getSearchResultsUsing() que sí lee los filtros
+                        // actuales del form vía Get. Esto evita el issue de
+                        // options() estático que Filament cachea al inicio.
                         Select::make('bulk_asset_ids')
                             ->label('Activos')
                             ->multiple()
+                            ->searchable()
                             ->required(fn (Get $get) => ($get('creation_mode') ?? '') === 'bulk')
                             ->dehydrated(false)
                             ->live()
                             ->allowHtml()
-                            ->options(fn (Get $get) => self::bulkAssetOptions($get))
-                            ->helperText('Se listan solo los activos que matchean los filtros seleccionados. Podés añadir o quitar activos individuales.'),
+                            ->getSearchResultsUsing(fn (string $search, Get $get) => self::bulkAssetSearchResults($search, $get))
+                            ->getOptionLabelsUsing(fn (array $values) => self::bulkAssetLabelsFor($values))
+                            ->helperText('Escribí para filtrar (TAG, hostname, custodio, etc.) o hacé click y aparecerán los activos que matchean los filtros. Podés seleccionar varios.'),
                     ]),
 
                 // ── PROGRAMACIÓN (fecha, agente, frecuencia) ──────────
@@ -376,16 +395,13 @@ class ScheduledMaintenanceForm
     }
 
     /**
-     * Devuelve el array de opciones (id => html) para el Select
-     * múltiple de activos en modo masivo, aplicando todos los
-     * filtros seleccionados en el form.
-     *
-     * @return array<int, string>
+     * Query base con los filtros del modo masivo aplicados. Se usa
+     * para el count total, para la búsqueda searchable y para los
+     * labels de los ya seleccionados.
      */
-    protected static function bulkAssetOptions(Get $get): array
+    protected static function bulkAssetQuery(Get $get): Builder
     {
         $types = $get('bulk_filter_type') ?: self::ELIGIBLE_TYPES;
-        // Sanitiza: garantiza que solo se listen tipos elegibles.
         $types = array_values(array_intersect($types, self::ELIGIBLE_TYPES));
         if ($types === []) {
             $types = self::ELIGIBLE_TYPES;
@@ -411,8 +427,61 @@ class ScheduledMaintenanceForm
             $query->where('department_id', $v);
         }
 
+        return $query;
+    }
+
+    /** Cuántos activos matchean los filtros actuales (para el contador). */
+    protected static function bulkAssetsMatchingCount(Get $get): int
+    {
+        return self::bulkAssetQuery($get)->count();
+    }
+
+    /**
+     * Búsqueda server-side de activos aplicando filtros + término
+     * escrito por el usuario. Devuelve id => html. Cap 50 para
+     * responsividad.
+     *
+     * @return array<int, string>
+     */
+    protected static function bulkAssetSearchResults(string $search, Get $get): array
+    {
+        $query = self::bulkAssetQuery($get);
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('asset_tag', 'like', $like)
+                    ->orWhere('hostname', 'like', $like)
+                    ->orWhere('serial_number', 'like', $like)
+                    ->orWhere('sap_code', 'like', $like)
+                    ->orWhere('custodian_name', 'like', $like)
+                    ->orWhere('custodian_id_number', 'like', $like);
+            });
+        }
+
         return $query->orderBy('asset_tag')
-            ->limit(500)
+            ->limit(50)
+            ->get()
+            ->mapWithKeys(fn (Asset $a) => [$a->id => self::renderAssetOptionHtml($a)])
+            ->all();
+    }
+
+    /**
+     * Labels HTML de los activos ya seleccionados (para que
+     * multiple() los renderice al re-hidratar el form).
+     *
+     * @param  array<int, int|string>  $values
+     * @return array<int, string>
+     */
+    protected static function bulkAssetLabelsFor(array $values): array
+    {
+        if ($values === []) {
+            return [];
+        }
+
+        return Asset::query()
+            ->whereIn('id', $values)
+            ->with(['user:id,name,identification', 'project:id,code,name', 'department:id,name'])
             ->get()
             ->mapWithKeys(fn (Asset $a) => [$a->id => self::renderAssetOptionHtml($a)])
             ->all();

@@ -12,7 +12,6 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -331,6 +330,22 @@ class AssetsTable
 
                 // ── Acciones secundarias en menú ⋮ ─────────────────────
                 ActionGroup::make([
+                    // Link rápido al módulo de mantenimientos programados
+                    // filtrado por este activo. Solo visible para tipos
+                    // computador/laptop/all_in_one/server, que son los
+                    // que aceptan programación de mantenimiento.
+                    Action::make('scheduleMaintenance')
+                        ->label('Programar mantenimiento')
+                        ->icon('heroicon-o-wrench-screwdriver')
+                        ->color('warning')
+                        ->visible(fn (Asset $record) => in_array($record->type, [
+                            'desktop', 'laptop', 'all_in_one', 'server',
+                        ], true))
+                        ->url(fn (Asset $record) => route(
+                            'filament.'.(filament()->getCurrentPanel()?->getId() ?? 'admin').'.resources.scheduled-maintenances.create',
+                            ['asset_id' => $record->id],
+                        )),
+
                     // Cambiar custodio sin abrir el form de edit completo.
                     Action::make('transferCustodian')
                         ->label('Transferir custodia')
@@ -379,65 +394,11 @@ class AssetsTable
                                 ->send();
                         }),
 
-                    // Marcar mantenimiento realizado: actualiza last_maintenance_at
-                    // y deja que el modelo recalcule next_maintenance_at solo.
-                    Action::make('markMaintenance')
-                        ->label('Registrar mantenimiento')
-                        ->icon('heroicon-o-wrench-screwdriver')
-                        ->color('warning')
-                        ->modalHeading(fn (Asset $record) => "Registrar mantenimiento de {$record->asset_tag}")
-                        ->modalDescription('Marca el activo como mantenido hoy. La próxima fecha se calcula automáticamente con el intervalo configurado.')
-                        ->schema([
-                            DatePicker::make('done_at')
-                                ->label('Fecha del mantenimiento')
-                                ->default(now())
-                                ->required(),
-                            Select::make('interval')
-                                ->label('Frecuencia')
-                                ->options([
-                                    120 => 'Cuatrimestral (cada 120 días)',
-                                    365 => 'Anual (cada 365 días)',
-                                ])
-                                ->native(false)
-                                ->default(fn (Asset $record) => in_array($record->maintenance_interval_days, [120, 365], true)
-                                    ? $record->maintenance_interval_days
-                                    : 120)
-                                ->helperText('Define cada cuánto se debe repetir el mantenimiento.'),
-                            Textarea::make('notes')
-                                ->label('Observaciones (opcional)')
-                                ->placeholder('Ej: "Limpieza interna + cambio de pasta térmica"')
-                                ->rows(2)
-                                ->maxLength(500),
-                        ])
-                        ->action(function (Asset $record, array $data): void {
-                            // Skip auto-history: el evento "maintenance" se
-                            // crea con su label propio, no como "updated".
-                            $interval = $data['interval'] ?? $record->maintenance_interval_days;
-                            $record->skipAutoHistory = true;
-                            $record->forceFill([
-                                'last_maintenance_at' => $data['done_at'],
-                                'maintenance_interval_days' => $interval,
-                            ])->save(); // El booted() hook recalcula next_maintenance_at.
-
-                            $parts = array_filter([
-                                $interval ? "Frecuencia: {$interval} días" : null,
-                                $data['notes'] ?? null,
-                            ]);
-
-                            $record->histories()->create([
-                                'user_id' => auth()->id(),
-                                'action' => 'maintenance',
-                                'field' => 'last_maintenance_at',
-                                'new_value' => $data['done_at'],
-                                'notes' => implode(' | ', $parts) ?: null,
-                            ]);
-
-                            Notification::make()
-                                ->title('Mantenimiento registrado')
-                                ->body('Próximo: '.$record->fresh()->next_maintenance_at?->translatedFormat('d/m/Y'))
-                                ->success()
-                                ->send();
-                        }),
+                    // NOTA: la acción "Registrar mantenimiento" fue removida
+                    // — ahora los mantenimientos se registran desde el
+                    // módulo Mantenimientos Programados (/soporte/scheduled-
+                    // maintenances). Al cerrar un ciclo allí, el observer
+                    // escribe la entrada en histories automáticamente.
                 ])
                     ->label('Más acciones')
                     ->icon('heroicon-m-ellipsis-vertical')

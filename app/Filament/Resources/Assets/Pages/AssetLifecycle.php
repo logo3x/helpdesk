@@ -74,6 +74,18 @@ class AssetLifecycle extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('scheduleMaintenance')
+                ->label('Programar mantenimiento')
+                ->icon('heroicon-o-wrench-screwdriver')
+                ->color('warning')
+                ->visible(fn () => in_array($this->record->type, [
+                    'desktop', 'laptop', 'all_in_one', 'server',
+                ], true))
+                ->url(fn () => route(
+                    'filament.'.(filament()->getCurrentPanel()?->getId() ?? 'admin').'.resources.scheduled-maintenances.create',
+                    ['asset_id' => $this->record->id],
+                )),
+
             Action::make('backToEdit')
                 ->label('Volver al activo')
                 ->icon('heroicon-o-arrow-uturn-left')

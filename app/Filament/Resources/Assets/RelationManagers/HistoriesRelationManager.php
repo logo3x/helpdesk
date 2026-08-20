@@ -2,18 +2,15 @@
 
 namespace App\Filament\Resources\Assets\RelationManagers;
 
-use App\Jobs\SendMaintenanceSurveyJob;
 use App\Models\Asset;
 use App\Models\Department;
 use App\Models\Project;
 use App\Models\User;
-use App\Notifications\AssetMaintenanceAssignedNotification;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -24,14 +21,19 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 /**
- * Historial completo del activo: mantenimientos, asignaciones, scans, etc.
+ * Historial completo del activo: asignaciones, retiros, scans, cambios
+ * auto-registrados por el observer + los mantenimientos que registra
+ * el ScheduledMaintenanceObserver al cerrar un ciclo.
  *
- * - Se refresca automáticamente cada 15 segundos (poll).
- * - Los cambios en el formulario del activo (custodio, estado, etc.)
- *   se registran automáticamente via Asset::booted() TRACKED_FIELDS.
- * - El modal "Registrar evento" permite crear entradas manuales;
- *   cuando el tipo es "Mantenimiento" también actualiza los campos
- *   del activo (last_maintenance_at, interval, responsable).
+ * IMPORTANTE: la opción "Mantenimiento" fue quitada del select del
+ * modal manual — ahora los mantenimientos se registran únicamente
+ * desde el módulo Mantenimientos Programados (/soporte/scheduled-
+ * maintenances). Eso garantiza que todo mtto tenga su programación,
+ * agente asignado, ciclo y trazabilidad.
+ *
+ * Las entradas históricas con action='maintenance' (creadas por el
+ * observer del módulo) siguen visibles y filtrables acá para la
+ * hoja de vida del activo.
  */
 class HistoriesRelationManager extends RelationManager
 {
@@ -41,7 +43,6 @@ class HistoriesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        $isMaintenance = fn ($get) => $get('action') === 'maintenance';
         $isAssigned = fn ($get) => $get('action') === 'assigned';
         $isRetired = fn ($get) => $get('action') === 'retired';
 
@@ -51,47 +52,15 @@ class HistoriesRelationManager extends RelationManager
                 Select::make('action')
                     ->label('Tipo de evento')
                     ->options([
-                        'maintenance' => '🔧 Mantenimiento',
                         'assigned' => '👤 Asignación',
                         'retired' => '📦 Retiro',
                     ])
                     ->required()
                     ->native(false)
                     ->live()
-                    ->afterStateUpdated(fn () => null)
+                    ->helperText('Los mantenimientos se registran automáticamente al cerrar un ciclo desde el módulo Mantenimientos Programados.')
                     ->columnSpanFull(),
 
-                // ── MANTENIMIENTO ────────────────────────────────────
-                DatePicker::make('maintenance_done_at')
-                    ->label('Fecha del mantenimiento')
-                    ->displayFormat('d/m/Y')
-                    ->native(false)
-                    ->default(now())
-                    ->visible($isMaintenance)
-                    ->required($isMaintenance),
-
-                Select::make('maintenance_interval_days')
-                    ->label('Frecuencia')
-                    ->options([
-                        120 => 'Cuatrimestral (cada 120 días)',
-                        365 => 'Anual (cada 365 días)',
-                    ])
-                    ->native(false)
-                    ->placeholder('Selecciona la frecuencia')
-                    ->helperText('Define cada cuánto se debe repetir el mantenimiento.')
-                    ->visible($isMaintenance),
-
-                Select::make('maintenance_responsible_id')
-                    ->label('Responsable del mantenimiento')
-                    ->options(fn () => User::whereHas('roles', fn ($q) => $q->whereIn('name', [
-                        'super_admin', 'admin', 'supervisor_soporte', 'agente_soporte', 'tecnico_campo',
-                    ]))->orderBy('name')->pluck('name', 'id'))
-                    ->searchable()
-                    ->placeholder('Sin asignar')
-                    ->visible($isMaintenance)
-                    ->columnSpanFull(),
-
-                // ── ASIGNACIÓN ───────────────────────────────────────
                 Select::make('assigned_user_id')
                     ->label('Nuevo custodio')
                     ->options(fn () => User::orderBy('name')->pluck('name', 'id'))
@@ -100,14 +69,12 @@ class HistoriesRelationManager extends RelationManager
                     ->visible($isAssigned)
                     ->columnSpanFull(),
 
-                // ── RETIRO ───────────────────────────────────────────
                 TextInput::make('retirement_reason')
                     ->label('Motivo del retiro')
                     ->placeholder('Ej: Obsolescencia, daño irreparable...')
                     ->visible($isRetired)
                     ->columnSpanFull(),
 
-                // ── OBSERVACIONES (todos los tipos) ──────────────────
                 Textarea::make('notes')
                     ->label('Observaciones')
                     ->rows(3)
@@ -225,68 +192,19 @@ class HistoriesRelationManager extends RelationManager
                         $data['user_id'] = auth()->id();
 
                         match ($data['action'] ?? '') {
-
-                            'maintenance' => (function () use (&$data): void {
-                                $date = $data['maintenance_done_at'] ?? null;
-                                $interval = $data['maintenance_interval_days'] ?? null;
-                                $responsibleId = $data['maintenance_responsible_id'] ?? null;
-                                $responsible = $responsibleId ? User::find($responsibleId)?->name : null;
-
-                                $data['field'] = 'last_maintenance_at';
-                                $data['new_value'] = $date;
-
-                                $parts = array_filter([
-                                    $interval ? "Frecuencia: {$interval} días" : null,
-                                    $responsible ? "Responsable: {$responsible}" : null,
-                                ]);
-                                $summary = implode(' · ', $parts);
-                                $data['notes'] = $data['notes']
-                                    ? trim($data['notes'].' | '.$summary, ' |')
-                                    : $summary;
-
-                                $fields = array_filter([
-                                    'last_maintenance_at' => $date,
-                                    'maintenance_interval_days' => $interval,
-                                    'maintenance_responsible_id' => $responsibleId,
-                                ], fn ($v) => $v !== null && $v !== '');
-
-                                if (! empty($fields)) {
-                                    /** @var Asset $asset */
-                                    $asset = $this->getOwnerRecord();
-                                    $asset->skipAutoHistory = true;
-                                    $asset->forceFill($fields)->save();
-
-                                    // Notificar al responsable asignado
-                                    if ($responsibleId) {
-                                        $responsibleUser = User::find($responsibleId);
-                                        $assignedBy = auth()->user();
-                                        if ($responsibleUser && $assignedBy && $responsibleUser->id !== $assignedBy->id) {
-                                            try {
-                                                $responsibleUser->notify(new AssetMaintenanceAssignedNotification(
-                                                    asset: $asset->refresh(),
-                                                    assignedBy: $assignedBy,
-                                                ));
-                                            } catch (\Throwable) {
-                                            }
-                                        }
-                                    }
-
-                                    // Encuesta de satisfacción al custodio del activo
-                                    SendMaintenanceSurveyJob::dispatch($asset->refresh());
-                                }
-                            })(),
-
                             'assigned' => (function () use (&$data): void {
                                 $userId = $data['assigned_user_id'] ?? null;
                                 if ($userId) {
                                     $user = User::find($userId);
+                                    /** @var Asset $asset */
                                     $asset = $this->getOwnerRecord();
                                     $data['field'] = 'user_id';
                                     $data['old_value'] = (string) ($asset->user_id ?? '');
                                     $data['new_value'] = (string) $userId;
-                                    // Actualizar custodio en el asset
+
                                     $asset->skipAutoHistory = true;
                                     $asset->forceFill(['user_id' => $userId])->save();
+
                                     if (! $data['notes'] && $user) {
                                         $data['notes'] = "Nuevo custodio: {$user->name}";
                                     }
@@ -300,7 +218,7 @@ class HistoriesRelationManager extends RelationManager
                                 if ($reason && ! $data['notes']) {
                                     $data['notes'] = $reason;
                                 }
-                                // Actualizar estado del asset
+                                /** @var Asset $asset */
                                 $asset = $this->getOwnerRecord();
                                 $asset->skipAutoHistory = true;
                                 $asset->forceFill(['status' => 'retired'])->save();
@@ -309,11 +227,7 @@ class HistoriesRelationManager extends RelationManager
                             default => null,
                         };
 
-                        // Eliminar campos extras que no son columnas de asset_histories
                         unset(
-                            $data['maintenance_done_at'],
-                            $data['maintenance_interval_days'],
-                            $data['maintenance_responsible_id'],
                             $data['assigned_user_id'],
                             $data['retirement_reason'],
                         );
@@ -338,7 +252,6 @@ class HistoriesRelationManager extends RelationManager
 
     protected static function resolveValue(?string $value, ?string $field): string
     {
-        // Campos de usuario: null = sin asignar (no "—")
         if (in_array($field, ['user_id', 'maintenance_responsible_id'], true)) {
             if ($value === null || $value === '') {
                 return 'Sin custodio asignado';

@@ -12,6 +12,22 @@ class CreateScheduledMaintenance extends CreateRecord
     protected static string $resource = ScheduledMaintenanceResource::class;
 
     /**
+     * Pre-selecciona el activo si viene ?asset_id=X en el URL (link
+     * rápido desde la tabla de inventario).
+     */
+    public function mount(): void
+    {
+        parent::mount();
+
+        if ($assetId = request()->query('asset_id')) {
+            $this->form->fill([
+                ...$this->form->getRawState(),
+                'asset_id' => (int) $assetId,
+            ]);
+        }
+    }
+
+    /**
      * Fuerza el created_by_id del usuario autenticado — nunca del payload.
      */
     protected function mutateFormDataBeforeCreate(array $data): array

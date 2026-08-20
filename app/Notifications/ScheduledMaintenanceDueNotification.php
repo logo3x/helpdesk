@@ -10,10 +10,10 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Notifica al agente que se le asignó un mantenimiento programado.
- * Canales: database (campanita Filament) + mail (si SMTP disponible).
+ * Notifica al agente que un mantenimiento se acerca a la fecha
+ * programada (por defecto 30 días de anticipación).
  */
-class ScheduledMaintenanceAssignedNotification extends Notification
+class ScheduledMaintenanceDueNotification extends Notification
 {
     use Queueable;
 
@@ -30,34 +30,35 @@ class ScheduledMaintenanceAssignedNotification extends Notification
         $asset = $this->maintenance->asset;
         $tag = $asset?->asset_tag ?: 'Activo #'.$asset?->id;
         $date = $this->maintenance->scheduled_at->translatedFormat('d M Y');
+        $days = (int) now()->startOfDay()->diffInDays($this->maintenance->scheduled_at, false);
 
         return (new MailMessage)
-            ->subject("Mantenimiento asignado — {$tag}")
+            ->subject("Mantenimiento próximo — {$tag}")
             ->greeting('Hola '.($notifiable->name ?? 'agente'))
-            ->line("Se te asignó un mantenimiento programado sobre el activo {$tag}.")
-            ->line('Fecha programada: '.$date)
-            ->line('Frecuencia: '.$this->maintenance->frequency->label())
-            ->action('Ver mantenimiento', url('/soporte/scheduled-maintenances/'.$this->maintenance->id.'/edit'))
-            ->line('Recordá registrar las observaciones al ejecutarlo.');
+            ->line($days > 0
+                ? "Faltan {$days} días para el mantenimiento programado del activo {$tag}."
+                : "El mantenimiento del activo {$tag} está programado para hoy.")
+            ->line('Fecha: '.$date)
+            ->action('Ver mantenimiento', url('/soporte/scheduled-maintenances/'.$this->maintenance->id.'/edit'));
     }
 
-    /**
-     * Formato database para la campanita Filament. Guardamos title, body
-     * y una URL de acción que Filament renderiza como link.
-     *
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public function toDatabase(object $notifiable): array
     {
         $asset = $this->maintenance->asset;
         $tag = $asset?->asset_tag ?: 'Activo #'.$asset?->id;
         $date = $this->maintenance->scheduled_at->translatedFormat('d M Y');
+        $days = (int) now()->startOfDay()->diffInDays($this->maintenance->scheduled_at, false);
+
+        $body = $days > 0
+            ? "Faltan {$days} días · Activo {$tag} · programado para {$date}."
+            : "Vence hoy · Activo {$tag}.";
 
         return FilamentNotification::make()
-            ->title('Mantenimiento asignado')
-            ->body("Activo {$tag} — programado para {$date}.")
-            ->icon('heroicon-o-wrench-screwdriver')
-            ->iconColor('info')
+            ->title('Mantenimiento próximo a vencer')
+            ->body($body)
+            ->icon('heroicon-o-bell-alert')
+            ->iconColor('warning')
             ->actions([
                 Action::make('view')
                     ->label('Ver')

@@ -5,6 +5,7 @@ use App\Jobs\AutoMarkMaintenanceSurveysPositiveJob;
 use App\Jobs\AutoMarkSurveysPositiveJob;
 use App\Jobs\CheckSlaBreachesJob;
 use App\Jobs\MaintenanceAlertJob;
+use App\Jobs\NotifyDueMaintenancesJob;
 use Illuminate\Support\Facades\Schedule;
 
 // SLA breach detection — every 5 minutes during business hours
@@ -33,6 +34,14 @@ Schedule::job(new AutoMarkMaintenanceSurveysPositiveJob)
 // Campanita (7 días) + correo semanal (14 días).
 Schedule::job(new MaintenanceAlertJob)
     ->weeklyOn(1, '07:00')
+    ->withoutOverlapping();
+
+// Módulo Mantenimientos Programados — alerta a los agentes cuando
+// falten MAINTENANCE_ALERT_DAYS_BEFORE (default 30) para la fecha
+// programada. Diario a las 7:15am, marca notified_due_at para no
+// re-notificar la misma ocurrencia.
+Schedule::job(new NotifyDueMaintenancesJob)
+    ->dailyAt('07:15')
     ->withoutOverlapping();
 
 // Sync Kactus → users — cada hora durante horario laboral, solo si está habilitado.

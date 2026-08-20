@@ -15,7 +15,6 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -393,12 +392,17 @@ class AssetsTable
                                 ->label('Fecha del mantenimiento')
                                 ->default(now())
                                 ->required(),
-                            TextInput::make('interval')
-                                ->label('Intervalo (días)')
-                                ->numeric()
-                                ->minValue(1)
-                                ->default(fn (Asset $record) => $record->maintenance_interval_days ?? 180)
-                                ->helperText('Días hasta el próximo mantenimiento. Si lo dejás vacío, se usa el valor previo del activo.'),
+                            Select::make('interval')
+                                ->label('Frecuencia')
+                                ->options([
+                                    120 => 'Cuatrimestral (cada 120 días)',
+                                    365 => 'Anual (cada 365 días)',
+                                ])
+                                ->native(false)
+                                ->default(fn (Asset $record) => in_array($record->maintenance_interval_days, [120, 365], true)
+                                    ? $record->maintenance_interval_days
+                                    : 120)
+                                ->helperText('Define cada cuánto se debe repetir el mantenimiento.'),
                             Textarea::make('notes')
                                 ->label('Observaciones (opcional)')
                                 ->placeholder('Ej: "Limpieza interna + cambio de pasta térmica"')

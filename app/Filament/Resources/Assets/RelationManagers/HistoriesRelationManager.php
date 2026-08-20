@@ -70,13 +70,15 @@ class HistoriesRelationManager extends RelationManager
                     ->visible($isMaintenance)
                     ->required($isMaintenance),
 
-                TextInput::make('maintenance_interval_days')
-                    ->label('Frecuencia (días)')
-                    ->numeric()
-                    ->minValue(1)
-                    ->maxValue(3650)
-                    ->placeholder('120')
-                    ->helperText('120 = trimestral · 180 = semestral · 365 = anual')
+                Select::make('maintenance_interval_days')
+                    ->label('Frecuencia')
+                    ->options([
+                        120 => 'Cuatrimestral (cada 120 días)',
+                        365 => 'Anual (cada 365 días)',
+                    ])
+                    ->native(false)
+                    ->placeholder('Selecciona la frecuencia')
+                    ->helperText('Define cada cuánto se debe repetir el mantenimiento.')
                     ->visible($isMaintenance),
 
                 Select::make('maintenance_responsible_id')

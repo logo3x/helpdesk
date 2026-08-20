@@ -123,6 +123,9 @@ class AssetPolicy
             return false;
         }
 
-        return $user->hasAnyRole(['supervisor_soporte', 'tecnico_campo', 'agente_soporte']);
+        // agente_soporte queda EXCLUIDO: solo consulta el inventario
+        // para resolver tickets, no crea ni edita registros. Los
+        // cambios los hacen supervisores o técnicos de campo.
+        return $user->hasAnyRole(['supervisor_soporte', 'tecnico_campo']);
     }
 }

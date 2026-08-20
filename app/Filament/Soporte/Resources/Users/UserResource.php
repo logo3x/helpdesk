@@ -64,7 +64,13 @@ class UserResource extends Resource
             return false;
         }
 
-        // Admins y supervisores pueden editar cualquier usuario del resource.
+        // Solo un super_admin puede editar a otro super_admin. Esto previene
+        // que un admin/supervisor con acceso al recurso pueda modificar el
+        // rol o departamento del super usuario y escalar privilegios.
+        if ($record->hasRole('super_admin') && ! $authUser->hasRole('super_admin')) {
+            return false;
+        }
+
         if ($authUser->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])) {
             return true;
         }

@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class UserResource extends Resource
 {
@@ -47,5 +48,33 @@ class UserResource extends Resource
             'create' => CreateUser::route('/create'),
             'edit' => EditUser::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Solo un super_admin puede editar/borrar a otro super_admin. Los admins
+     * tienen permiso general sobre users vía Shield, pero se les bloquea el
+     * acceso puntual a registros con rol super_admin para prevenir
+     * escalamiento de privilegios o quitarle el rol al usuario raíz.
+     */
+    public static function canEdit(Model $record): bool
+    {
+        if ($record instanceof User
+            && $record->hasRole('super_admin')
+            && ! auth()->user()?->hasRole('super_admin')) {
+            return false;
+        }
+
+        return parent::canEdit($record);
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        if ($record instanceof User
+            && $record->hasRole('super_admin')
+            && ! auth()->user()?->hasRole('super_admin')) {
+            return false;
+        }
+
+        return parent::canDelete($record);
     }
 }

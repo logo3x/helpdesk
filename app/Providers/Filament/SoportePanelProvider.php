@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Soporte\Widgets\AgentRankingWidget;
+use App\Filament\Soporte\Widgets\AgentTrendChart;
 use App\Filament\Soporte\Widgets\TicketResolutionMetricsWidget;
 use App\Filament\Soporte\Widgets\TicketStatsWidget;
 use App\Filament\Soporte\Widgets\WelcomeWidget;
@@ -61,6 +62,7 @@ class SoportePanelProvider extends PanelProvider
                 TicketStatsWidget::class,
                 TicketResolutionMetricsWidget::class,
                 AgentRankingWidget::class,
+                AgentTrendChart::class,
             ])
             ->middleware([
                 EncryptCookies::class,

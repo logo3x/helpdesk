@@ -5,66 +5,234 @@ namespace App\Filament\Soporte\Resources\ScheduledMaintenances\Schemas;
 use App\Enums\MaintenanceFrequency;
 use App\Enums\MaintenanceStatus;
 use App\Models\Asset;
+use App\Models\Department;
+use App\Models\Project;
 use App\Models\ScheduledMaintenance;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 /**
  * Formulario del módulo Mantenimientos Programados.
  *
- * Reglas UI:
- *   - Al crear: campos programación (asset, agente, fecha, frecuencia).
- *   - Al editar: además status, avance, observations y (si status
- *     no_cumplido) motivo. Si el agente edita, observations es
- *     obligatoria.
- *   - Solo activos tipo desktop/laptop/all_in_one/server aparecen en
- *     el select de asset.
+ * Al CREAR ofrece dos modos:
+ *   - individual: 1 activo, búsqueda rica por TAG/serial/custodio/etc.
+ *   - masivo:    filtros por gerencia/campo/zona/proyecto/custodio
+ *                → preview → selección múltiple. Crea N mantenimientos
+ *                con misma fecha, agente y frecuencia. Notifica una sola
+ *                vez al agente ("N mantenimientos asignados").
+ *
+ * Al EDITAR solo se ve el modo individual (por diseño: un mtto es un
+ * registro atómico) con status, avance, observations y motivo.
+ *
+ * Solo activos tipo desktop/laptop/all_in_one/server aparecen en los
+ * selectores.
  */
 class ScheduledMaintenanceForm
 {
+    /** Tipos de activo que aceptan programación de mantenimiento. */
+    public const ELIGIBLE_TYPES = ['desktop', 'laptop', 'all_in_one', 'server'];
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Section::make('Programación')
-                    ->icon('heroicon-o-calendar')
-                    ->columns(2)
+                // ── SELECTOR DE MODO (solo en Create) ─────────────────
+                Radio::make('creation_mode')
+                    ->label('¿Qué querés programar?')
+                    ->options([
+                        'individual' => '📄 Un solo activo',
+                        'bulk' => '📦 Varios activos (programación masiva)',
+                    ])
+                    ->descriptions([
+                        'individual' => 'Programa un mantenimiento sobre un activo específico.',
+                        'bulk' => 'Filtrá por gerencia, campo, zona, proyecto o custodio y seleccioná varios activos a la vez. Ideal para jornadas de mtto de una sede.',
+                    ])
+                    ->default('individual')
+                    ->required()
+                    ->live()
+                    ->dehydrated(false)
+                    ->columnSpanFull()
+                    ->visible(fn (string $operation) => $operation === 'create'),
+
+                // ── MODO INDIVIDUAL ───────────────────────────────────
+                Section::make('Activo a mantener')
+                    ->icon('heroicon-o-computer-desktop')
+                    ->columnSpanFull()
+                    ->visible(fn (Get $get, string $operation) => $operation === 'edit' || ($get('creation_mode') ?? 'individual') === 'individual')
                     ->schema([
                         Select::make('asset_id')
                             ->label('Activo')
                             ->relationship(
                                 name: 'asset',
                                 titleAttribute: 'asset_tag',
-                                modifyQueryUsing: fn ($query) => $query
-                                    ->whereIn('type', ['desktop', 'laptop', 'all_in_one', 'server'])
+                                modifyQueryUsing: fn (Builder $query) => $query
+                                    ->whereIn('type', self::ELIGIBLE_TYPES)
+                                    ->with(['user:id,name,identification', 'project:id,code,name', 'department:id,name'])
                                     ->orderBy('asset_tag'),
                             )
-                            ->getOptionLabelFromRecordUsing(fn (Asset $r) => trim(sprintf(
-                                '%s · %s %s',
-                                $r->asset_tag ?: 'sin TAG',
-                                strtoupper($r->type ?? ''),
-                                $r->hostname ? "· {$r->hostname}" : ''
-                            )))
-                            ->searchable(['asset_tag', 'hostname', 'serial_number'])
+                            // Búsqueda rica: por TAG, serial, SAP, hostname,
+                            // nombre y cédula de custodio (como columna
+                            // desnormalizada custodian_name/custodian_id_number),
+                            // nombre y código de proyecto, campo, zona y
+                            // gerencia.
+                            ->searchable([
+                                'asset_tag', 'hostname', 'serial_number', 'sap_code',
+                                'custodian_name', 'custodian_id_number', 'custodian_position',
+                                'field', 'location_zone', 'management_area',
+                            ])
+                            ->getOptionLabelFromRecordUsing(fn (Asset $r) => self::renderAssetOptionHtml($r))
+                            ->allowHtml()
                             ->preload()
-                            ->required()
+                            ->required(fn (Get $get, string $operation) => $operation === 'edit' || ($get('creation_mode') ?? 'individual') === 'individual')
                             ->disabled(fn (string $operation) => $operation === 'edit')
                             ->dehydrated()
-                            ->helperText('Solo se pueden programar mantenimientos a computadores, portátiles, all-in-one y servidores.'),
+                            ->helperText('Buscá por TAG, serial, código SAP, hostname, nombre o cédula del custodio, proyecto, campo, zona o gerencia. Solo activos de tipo computador, portátil, all-in-one y servidor.'),
+                    ]),
 
+                // ── MODO MASIVO: FILTROS ──────────────────────────────
+                Section::make('Filtros de búsqueda')
+                    ->icon('heroicon-o-funnel')
+                    ->description('Aplicá uno o más filtros. El listado se actualiza a medida que seleccionás. Todos los filtros son opcionales.')
+                    ->columns(3)
+                    ->columnSpanFull()
+                    ->visible(fn (Get $get, string $operation) => $operation === 'create' && ($get('creation_mode') ?? '') === 'bulk')
+                    ->schema([
+                        Select::make('bulk_filter_type')
+                            ->label('Tipo de activo')
+                            ->options([
+                                'desktop' => 'Computador de escritorio',
+                                'laptop' => 'Portátil',
+                                'all_in_one' => 'Todo en uno (all-in-one)',
+                                'server' => 'Servidor',
+                            ])
+                            ->multiple()
+                            ->preload()
+                            ->native(false)
+                            ->live()
+                            ->dehydrated(false)
+                            ->placeholder('Todos los elegibles'),
+
+                        Select::make('bulk_filter_management_area')
+                            ->label('Gerencia')
+                            ->options(fn () => Asset::query()
+                                ->whereIn('type', self::ELIGIBLE_TYPES)
+                                ->whereNotNull('management_area')
+                                ->distinct()
+                                ->orderBy('management_area')
+                                ->pluck('management_area', 'management_area')
+                                ->all())
+                            ->searchable()
+                            ->native(false)
+                            ->live()
+                            ->dehydrated(false),
+
+                        Select::make('bulk_filter_field')
+                            ->label('Campo')
+                            ->options(fn () => Asset::query()
+                                ->whereIn('type', self::ELIGIBLE_TYPES)
+                                ->whereNotNull('field')
+                                ->distinct()
+                                ->orderBy('field')
+                                ->pluck('field', 'field')
+                                ->all())
+                            ->searchable()
+                            ->native(false)
+                            ->live()
+                            ->dehydrated(false),
+
+                        Select::make('bulk_filter_location_zone')
+                            ->label('Zona')
+                            ->options(fn () => Asset::query()
+                                ->whereIn('type', self::ELIGIBLE_TYPES)
+                                ->whereNotNull('location_zone')
+                                ->distinct()
+                                ->orderBy('location_zone')
+                                ->pluck('location_zone', 'location_zone')
+                                ->all())
+                            ->searchable()
+                            ->native(false)
+                            ->live()
+                            ->dehydrated(false),
+
+                        Select::make('bulk_filter_project_id')
+                            ->label('Proyecto')
+                            ->options(fn () => Project::query()
+                                ->where('is_active', true)
+                                ->orderBy('name')
+                                ->get()
+                                ->mapWithKeys(fn ($p) => [$p->id => "{$p->code} · {$p->name}"])
+                                ->all())
+                            ->searchable()
+                            ->preload()
+                            ->native(false)
+                            ->live()
+                            ->dehydrated(false),
+
+                        Select::make('bulk_filter_department_id')
+                            ->label('Departamento')
+                            ->options(fn () => Department::query()
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
+                            ->searchable()
+                            ->preload()
+                            ->native(false)
+                            ->live()
+                            ->dehydrated(false),
+                    ]),
+
+                // ── MODO MASIVO: SELECCIÓN MÚLTIPLE ───────────────────
+                Section::make('Activos a incluir')
+                    ->icon('heroicon-o-queue-list')
+                    ->columnSpanFull()
+                    ->visible(fn (Get $get, string $operation) => $operation === 'create' && ($get('creation_mode') ?? '') === 'bulk')
+                    ->schema([
+                        Placeholder::make('bulk_asset_count')
+                            ->label('')
+                            ->content(function (Get $get) {
+                                $count = count($get('bulk_asset_ids') ?? []);
+                                if ($count === 0) {
+                                    return new HtmlString('<div class="text-sm text-gray-500 dark:text-gray-400">Ningún activo seleccionado todavía.</div>');
+                                }
+
+                                return new HtmlString('<div class="text-sm font-medium text-warning-600 dark:text-warning-400">'
+                                    ."Vas a crear <b>{$count}</b> mantenimiento(s) — uno por cada activo — con la misma fecha, agente y frecuencia."
+                                    .'</div>');
+                            }),
+
+                        Select::make('bulk_asset_ids')
+                            ->label('Activos')
+                            ->multiple()
+                            ->required(fn (Get $get) => ($get('creation_mode') ?? '') === 'bulk')
+                            ->dehydrated(false)
+                            ->live()
+                            ->allowHtml()
+                            ->options(fn (Get $get) => self::bulkAssetOptions($get))
+                            ->helperText('Se listan solo los activos que matchean los filtros seleccionados. Podés añadir o quitar activos individuales.'),
+                    ]),
+
+                // ── PROGRAMACIÓN (fecha, agente, frecuencia) ──────────
+                Section::make('Programación')
+                    ->icon('heroicon-o-calendar')
+                    ->columns(3)
+                    ->columnSpanFull()
+                    ->schema([
                         Select::make('agent_id')
                             ->label('Agente asignado')
                             ->relationship(
                                 name: 'agent',
                                 titleAttribute: 'name',
-                                modifyQueryUsing: fn ($query) => $query->whereHas('roles', fn ($q) => $q->whereIn('name', [
+                                modifyQueryUsing: fn (Builder $query) => $query->whereHas('roles', fn ($q) => $q->whereIn('name', [
                                     'super_admin', 'admin', 'supervisor_soporte', 'agente_soporte', 'tecnico_campo',
                                 ]))->orderBy('name'),
                             )
@@ -92,9 +260,11 @@ class ScheduledMaintenanceForm
                             ->helperText('Al marcar cumplido/no cumplido, se agenda automáticamente el siguiente ciclo.'),
                     ]),
 
+                // ── ESTADO Y EJECUCIÓN (solo Edit) ────────────────────
                 Section::make('Estado y ejecución')
                     ->icon('heroicon-o-check-circle')
                     ->columns(2)
+                    ->columnSpanFull()
                     ->visible(fn (string $operation) => $operation === 'edit')
                     ->schema([
                         ToggleButtons::make('status')
@@ -151,6 +321,7 @@ class ScheduledMaintenanceForm
                     ->columns(2)
                     ->collapsible()
                     ->collapsed()
+                    ->columnSpanFull()
                     ->visible(fn (string $operation) => $operation === 'edit')
                     ->schema([
                         Placeholder::make('created_by_display')
@@ -168,5 +339,82 @@ class ScheduledMaintenanceForm
                                 : 'Este es el primer ciclo'),
                     ]),
             ]);
+    }
+
+    /**
+     * Render HTML de 2 líneas para cada opción del Select de asset.
+     * Línea 1: TAG + tipo + hostname. Línea 2: custodio + ubicación.
+     */
+    protected static function renderAssetOptionHtml(Asset $r): string
+    {
+        $tag = e($r->asset_tag ?: 'Sin TAG');
+        $type = e(strtoupper($r->type ?? ''));
+        $hostname = $r->hostname ? ' · '.e($r->hostname) : '';
+        $serial = $r->serial_number ? ' · S/N '.e($r->serial_number) : '';
+
+        $custodian = $r->user?->name
+            ?? $r->custodian_name
+            ?? 'Sin custodio';
+        $cedula = $r->user?->identification
+            ?? $r->custodian_id_number
+            ?? null;
+        $custodianLine = e($custodian).($cedula ? ' · CC '.e($cedula) : '');
+
+        $locationParts = array_filter([
+            $r->project?->code ? 'Proy '.e($r->project->code) : null,
+            $r->management_area ? e($r->management_area) : null,
+            $r->field ? 'Campo '.e($r->field) : null,
+            $r->location_zone ? 'Zona '.e($r->location_zone) : null,
+        ]);
+        $locationLine = $locationParts !== [] ? implode(' · ', $locationParts) : 'Sin ubicación';
+
+        return sprintf(
+            '<div class="py-1"><div class="font-medium">%s · %s%s%s</div><div class="text-xs text-gray-500 dark:text-gray-400">%s · %s</div></div>',
+            $tag, $type, $hostname, $serial,
+            $custodianLine, $locationLine,
+        );
+    }
+
+    /**
+     * Devuelve el array de opciones (id => html) para el Select
+     * múltiple de activos en modo masivo, aplicando todos los
+     * filtros seleccionados en el form.
+     *
+     * @return array<int, string>
+     */
+    protected static function bulkAssetOptions(Get $get): array
+    {
+        $types = $get('bulk_filter_type') ?: self::ELIGIBLE_TYPES;
+        // Sanitiza: garantiza que solo se listen tipos elegibles.
+        $types = array_values(array_intersect($types, self::ELIGIBLE_TYPES));
+        if ($types === []) {
+            $types = self::ELIGIBLE_TYPES;
+        }
+
+        $query = Asset::query()
+            ->whereIn('type', $types)
+            ->with(['user:id,name,identification', 'project:id,code,name', 'department:id,name']);
+
+        if ($v = $get('bulk_filter_management_area')) {
+            $query->where('management_area', $v);
+        }
+        if ($v = $get('bulk_filter_field')) {
+            $query->where('field', $v);
+        }
+        if ($v = $get('bulk_filter_location_zone')) {
+            $query->where('location_zone', $v);
+        }
+        if ($v = $get('bulk_filter_project_id')) {
+            $query->where('project_id', $v);
+        }
+        if ($v = $get('bulk_filter_department_id')) {
+            $query->where('department_id', $v);
+        }
+
+        return $query->orderBy('asset_tag')
+            ->limit(500)
+            ->get()
+            ->mapWithKeys(fn (Asset $a) => [$a->id => self::renderAssetOptionHtml($a)])
+            ->all();
     }
 }

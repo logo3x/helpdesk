@@ -7,15 +7,63 @@
         }
         .sla-kpi     { animation: slaFadeUp .3s ease both; opacity: 0; }
         .sla-section { animation: slaFadeUp .35s ease .1s both; }
+
+        /* KPI cards con estilos inline forzados — independientes del
+           build de Tailwind del server, que a veces se queda viejo. */
+        .sla-header { display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1rem; }
+        @media (min-width:640px) { .sla-header { flex-direction:row; align-items:center; justify-content:space-between; } }
+        .sla-header-select {
+            border-radius:0.5rem; border:1px solid rgb(212 212 216);
+            background:white; padding:0.375rem 0.75rem; font-size:0.875rem;
+        }
+        .sla-header-note { color:rgb(113 113 122); font-size:0.875rem; }
+
+        .sla-kpi-grid { display:grid; gap:1rem; grid-template-columns:1fr; margin-bottom:1.5rem; }
+        @media (min-width:640px) { .sla-kpi-grid { grid-template-columns:repeat(3,1fr); } }
+
+        .sla-kpi {
+            background:white;
+            border:1px solid rgb(228 228 231);
+            border-radius:0.75rem;
+            padding:1.25rem;
+            box-shadow:0 1px 2px rgba(0,0,0,0.04);
+        }
+        .dark .sla-kpi { background:rgb(24 24 27); border-color:rgb(63 63 70); }
+        .sla-kpi.sla-kpi-danger { border-color:rgb(254 205 211); }
+        .dark .sla-kpi.sla-kpi-danger { border-color:rgba(220,38,38,0.4); }
+
+        .sla-kpi-icon-wrap {
+            display:inline-flex; align-items:center; justify-content:center;
+            width:2.25rem; height:2.25rem; border-radius:0.5rem;
+            margin-bottom:0.5rem;
+        }
+        .sla-kpi-icon-info    { background:rgb(240 249 255); }
+        .sla-kpi-icon-danger  { background:rgb(255 241 242); }
+        .sla-kpi-icon-success { background:rgb(236 253 245); }
+        .dark .sla-kpi-icon-info    { background:rgba(56,189,248,0.15); }
+        .dark .sla-kpi-icon-danger  { background:rgba(239,68,68,0.15); }
+        .dark .sla-kpi-icon-success { background:rgba(16,185,129,0.15); }
+
+        .sla-kpi-value {
+            font-size:1.5rem; font-weight:700; line-height:1.1;
+            color:rgb(24 24 27); margin:0;
+        }
+        .dark .sla-kpi-value { color:rgb(244 244 245); }
+        .sla-kpi-value.text-danger  { color:rgb(220 38 38); }
+        .sla-kpi-value.text-warning { color:rgb(217 119 6); }
+        .sla-kpi-value.text-success { color:rgb(22 163 74); }
+        .sla-kpi-value.text-muted   { color:rgb(212 212 216); }
+
+        .sla-kpi-label { margin-top:0.125rem; font-size:0.875rem; font-weight:500; color:rgb(113 113 122); }
+        .sla-kpi-hint  { margin-top:0.25rem; font-size:0.75rem; color:rgb(161 161 170); }
     </style>
 
     {{-- ── Selector de ventana ──────────────────────────────────────── --}}
-    <div class="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+    <div class="sla-header">
+        <p class="sla-header-note">
             Cumplimiento de SLA en los últimos <strong>{{ $window }}</strong> días.
         </p>
-        <select wire:model.live="window"
-            class="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-200 dark:border-zinc-700 dark:bg-zinc-900">
+        <select wire:model.live="window" class="sla-header-select">
             <option value="7">Últimos 7 días</option>
             <option value="30">Últimos 30 días</option>
             <option value="90">Últimos 90 días</option>
@@ -24,49 +72,46 @@
     </div>
 
     {{-- ── KPI cards globales ─────────────────────────────────────────── --}}
-    <div class="grid gap-4 sm:grid-cols-3"
+    <div class="sla-kpi-grid"
          x-data="{}"
          x-init="document.querySelectorAll('.sla-kpi').forEach((el,i)=>{ el.style.animationDelay=(i*60)+'ms'; })">
 
-        <div class="sla-kpi overflow-hidden rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/80">
-            <div class="mb-2 flex items-center justify-center rounded-lg bg-sky-50 dark:bg-sky-950/40" style="width:2.25rem;height:2.25rem;">
+        <div class="sla-kpi">
+            <div class="sla-kpi-icon-wrap sla-kpi-icon-info">
                 <x-heroicon-o-ticket class="text-sky-500" style="width:1.25rem;height:1.25rem;flex-shrink:0;" />
             </div>
-            <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $summary['resolved'] }}</div>
-            <div class="mt-0.5 text-sm font-medium text-zinc-500">Tickets resueltos</div>
-            <div class="mt-1 text-xs text-zinc-400">Con SLA configurado</div>
+            <div class="sla-kpi-value">{{ $summary['resolved'] }}</div>
+            <div class="sla-kpi-label">Tickets resueltos</div>
+            <div class="sla-kpi-hint">Con SLA configurado</div>
         </div>
 
-        <div class="sla-kpi overflow-hidden rounded-xl border bg-white p-5 shadow-sm dark:bg-zinc-900/80
-            {{ $summary['breached'] > 0
-                ? 'border-rose-200 dark:border-rose-800/60'
-                : 'border-zinc-200/80 dark:border-zinc-700/80' }}">
-            <div class="mb-2 flex items-center justify-center rounded-lg {{ $summary['breached'] > 0 ? 'bg-rose-50 dark:bg-rose-950/40' : 'bg-emerald-50 dark:bg-emerald-950/40' }}" style="width:2.25rem;height:2.25rem;">
+        <div class="sla-kpi {{ $summary['breached'] > 0 ? 'sla-kpi-danger' : '' }}">
+            <div class="sla-kpi-icon-wrap {{ $summary['breached'] > 0 ? 'sla-kpi-icon-danger' : 'sla-kpi-icon-success' }}">
                 <x-heroicon-o-exclamation-triangle class="{{ $summary['breached'] > 0 ? 'text-rose-500' : 'text-emerald-500' }}" style="width:1.25rem;height:1.25rem;flex-shrink:0;" />
             </div>
-            <div class="text-2xl font-bold {{ $summary['breached'] > 0 ? 'text-rose-600' : 'text-emerald-600' }}">
+            <div class="sla-kpi-value {{ $summary['breached'] > 0 ? 'text-danger' : 'text-success' }}">
                 {{ $summary['breached'] }}
             </div>
-            <div class="mt-0.5 text-sm font-medium text-zinc-500">SLA quebrados</div>
-            <div class="mt-1 text-xs text-zinc-400">
+            <div class="sla-kpi-label">SLA quebrados</div>
+            <div class="sla-kpi-hint">
                 {{ $summary['resolved'] > 0 ? round(($summary['breached'] / $summary['resolved']) * 100, 1).'%' : '0%' }} de los resueltos
             </div>
         </div>
 
-        <div class="sla-kpi overflow-hidden rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/80">
-            <div class="mb-2 flex items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/40" style="width:2.25rem;height:2.25rem;">
+        <div class="sla-kpi">
+            <div class="sla-kpi-icon-wrap sla-kpi-icon-success">
                 <x-heroicon-o-check-badge class="text-emerald-500" style="width:1.25rem;height:1.25rem;flex-shrink:0;" />
             </div>
             @if ($summary['compliance'] !== null)
-                <div class="text-2xl font-bold {{ $summary['compliance'] >= 90 ? 'text-emerald-600' : ($summary['compliance'] >= 70 ? 'text-amber-600' : 'text-rose-600') }}">
+                <div class="sla-kpi-value {{ $summary['compliance'] >= 90 ? 'text-success' : ($summary['compliance'] >= 70 ? 'text-warning' : 'text-danger') }}">
                     {{ $summary['compliance'] }}%
                 </div>
-                <div class="mt-0.5 text-sm font-medium text-zinc-500">Cumplimiento</div>
-                <div class="mt-1 text-xs text-zinc-400">Resueltos sin breach</div>
+                <div class="sla-kpi-label">Cumplimiento</div>
+                <div class="sla-kpi-hint">Resueltos sin breach</div>
             @else
-                <div class="text-2xl font-bold text-zinc-300">—</div>
-                <div class="mt-0.5 text-sm font-medium text-zinc-500">Cumplimiento</div>
-                <div class="mt-1 text-xs text-zinc-400">Sin tickets resueltos aún</div>
+                <div class="sla-kpi-value text-muted">—</div>
+                <div class="sla-kpi-label">Cumplimiento</div>
+                <div class="sla-kpi-hint">Sin tickets resueltos aún</div>
             @endif
         </div>
     </div>

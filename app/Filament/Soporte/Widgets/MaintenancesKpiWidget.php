@@ -20,13 +20,24 @@ class MaintenancesKpiWidget extends Widget
     protected int|string|array $columnSpan = 'full';
 
     /**
-     * @return array<int, array{label: string, value: int, hint: string, color: string, icon: string}>
+     * @return array<string, array<int, array{label: string, value: int, hint: string, color: string, icon: string}>>
      */
     protected function getViewData(): array
     {
         return [
             'kpis' => $this->buildKpis(),
         ];
+    }
+
+    /**
+     * Public helper para poder llamar desde el blade directamente si la
+     * ruta getViewData no se ejecuta al re-render de Livewire.
+     *
+     * @return array<int, array{label: string, value: int, hint: string, color: string, icon: string}>
+     */
+    public function getKpis(): array
+    {
+        return $this->buildKpis();
     }
 
     /**

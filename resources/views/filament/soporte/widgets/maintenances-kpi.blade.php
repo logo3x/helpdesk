@@ -41,6 +41,10 @@
         .mk-hint  { font-size:0.6rem; color:rgb(161 161 170); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     </style>
 
+    {{-- Llamamos getKpis() directamente: en Filament v5 los widgets
+         Livewire a veces no re-hidratan las variables de getViewData()
+         al re-render, mostrando siempre 0. --}}
+    @php($kpis = $this->getKpis())
     <div class="mk-grid">
         @foreach($kpis as $k)
             <div class="mk-card">

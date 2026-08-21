@@ -44,6 +44,24 @@ class ScheduledMaintenancesTable
                     ->color('gray')
                     ->toggleable(),
 
+                TextColumn::make('asset.location_zone')
+                    ->label('Zona')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(),
+
+                TextColumn::make('asset.field')
+                    ->label('Campo')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('asset.management_area')
+                    ->label('Gerencia')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('agent.name')
                     ->label('Agente')
                     ->searchable()

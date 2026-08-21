@@ -241,6 +241,9 @@ class ScheduledMaintenanceForm
                     ]),
 
                 // ── PROGRAMACIÓN (fecha, agente, frecuencia) ──────────
+                // Agentes y técnicos: solo lectura. La programación es
+                // decisión del supervisor. Los agentes solo reportan
+                // status y observations abajo.
                 Section::make('Programación')
                     ->icon('heroicon-o-calendar')
                     ->columns(3)
@@ -259,6 +262,9 @@ class ScheduledMaintenanceForm
                             ->searchable(['name', 'email'])
                             ->preload()
                             ->required()
+                            ->disabled(fn (string $operation) => $operation === 'edit'
+                                && auth()->user()?->hasAnyRole(['agente_soporte', 'tecnico_campo']))
+                            ->dehydrated()
                             ->helperText('Recibirá una notificación en la campanita.'),
 
                         DatePicker::make('scheduled_at')
@@ -266,7 +272,10 @@ class ScheduledMaintenanceForm
                             ->required()
                             ->native(false)
                             ->displayFormat('d/m/Y')
-                            ->minDate(fn (string $operation) => $operation === 'create' ? now()->startOfDay() : null),
+                            ->minDate(fn (string $operation) => $operation === 'create' ? now()->startOfDay() : null)
+                            ->disabled(fn (string $operation) => $operation === 'edit'
+                                && auth()->user()?->hasAnyRole(['agente_soporte', 'tecnico_campo']))
+                            ->dehydrated(),
 
                         Select::make('frequency')
                             ->label('Frecuencia')
@@ -275,6 +284,9 @@ class ScheduledMaintenanceForm
                                 MaintenanceFrequency::Anual->value => MaintenanceFrequency::Anual->label(),
                             ])
                             ->required()
+                            ->disabled(fn (string $operation) => $operation === 'edit'
+                                && auth()->user()?->hasAnyRole(['agente_soporte', 'tecnico_campo']))
+                            ->dehydrated()
                             ->native(false)
                             ->helperText('Al marcar cumplido/no cumplido, se agenda automáticamente el siguiente ciclo.'),
                     ]),

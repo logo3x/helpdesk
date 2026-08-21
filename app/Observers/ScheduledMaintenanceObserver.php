@@ -59,6 +59,26 @@ class ScheduledMaintenanceObserver
             return;
         }
 
+        // Guardarraíl anti-duplicación: solo disparamos los efectos
+        // secundarios (log en historial + siguiente ocurrencia + update
+        // del asset) cuando el mantenimiento pasa de PENDIENTE a cerrado.
+        // Si venía cerrado y ahora cambió a otro estado cerrado (ej.
+        // cumplido → no_cumplido por corrección) NO regeneramos ciclo
+        // — el hijo ya existe. Solo dejamos anotación diferencial.
+        $previousStatus = $maintenance->getOriginal('status');
+        $previousEnum = $previousStatus instanceof MaintenanceStatus
+            ? $previousStatus
+            : ($previousStatus !== null ? MaintenanceStatus::tryFrom((string) $previousStatus) : null);
+
+        if ($previousEnum !== MaintenanceStatus::Pendiente) {
+            // Sí registramos que se editó el estado (para trazabilidad),
+            // pero sin generar hijo ni actualizar asset. Es una corrección
+            // manual, no un nuevo ciclo de trabajo.
+            $this->logInAssetHistory($maintenance);
+
+            return;
+        }
+
         $this->logInAssetHistory($maintenance);
 
         if ($maintenance->status === MaintenanceStatus::Cumplido) {

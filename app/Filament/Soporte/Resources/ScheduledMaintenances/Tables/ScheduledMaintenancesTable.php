@@ -5,14 +5,17 @@ namespace App\Filament\Soporte\Resources\ScheduledMaintenances\Tables;
 use App\Enums\MaintenanceFrequency;
 use App\Enums\MaintenanceStatus;
 use App\Models\ScheduledMaintenance;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class ScheduledMaintenancesTable
 {
@@ -114,17 +117,57 @@ class ScheduledMaintenancesTable
             ->defaultSort('scheduled_at', 'asc')
             ->recordActions([
                 EditAction::make(),
+
+                // Row action Delete individual. Solo visible para
+                // supervisor+. Desvincula hijos (parent_id=NULL) antes
+                // de borrar para no violar el FK constraint.
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->hasAnyRole([
+                        'super_admin', 'admin', 'supervisor_soporte',
+                    ]))
+                    ->using(function (ScheduledMaintenance $record): void {
+                        ScheduledMaintenance::where('parent_id', $record->id)
+                            ->update(['parent_id' => null]);
+                        $record->delete();
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    // Solo supervisor+ pueden borrar en lote. Los
-                    // agentes y técnicos NO ven el botón — igual el
-                    // policy canDelete() rechazaría por ítem, pero
-                    // ocultarlo del UI evita confusión.
-                    DeleteBulkAction::make()
+                    // Bulk delete custom que:
+                    //   1. Desvincula hijos (parent_id = NULL) para
+                    //      no violar el FK constraint.
+                    //   2. Borra (soft delete) los mtto seleccionados.
+                    //   3. Muestra notif de éxito con el count.
+                    //
+                    // Alternativa a DeleteBulkAction::before() que
+                    // en Filament 5 a veces no dispara el flow completo.
+                    BulkAction::make('deleteSelected')
+                        ->label('Borrar seleccionados')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Borrar Mantenimientos Programados seleccionados')
+                        ->modalDescription('¿Está segura/o de hacer esto?')
+                        ->modalSubmitActionLabel('Borrar')
+                        ->deselectRecordsAfterCompletion()
                         ->visible(fn () => auth()->user()?->hasAnyRole([
                             'super_admin', 'admin', 'supervisor_soporte',
-                        ])),
+                        ]))
+                        ->action(function (Collection $records): void {
+                            $ids = $records->pluck('id')->all();
+
+                            // Desvincula hijos.
+                            ScheduledMaintenance::whereIn('parent_id', $ids)
+                                ->update(['parent_id' => null]);
+
+                            // Borra (soft delete) los seleccionados.
+                            $count = ScheduledMaintenance::whereIn('id', $ids)->delete();
+
+                            Notification::make()
+                                ->title("Se borraron {$count} mantenimiento(s)")
+                                ->success()
+                                ->send();
+                        }),
                 ]),
             ]);
     }

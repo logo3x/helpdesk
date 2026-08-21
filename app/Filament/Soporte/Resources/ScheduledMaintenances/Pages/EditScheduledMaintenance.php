@@ -3,6 +3,7 @@
 namespace App\Filament\Soporte\Resources\ScheduledMaintenances\Pages;
 
 use App\Filament\Soporte\Resources\ScheduledMaintenances\ScheduledMaintenanceResource;
+use App\Models\ScheduledMaintenance;
 use App\Models\User;
 use App\Notifications\ScheduledMaintenanceAssignedNotification;
 use Filament\Actions\DeleteAction;
@@ -38,7 +39,13 @@ class EditScheduledMaintenance extends EditRecord
     {
         return [
             DeleteAction::make()
-                ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])),
+                ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']))
+                ->using(function ($record): void {
+                    // Desvincular hijos primero para no violar el FK.
+                    ScheduledMaintenance::where('parent_id', $record->id)
+                        ->update(['parent_id' => null]);
+                    $record->delete();
+                }),
         ];
     }
 

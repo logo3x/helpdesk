@@ -116,12 +116,22 @@ class ScheduledMaintenancesTable
             ])
             ->defaultSort('scheduled_at', 'asc')
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->label('Editar')
+                    ->icon('heroicon-o-pencil-square')
+                    ->color('warning'),
 
                 // Row action Delete individual. Solo visible para
                 // supervisor+. Desvincula hijos (parent_id=NULL) antes
                 // de borrar para no violar el FK constraint.
                 DeleteAction::make()
+                    ->label('Eliminar')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Eliminar mantenimiento programado')
+                    ->modalDescription('¿Está segura/o de eliminar este mantenimiento?')
+                    ->modalSubmitActionLabel('Eliminar')
                     ->visible(fn () => auth()->user()?->hasAnyRole([
                         'super_admin', 'admin', 'supervisor_soporte',
                     ]))
@@ -153,8 +163,27 @@ class ScheduledMaintenancesTable
                         ->visible(fn () => auth()->user()?->hasAnyRole([
                             'super_admin', 'admin', 'supervisor_soporte',
                         ]))
-                        ->action(function (Collection $records): void {
-                            $ids = $records->pluck('id')->all();
+                        // NOTA: usamos $records sin type-hint para que
+                        // Filament pueda inyectar Collection|EloquentCollection|
+                        // LazyCollection según venga. Con type-hint estricto
+                        // en v5, a veces llega vacío por incompatibilidad
+                        // de resolución del container.
+                        ->action(function ($records): void {
+                            // Normaliza a array de IDs sin importar el
+                            // tipo concreto de collection que llegue.
+                            $ids = collect($records)
+                                ->map(fn ($r) => is_object($r) ? $r->id : $r)
+                                ->filter()
+                                ->all();
+
+                            if ($ids === []) {
+                                Notification::make()
+                                    ->title('No se seleccionaron mantenimientos')
+                                    ->warning()
+                                    ->send();
+
+                                return;
+                            }
 
                             // Desvincula hijos.
                             ScheduledMaintenance::whereIn('parent_id', $ids)

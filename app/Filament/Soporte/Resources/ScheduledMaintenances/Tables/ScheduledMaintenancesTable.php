@@ -5,10 +5,11 @@ namespace App\Filament\Soporte\Resources\ScheduledMaintenances\Tables;
 use App\Enums\MaintenanceFrequency;
 use App\Enums\MaintenanceStatus;
 use App\Models\ScheduledMaintenance;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -120,10 +121,11 @@ class ScheduledMaintenancesTable
                     ->color('warning')
                     ->button(),
 
-                // Row action Delete individual. Solo visible para
-                // supervisor+. Desvincula hijos (parent_id=NULL) antes
-                // de borrar para no violar el FK constraint.
-                DeleteAction::make()
+                // Row action Delete individual como Action custom que
+                // NO se llama "delete" (así Shield no lo intercepta con
+                // su policy auto-generado). Solo visible para supervisor+.
+                // Desvincula hijos antes del delete para no violar el FK.
+                Action::make('deleteRow')
                     ->label('Eliminar')
                     ->icon('heroicon-o-trash')
                     ->color('danger')
@@ -132,18 +134,20 @@ class ScheduledMaintenancesTable
                     ->modalHeading('Eliminar mantenimiento programado')
                     ->modalDescription('¿Está segura/o de eliminar este mantenimiento?')
                     ->modalSubmitActionLabel('Eliminar')
-                    // Autorización explícita por rol. Bypass del policy
-                    // auto-generado de Shield (que rechaza sin permiso
-                    // Spatie explícito) para que el rol sea suficiente.
-                    ->authorize(fn () => auth()->user()?->hasAnyRole([
-                        'super_admin', 'admin', 'supervisor_soporte',
-                    ]) ?? false)
+                    ->modalIcon('heroicon-o-trash')
+                    ->modalIconColor('danger')
                     ->visible(fn () => auth()->user()?->hasAnyRole([
                         'super_admin', 'admin', 'supervisor_soporte',
-                    ]))
-                    ->before(function (ScheduledMaintenance $record): void {
+                    ]) ?? false)
+                    ->action(function (ScheduledMaintenance $record) {
                         ScheduledMaintenance::where('parent_id', $record->id)
                             ->update(['parent_id' => null]);
+                        $record->delete();
+
+                        Notification::make()
+                            ->title('Mantenimiento eliminado')
+                            ->success()
+                            ->send();
                     }),
             ])
             ->toolbarActions([

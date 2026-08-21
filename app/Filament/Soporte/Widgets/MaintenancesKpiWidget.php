@@ -23,8 +23,17 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  */
 class MaintenancesKpiWidget extends StatsOverviewWidget
 {
-    /** Widget compacto — 3 columnas para que se vean varios KPIs. */
+    /** Widget compacto — 6 columnas para que los 6 KPIs quepan en 1 fila. */
     protected int|string|array $columnSpan = 'full';
+
+    /**
+     * Forzamos 6 columnas para que los 6 stats aparezcan en 1 fila en
+     * desktop. En viewports pequeños Filament colapsa automáticamente.
+     */
+    protected function getColumns(): int
+    {
+        return 6;
+    }
 
     protected function getStats(): array
     {

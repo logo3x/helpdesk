@@ -23,6 +23,9 @@ class StaleAssetsWidget extends BaseWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    /** Nombre del widget en cualquier listado interno de Filament. */
+    protected static ?string $label = 'Equipos sin scan reciente';
+
     public function getHeading(): ?string
     {
         return 'Equipos sin scan reciente (>30 días)';

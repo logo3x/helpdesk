@@ -154,8 +154,18 @@ class ScheduledMaintenanceResource extends Resource
             return $query->where('agent_id', $user->id);
         }
 
-        if ($user->hasRole('supervisor_soporte') && $user->department_id) {
-            return $query->whereHas('asset', fn ($q) => $q->where('department_id', $user->department_id));
+        // Supervisor: ve mantenimientos de assets de su depto, más los
+        // que él haya asignado o le hayan asignado, para no perder
+        // visibilidad de casos cross-departamento (ej: creó mtto para
+        // un activo prestado a otro depto).
+        if ($user->hasRole('supervisor_soporte')) {
+            return $query->where(function ($q) use ($user) {
+                $q->where('agent_id', $user->id)
+                    ->orWhere('created_by_id', $user->id);
+                if ($user->department_id) {
+                    $q->orWhereHas('asset', fn ($aq) => $aq->where('department_id', $user->department_id));
+                }
+            });
         }
 
         return $query;

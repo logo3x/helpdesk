@@ -139,13 +139,33 @@ class ScheduledMaintenancesTable
                     ->visible(fn () => auth()->user()?->hasAnyRole([
                         'super_admin', 'admin', 'supervisor_soporte',
                     ]) ?? false)
-                    ->action(function (ScheduledMaintenance $record) {
+                    // Firma sin type-hint específico y resolución
+                    // manual del record por si Filament v5.5 no
+                    // inyecta ScheduledMaintenance por DI en actions
+                    // con name custom.
+                    ->action(function ($record, Action $action) {
+                        $record ??= $action->getRecord();
+
+                        if (! $record instanceof ScheduledMaintenance) {
+                            $record = ScheduledMaintenance::find(is_object($record) ? $record->id : $record);
+                        }
+
+                        if (! $record) {
+                            Notification::make()
+                                ->title('No se pudo resolver el mantenimiento a eliminar')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
                         ScheduledMaintenance::where('parent_id', $record->id)
                             ->update(['parent_id' => null]);
                         $record->delete();
 
                         Notification::make()
                             ->title('Mantenimiento eliminado')
+                            ->body("Registro #{$record->id} borrado.")
                             ->success()
                             ->send();
                     }),

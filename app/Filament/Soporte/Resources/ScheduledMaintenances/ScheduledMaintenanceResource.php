@@ -138,8 +138,11 @@ class ScheduledMaintenanceResource extends Resource
      */
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class]);
+        // NO incluimos SoftDeletingScope::class en withoutGlobalScopes,
+        // así los registros soft-deleted DESAPARECEN de la lista una
+        // vez borrados. Filament sigue permitiendo verlos con la
+        // acción "Restaurar" si activamos el trashed filter.
+        $query = parent::getEloquentQuery();
 
         $user = auth()->user();
         if (! $user) {

@@ -29,8 +29,8 @@
          x-init="document.querySelectorAll('.sla-kpi').forEach((el,i)=>{ el.style.animationDelay=(i*60)+'ms'; })">
 
         <div class="sla-kpi overflow-hidden rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/80">
-            <div class="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 dark:bg-sky-950/40">
-                <x-heroicon-o-ticket class="size-5 text-sky-500" />
+            <div class="mb-2 flex items-center justify-center rounded-lg bg-sky-50 dark:bg-sky-950/40" style="width:2.25rem;height:2.25rem;">
+                <x-heroicon-o-ticket class="text-sky-500" style="width:1.25rem;height:1.25rem;flex-shrink:0;" />
             </div>
             <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $summary['resolved'] }}</div>
             <div class="mt-0.5 text-sm font-medium text-zinc-500">Tickets resueltos</div>
@@ -41,8 +41,8 @@
             {{ $summary['breached'] > 0
                 ? 'border-rose-200 dark:border-rose-800/60'
                 : 'border-zinc-200/80 dark:border-zinc-700/80' }}">
-            <div class="mb-2 flex h-9 w-9 items-center justify-center rounded-lg {{ $summary['breached'] > 0 ? 'bg-rose-50 dark:bg-rose-950/40' : 'bg-emerald-50 dark:bg-emerald-950/40' }}">
-                <x-heroicon-o-exclamation-triangle class="size-5 {{ $summary['breached'] > 0 ? 'text-rose-500' : 'text-emerald-500' }}" />
+            <div class="mb-2 flex items-center justify-center rounded-lg {{ $summary['breached'] > 0 ? 'bg-rose-50 dark:bg-rose-950/40' : 'bg-emerald-50 dark:bg-emerald-950/40' }}" style="width:2.25rem;height:2.25rem;">
+                <x-heroicon-o-exclamation-triangle class="{{ $summary['breached'] > 0 ? 'text-rose-500' : 'text-emerald-500' }}" style="width:1.25rem;height:1.25rem;flex-shrink:0;" />
             </div>
             <div class="text-2xl font-bold {{ $summary['breached'] > 0 ? 'text-rose-600' : 'text-emerald-600' }}">
                 {{ $summary['breached'] }}
@@ -54,8 +54,8 @@
         </div>
 
         <div class="sla-kpi overflow-hidden rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/80">
-            <div class="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/40">
-                <x-heroicon-o-check-badge class="size-5 text-emerald-500" />
+            <div class="mb-2 flex items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/40" style="width:2.25rem;height:2.25rem;">
+                <x-heroicon-o-check-badge class="text-emerald-500" style="width:1.25rem;height:1.25rem;flex-shrink:0;" />
             </div>
             @if ($summary['compliance'] !== null)
                 <div class="text-2xl font-bold {{ $summary['compliance'] >= 90 ? 'text-emerald-600' : ($summary['compliance'] >= 70 ? 'text-amber-600' : 'text-rose-600') }}">
@@ -80,7 +80,7 @@
 
         @if ($atRisk->isEmpty())
             <div class="flex items-center gap-2 text-sm text-emerald-600">
-                <x-heroicon-o-check-circle class="size-4" />
+                <x-heroicon-o-check-circle style="width:1rem;height:1rem;flex-shrink:0;" />
                 Sin tickets en riesgo. Todos los SLA abiertos están holgados.
             </div>
         @else

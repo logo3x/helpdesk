@@ -117,7 +117,14 @@ class ScheduledMaintenancesTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    // Solo supervisor+ pueden borrar en lote. Los
+                    // agentes y técnicos NO ven el botón — igual el
+                    // policy canDelete() rechazaría por ítem, pero
+                    // ocultarlo del UI evita confusión.
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->hasAnyRole([
+                            'super_admin', 'admin', 'supervisor_soporte',
+                        ])),
                 ]),
             ]);
     }

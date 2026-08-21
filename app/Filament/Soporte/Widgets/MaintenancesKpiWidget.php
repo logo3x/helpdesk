@@ -4,38 +4,35 @@ namespace App\Filament\Soporte\Widgets;
 
 use App\Enums\MaintenanceStatus;
 use App\Models\ScheduledMaintenance;
-use Filament\Widgets\StatsOverviewWidget;
-use Filament\Widgets\StatsOverviewWidget\Stat;
+use Filament\Widgets\Widget;
 
 /**
- * KPIs del módulo Mantenimientos Programados — se muestra encima de
- * la tabla /soporte/scheduled-maintenances y /admin/scheduled-
- * maintenances.
+ * KPIs compactos del módulo Mantenimientos Programados.
  *
- * Métricas:
- *   - Total programados: todos los mtto activos (no soft-deleted)
- *     con scope por rol.
- *   - Pendientes: status pendiente en cualquier fecha.
- *   - Vencidos: pendientes con fecha ya pasada.
- *   - Próximos 30 días: pendientes que vencen en la próxima ventana.
- *   - Cumplidos este mes: cerraron en el mes actual.
- *   - No cumplidos este mes: no_cumplido en el mes actual.
+ * Renderizado con blade custom (no StatsOverview de Filament) para
+ * tener control total del alto y del padding. Se muestran los 6
+ * indicadores en una sola fila de tarjetas pequeñas.
  */
-class MaintenancesKpiWidget extends StatsOverviewWidget
+class MaintenancesKpiWidget extends Widget
 {
-    /** Widget compacto — 6 columnas para que los 6 KPIs quepan en 1 fila. */
+    protected string $view = 'filament.soporte.widgets.maintenances-kpi';
+
     protected int|string|array $columnSpan = 'full';
 
     /**
-     * Forzamos 6 columnas para que los 6 stats aparezcan en 1 fila en
-     * desktop. En viewports pequeños Filament colapsa automáticamente.
+     * @return array<int, array{label: string, value: int, hint: string, color: string, icon: string}>
      */
-    protected function getColumns(): int
+    protected function getViewData(): array
     {
-        return 6;
+        return [
+            'kpis' => $this->buildKpis(),
+        ];
     }
 
-    protected function getStats(): array
+    /**
+     * @return array<int, array{label: string, value: int, hint: string, color: string, icon: string}>
+     */
+    protected function buildKpis(): array
     {
         $user = auth()->user();
         $isAdmin = $user?->hasAnyRole(['super_admin', 'admin']) ?? false;
@@ -44,7 +41,6 @@ class MaintenancesKpiWidget extends StatsOverviewWidget
 
         $query = ScheduledMaintenance::query();
 
-        // Scope por rol — mismo que en el resource.
         if ($isAgent) {
             $query->where('agent_id', $user->id);
         } elseif ($isSupervisor) {
@@ -56,7 +52,6 @@ class MaintenancesKpiWidget extends StatsOverviewWidget
                 }
             });
         } elseif (! $isAdmin) {
-            // Rol no autorizado, no muestra nada.
             return [];
         }
 
@@ -80,35 +75,12 @@ class MaintenancesKpiWidget extends StatsOverviewWidget
             ->count();
 
         return [
-            Stat::make('Programados', $total)
-                ->description('Total activos en el sistema')
-                ->descriptionIcon('heroicon-m-clipboard-document-list')
-                ->color('info'),
-
-            Stat::make('Pendientes', $pendientes)
-                ->description('Aún no ejecutados')
-                ->descriptionIcon('heroicon-m-clock')
-                ->color($pendientes > 0 ? 'warning' : 'gray'),
-
-            Stat::make('Vencidos', $vencidos)
-                ->description('Pendientes con fecha pasada')
-                ->descriptionIcon('heroicon-m-exclamation-triangle')
-                ->color($vencidos > 0 ? 'danger' : 'success'),
-
-            Stat::make('Próximos 30 días', $proximos30)
-                ->description('Pendientes en la ventana')
-                ->descriptionIcon('heroicon-m-calendar-days')
-                ->color('info'),
-
-            Stat::make('Cumplidos (este mes)', $cumplidosMes)
-                ->description(now()->translatedFormat('F Y'))
-                ->descriptionIcon('heroicon-m-check-badge')
-                ->color('success'),
-
-            Stat::make('No cumplidos (este mes)', $noCumplidosMes)
-                ->description(now()->translatedFormat('F Y'))
-                ->descriptionIcon('heroicon-m-x-circle')
-                ->color($noCumplidosMes > 0 ? 'danger' : 'gray'),
+            ['label' => 'Programados', 'value' => $total, 'hint' => 'Total', 'color' => 'info', 'icon' => 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2'],
+            ['label' => 'Pendientes', 'value' => $pendientes, 'hint' => 'Sin ejecutar', 'color' => $pendientes > 0 ? 'warning' : 'gray', 'icon' => 'M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z'],
+            ['label' => 'Vencidos', 'value' => $vencidos, 'hint' => 'Fecha pasada', 'color' => $vencidos > 0 ? 'danger' : 'success', 'icon' => 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'],
+            ['label' => 'Próx. 30 días', 'value' => $proximos30, 'hint' => 'En ventana', 'color' => 'info', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z'],
+            ['label' => 'Cumplidos', 'value' => $cumplidosMes, 'hint' => 'Este mes', 'color' => 'success', 'icon' => 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0 1 12 2.944a11.955 11.955 0 0 1-8.618 3.04A12.02 12.02 0 0 0 3 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'],
+            ['label' => 'No cumplidos', 'value' => $noCumplidosMes, 'hint' => 'Este mes', 'color' => $noCumplidosMes > 0 ? 'danger' : 'gray', 'icon' => 'M6 18L18 6M6 6l12 12'],
         ];
     }
 

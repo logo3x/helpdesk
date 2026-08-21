@@ -9,7 +9,6 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -133,6 +132,12 @@ class ScheduledMaintenancesTable
                     ->modalHeading('Eliminar mantenimiento programado')
                     ->modalDescription('¿Está segura/o de eliminar este mantenimiento?')
                     ->modalSubmitActionLabel('Eliminar')
+                    // Autorización explícita por rol. Bypass del policy
+                    // auto-generado de Shield (que rechaza sin permiso
+                    // Spatie explícito) para que el rol sea suficiente.
+                    ->authorize(fn () => auth()->user()?->hasAnyRole([
+                        'super_admin', 'admin', 'supervisor_soporte',
+                    ]) ?? false)
                     ->visible(fn () => auth()->user()?->hasAnyRole([
                         'super_admin', 'admin', 'supervisor_soporte',
                     ]))
@@ -155,6 +160,10 @@ class ScheduledMaintenancesTable
                         ->modalHeading('Eliminar mantenimientos programados')
                         ->modalDescription('Los mtto seleccionados se marcarán como eliminados. Sus ciclos posteriores quedarán como registros independientes.')
                         ->modalSubmitActionLabel('Eliminar')
+                        // Autorización explícita por rol.
+                        ->authorize(fn () => auth()->user()?->hasAnyRole([
+                            'super_admin', 'admin', 'supervisor_soporte',
+                        ]) ?? false)
                         ->visible(fn () => auth()->user()?->hasAnyRole([
                             'super_admin', 'admin', 'supervisor_soporte',
                         ]))
@@ -164,15 +173,6 @@ class ScheduledMaintenancesTable
                                 ScheduledMaintenance::whereIn('parent_id', $ids)
                                     ->update(['parent_id' => null]);
                             }
-                        })
-                        ->after(function ($records): void {
-                            $count = collect($records)->count();
-                            Notification::make()
-                                ->title($count > 0
-                                    ? "Se eliminaron {$count} mantenimiento(s)"
-                                    : 'No se seleccionaron mantenimientos')
-                                ->{$count > 0 ? 'success' : 'warning'}()
-                                ->send();
                         }),
                 ]),
             ]);

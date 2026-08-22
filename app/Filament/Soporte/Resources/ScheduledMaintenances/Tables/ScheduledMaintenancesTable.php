@@ -6,8 +6,8 @@ use App\Enums\MaintenanceFrequency;
 use App\Enums\MaintenanceStatus;
 use App\Models\ScheduledMaintenance;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
@@ -15,6 +15,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class ScheduledMaintenancesTable
 {
@@ -157,64 +158,114 @@ class ScheduledMaintenancesTable
                     ->visible(fn () => auth()->user()?->hasAnyRole([
                         'super_admin', 'admin', 'supervisor_soporte',
                     ]) ?? false)
-                    // Firma sin type-hint específico y resolución
-                    // manual del record por si Filament v5.5 no
-                    // inyecta ScheduledMaintenance por DI en actions
-                    // con name custom.
-                    ->action(function ($record, Action $action) {
-                        $record ??= $action->getRecord();
-
-                        if (! $record instanceof ScheduledMaintenance) {
-                            $record = ScheduledMaintenance::find(is_object($record) ? $record->id : $record);
+                    // Resolvemos $record de varias formas y hacemos
+                    // HARD delete via DB directo, evitando cualquier
+                    // cache de Eloquent, softdelete o listener rar_o.
+                    ->action(function ($record, Action $action, $arguments) {
+                        // 1. Intenta el argumento estándar.
+                        $id = null;
+                        if (is_object($record) && isset($record->id)) {
+                            $id = $record->id;
+                        } elseif (is_numeric($record)) {
+                            $id = (int) $record;
                         }
 
-                        if (! $record) {
+                        // 2. Fallback: $action->getRecord().
+                        if (! $id) {
+                            $r = $action->getRecord();
+                            if (is_object($r) && isset($r->id)) {
+                                $id = $r->id;
+                            }
+                        }
+
+                        // 3. Fallback: $arguments['record'] (Filament v5).
+                        if (! $id && is_array($arguments)) {
+                            $id = $arguments['record'] ?? null;
+                        }
+
+                        if (! $id) {
                             Notification::make()
-                                ->title('No se pudo resolver el mantenimiento a eliminar')
+                                ->title('No se pudo resolver el registro a eliminar')
                                 ->danger()
                                 ->send();
 
                             return;
                         }
 
-                        ScheduledMaintenance::where('parent_id', $record->id)
+                        // HARD delete via query builder — evita observers,
+                        // softdelete, cache y cualquier interferencia.
+                        // Primero desvinculo hijos.
+                        DB::table('scheduled_maintenances')
+                            ->where('parent_id', $id)
                             ->update(['parent_id' => null]);
-                        $record->delete();
+
+                        $deleted = DB::table('scheduled_maintenances')
+                            ->where('id', $id)
+                            ->delete();
+
+                        if ($deleted === 0) {
+                            Notification::make()
+                                ->title('No se encontró el registro')
+                                ->body("ID #{$id} no existe en la BD.")
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
 
                         Notification::make()
                             ->title('Mantenimiento eliminado')
-                            ->body("Registro #{$record->id} borrado.")
+                            ->body("Registro #{$id} borrado permanentemente.")
                             ->success()
                             ->send();
                     }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    // Bulk delete estándar de Filament — llama a
-                    // ->delete() de cada registro individual. Nuestro
-                    // observer ya está preparado, pero la FK de parent_id
-                    // requiere desvincular hijos antes. Usamos el hook
-                    // ->before() que Filament sí ejecuta ANTES del
-                    // deletion en el DeleteBulkAction estándar.
-                    DeleteBulkAction::make()
+                    // Bulk delete custom con HARD delete via DB directo,
+                    // evitando problemas de resolución de records de
+                    // Filament v5.5 y de softdelete no aplicado.
+                    BulkAction::make('deleteSelected')
                         ->label('Eliminar seleccionados')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
                         ->requiresConfirmation()
                         ->modalHeading('Eliminar mantenimientos programados')
-                        ->modalDescription('Los mtto seleccionados se marcarán como eliminados. Sus ciclos posteriores quedarán como registros independientes.')
+                        ->modalDescription('Los mantenimientos seleccionados se eliminarán permanentemente.')
                         ->modalSubmitActionLabel('Eliminar')
-                        // Autorización explícita por rol.
-                        ->authorize(fn () => auth()->user()?->hasAnyRole([
-                            'super_admin', 'admin', 'supervisor_soporte',
-                        ]) ?? false)
+                        ->deselectRecordsAfterCompletion()
                         ->visible(fn () => auth()->user()?->hasAnyRole([
                             'super_admin', 'admin', 'supervisor_soporte',
-                        ]))
-                        ->before(function ($records): void {
-                            $ids = collect($records)->pluck('id')->filter()->all();
-                            if ($ids !== []) {
-                                ScheduledMaintenance::whereIn('parent_id', $ids)
-                                    ->update(['parent_id' => null]);
+                        ]) ?? false)
+                        ->action(function ($records) {
+                            $ids = collect($records)
+                                ->map(fn ($r) => is_object($r) ? $r->id : (int) $r)
+                                ->filter()
+                                ->all();
+
+                            if ($ids === []) {
+                                Notification::make()
+                                    ->title('No se seleccionaron registros')
+                                    ->warning()
+                                    ->send();
+
+                                return;
                             }
+
+                            // Desvincula hijos.
+                            DB::table('scheduled_maintenances')
+                                ->whereIn('parent_id', $ids)
+                                ->update(['parent_id' => null]);
+
+                            // HARD delete.
+                            $count = DB::table('scheduled_maintenances')
+                                ->whereIn('id', $ids)
+                                ->delete();
+
+                            Notification::make()
+                                ->title("Se eliminaron {$count} mantenimiento(s)")
+                                ->success()
+                                ->send();
                         }),
                 ]),
             ]);

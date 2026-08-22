@@ -20,6 +20,12 @@ class MaintenancesKpiWidget extends Widget
     protected int|string|array $columnSpan = 'full';
 
     /**
+     * Auto-refresh cada 10s. Sirve para que al borrar/crear un mtto
+     * los KPIs de arriba se actualicen sin recargar la página.
+     */
+    protected ?string $pollingInterval = '10s';
+
+    /**
      * @return array<string, array<int, array{label: string, value: int, hint: string, color: string, icon: string}>>
      */
     protected function getViewData(): array

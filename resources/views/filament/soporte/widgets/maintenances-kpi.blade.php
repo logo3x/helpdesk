@@ -1,6 +1,10 @@
 {{-- KPIs compactos del módulo Mantenimientos Programados.
-     Cards muy pequeñas (padding 8px, altura ~54px), 6 en una fila. --}}
+     Cards muy pequeñas (padding 8px, altura ~54px), 6 en una fila.
+     Los datos se resuelven en cada render llamando $this->getKpis()
+     directamente — evita el problema de re-hidratación de Livewire. --}}
 <x-filament-widgets::widget>
+    <?php $kpis = $this->getKpis(); ?>
+
     <style>
         .mk-grid { display:grid; gap:0.5rem; grid-template-columns:repeat(2, minmax(0,1fr)); }
         @media (min-width:768px) { .mk-grid { grid-template-columns:repeat(3, minmax(0,1fr)); } }
@@ -41,22 +45,28 @@
         .mk-hint  { font-size:0.6rem; color:rgb(161 161 170); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     </style>
 
-    {{-- Llamamos getKpis() directamente: en Filament v5 los widgets
-         Livewire a veces no re-hidratan las variables de getViewData()
-         al re-render, mostrando siempre 0. --}}
-    @php($kpis = $this->getKpis())
     <div class="mk-grid">
-        @foreach($kpis as $k)
+        @if (empty($kpis))
             <div class="mk-card">
-                <span class="mk-icon mk-icon-{{ $k['color'] }}">
-                    <svg viewBox="0 0 24 24"><path d="{{ $k['icon'] }}"/></svg>
-                </span>
                 <div class="mk-body">
-                    <div class="mk-value">{{ $k['value'] }}</div>
-                    <div class="mk-label">{{ $k['label'] }}</div>
-                    <div class="mk-hint">{{ $k['hint'] }}</div>
+                    <div class="mk-value">—</div>
+                    <div class="mk-label">Sin permisos</div>
+                    <div class="mk-hint">Contacte al admin</div>
                 </div>
             </div>
-        @endforeach
+        @else
+            @foreach($kpis as $k)
+                <div class="mk-card">
+                    <span class="mk-icon mk-icon-{{ $k['color'] }}">
+                        <svg viewBox="0 0 24 24"><path d="{{ $k['icon'] }}"/></svg>
+                    </span>
+                    <div class="mk-body">
+                        <div class="mk-value">{{ $k['value'] }}</div>
+                        <div class="mk-label">{{ $k['label'] }}</div>
+                        <div class="mk-hint">{{ $k['hint'] }}</div>
+                    </div>
+                </div>
+            @endforeach
+        @endif
     </div>
 </x-filament-widgets::widget>

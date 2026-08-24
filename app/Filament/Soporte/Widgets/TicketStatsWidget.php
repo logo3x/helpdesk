@@ -42,7 +42,11 @@ class TicketStatsWidget extends StatsOverviewWidget
             ->open()
             ->whereIn('priority', [TicketPriority::Alta, TicketPriority::Critica])
             ->count();
-        $assignedToMe = Ticket::query()
+        // Usa el mismo scope que el listado. Antes usaba Ticket::query()
+        // directo, contando tickets del user aunque estuvieran en otro
+        // depto — cuando el agente hacía clic el filtro de depto los
+        // ocultaba y "no aparecían" (bug reportado 2026-08-24).
+        $assignedToMe = $this->scopedTicketQuery()
             ->open()
             ->where('assigned_to_id', $user?->id)
             ->count();
@@ -84,10 +88,15 @@ class TicketStatsWidget extends StatsOverviewWidget
                 ->description('Abiertos en mi cola')
                 ->descriptionIcon('heroicon-m-user')
                 ->color('info')
+                // Usa el filtro `assigned_to_me` (ya existe en el listado
+                // como Filter::make('assigned_to_me')) — se activa con
+                // isActive=1. Antes intentábamos setear el SelectFilter
+                // assigned_to_id via URL pero Filament no siempre lo
+                // aplica correctamente y quedaba el listado sin filtrar.
                 ->url($ticketsBase.'?'.http_build_query([
                     'tableFilters' => [
-                        'status' => ['values' => $openStatuses],
-                        'assigned_to_id' => ['value' => $user?->id],
+                        'only_open' => ['isActive' => '1'],
+                        'assigned_to_me' => ['isActive' => '1'],
                     ],
                 ])),
         ];
@@ -141,19 +150,23 @@ class TicketStatsWidget extends StatsOverviewWidget
             return $query;
         }
 
-        if ($user->department_id) {
-            $query->where('department_id', $user->department_id);
-        } else {
-            $query->whereRaw('0 = 1');
-        }
+        // Mismo scope que TicketResource::getEloquentQuery — incluye
+        // los tickets asignados personalmente aunque sean de otro depto.
+        return $query->where(function (Builder $q) use ($user) {
+            $q->where('assigned_to_id', $user->id);
 
-        if (! $user->hasRole('supervisor_soporte')) {
-            $query->where(function (Builder $q) use ($user) {
-                $q->where('assigned_to_id', $user->id)
-                    ->orWhereNull('assigned_to_id');
-            });
-        }
+            if (! $user->department_id) {
+                return;
+            }
 
-        return $query;
+            if ($user->hasRole('supervisor_soporte')) {
+                $q->orWhere('department_id', $user->department_id);
+            } else {
+                $q->orWhere(function (Builder $sub) use ($user) {
+                    $sub->where('department_id', $user->department_id)
+                        ->whereNull('assigned_to_id');
+                });
+            }
+        });
     }
 }

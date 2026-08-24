@@ -37,12 +37,14 @@
                         {{ $data['myOpen'] === 1 ? 'ticket abierto' : 'tickets abiertos' }} a tu cargo
                     </p>
                 </div>
-                <a href="{{ route('filament.soporte.resources.tickets.index') }}"
+                {{-- Link con filtro "asignados a mí" activo — así el
+                     agente ve exactamente los N que muestra la card. --}}
+                <a href="{{ route('filament.soporte.resources.tickets.index', ['tableFilters' => ['only_open' => ['isActive' => '1'], 'assigned_to_me' => ['isActive' => '1']]]) }}"
                    style="display:inline-flex; align-items:center; gap:.4rem; padding:.6rem 1rem; border-radius:.75rem; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.1); color:#fff; font-size:.8rem; font-weight:500; text-decoration:none; transition:background .15s;"
                    onmouseover="this.style.background='rgba(255,255,255,.2)'"
                    onmouseout="this.style.background='rgba(255,255,255,.1)'">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:1rem;height:1rem;opacity:.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" /></svg>
-                    Ver tickets
+                    Ver mis tickets
                 </a>
 
                 @if ($data['showMaintenances'])

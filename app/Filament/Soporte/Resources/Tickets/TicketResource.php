@@ -108,22 +108,36 @@ class TicketResource extends Resource
             return $query;
         }
 
-        // Filter by user's department (applies to supervisor + agente + tecnico)
-        if ($user->department_id) {
-            $query->where('department_id', $user->department_id);
-        } else {
-            $query->whereRaw('0 = 1'); // no department → no tickets
-        }
+        // Regla: un usuario staff SIEMPRE puede ver un ticket que le fue
+        // asignado personalmente, aunque sea de otro depto. Si no fuera
+        // así, un agente asignado por error o por transferencia cross-
+        // depto quedaría con 404 en la notif y en el listado (bug
+        // reportado por agente 2026-08-24).
+        //
+        // Resto de visibilidad:
+        //   - supervisor: todos los tickets de su depto.
+        //   - agente/técnico: tickets de su depto sin asignar (para
+        //     poder tomarlos) + los asignados a otro pero de su depto
+        //     no aplican — solo los suyos.
+        return $query->where(function (Builder $q) use ($user) {
+            // Siempre incluye los asignados personalmente.
+            $q->where('assigned_to_id', $user->id);
 
-        // Additional restriction: agentes/tecnicos only see their assigned +
-        // unassigned. Supervisors see every ticket of their department.
-        if (! $user->hasRole('supervisor_soporte')) {
-            $query->where(function (Builder $q) use ($user) {
-                $q->where('assigned_to_id', $user->id)
-                    ->orWhereNull('assigned_to_id');
-            });
-        }
+            // Además, según rol, incluye del depto.
+            if (! $user->department_id) {
+                return;
+            }
 
-        return $query;
+            if ($user->hasRole('supervisor_soporte')) {
+                $q->orWhere('department_id', $user->department_id);
+            } else {
+                // Agente/técnico: tickets de su depto SIN asignar (para
+                // poder tomarlos).
+                $q->orWhere(function (Builder $sub) use ($user) {
+                    $sub->where('department_id', $user->department_id)
+                        ->whereNull('assigned_to_id');
+                });
+            }
+        });
     }
 }

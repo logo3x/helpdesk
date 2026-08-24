@@ -28,10 +28,18 @@ class WelcomeWidget extends Widget
 
         $firstName = explode(' ', (string) $user?->name)[0] ?? '';
 
-        $myOpen = Ticket::query()
+        // Aplica el mismo scope de depto que el listado — antes contaba
+        // sin filtrar por depto y aparecían tickets que después el
+        // listado escondía (bug reportado por agente 2026-08-24).
+        $myOpenQuery = Ticket::query()
             ->where('assigned_to_id', $user?->id)
-            ->whereNotIn('status', ['resuelto', 'cerrado'])
-            ->count();
+            ->whereNotIn('status', ['resuelto', 'cerrado']);
+
+        if ($user && ! $user->hasAnyRole(['super_admin', 'admin']) && $user->department_id) {
+            $myOpenQuery->where('department_id', $user->department_id);
+        }
+
+        $myOpen = $myOpenQuery->count();
 
         // Mantenimientos programados asignados al usuario logueado.
         // Solo pendientes — ya cumplidos/no cumplidos no cuentan.

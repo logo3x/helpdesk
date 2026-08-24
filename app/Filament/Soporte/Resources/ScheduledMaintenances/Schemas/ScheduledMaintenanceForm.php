@@ -331,11 +331,13 @@ class ScheduledMaintenanceForm
 
                         Select::make('progress_percent')
                             ->label('Porcentaje de avance')
-                            ->options(collect(range(0, 100, 10))
+                            ->helperText('Cuánto se alcanzó a hacer antes de la falla.')
+                            ->options(collect(range(0, 90, 10))
                                 ->mapWithKeys(fn ($v) => [$v => "{$v}%"])
                                 ->all())
                             ->default(0)
-                            ->required()
+                            ->required(fn (Get $get) => $get('status') === MaintenanceStatus::NoCumplido->value)
+                            ->visible(fn (Get $get) => $get('status') === MaintenanceStatus::NoCumplido->value)
                             ->native(false),
 
                         Textarea::make('observations')

@@ -130,9 +130,9 @@ class ScheduledMaintenanceObserver
 
     protected function generateNextOccurrence(ScheduledMaintenance $maintenance): void
     {
-        // Guardarraíl: no auto-generar si ya hay un hijo (evita loop en
+        // Guardarraíl 1: no auto-generar si ya hay un hijo (evita loop en
         // updates duplicados o al restaurar un soft delete).
-        $alreadyChained = ScheduledMaintenance::query()
+        $alreadyChained = ScheduledMaintenance::withTrashed()
             ->where('parent_id', $maintenance->id)
             ->exists();
 
@@ -140,15 +140,29 @@ class ScheduledMaintenanceObserver
             return;
         }
 
+        // Guardarraíl 2: si YA existe otro mtto para el mismo asset+agente
+        // en la fecha calculada, no duplicar. Evita el escenario de
+        // "editar un cerrado y regenerar ciclo" cuando por otro camino ya
+        // se creó el siguiente.
         $days = $maintenance->frequencyDays();
         if ($days === 0) {
+            return;
+        }
+
+        $nextDateProbe = $maintenance->scheduled_at->copy()->addDays($days)->startOfDay();
+        $duplicateExists = ScheduledMaintenance::query()
+            ->where('asset_id', $maintenance->asset_id)
+            ->whereDate('scheduled_at', $nextDateProbe)
+            ->exists();
+
+        if ($duplicateExists) {
             return;
         }
 
         // La siguiente ocurrencia se agenda en base a la fecha ORIGINAL
         // programada + los días de la frecuencia — mantiene el ciclo
         // aunque el actual se haya cerrado tarde o como no_cumplido.
-        $nextDate = $maintenance->scheduled_at->copy()->addDays($days);
+        $nextDate = $nextDateProbe;
 
         ScheduledMaintenance::create([
             'asset_id' => $maintenance->asset_id,

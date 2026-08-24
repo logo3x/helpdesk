@@ -17,6 +17,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
@@ -318,7 +319,15 @@ class ScheduledMaintenanceForm
                             ])
                             ->inline()
                             ->required()
-                            ->live(),
+                            ->live()
+                            // Cumplido → avance 100 automático.
+                            // No cumplido → si el avance seguía en 0, lo dejamos como
+                            // estaba (puede haber avanzado parcialmente antes de fallar).
+                            ->afterStateUpdated(function ($state, Set $set): void {
+                                if ($state === MaintenanceStatus::Cumplido->value) {
+                                    $set('progress_percent', 100);
+                                }
+                            }),
 
                         Select::make('progress_percent')
                             ->label('Porcentaje de avance')

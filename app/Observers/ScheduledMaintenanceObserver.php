@@ -46,6 +46,13 @@ class ScheduledMaintenanceObserver
         if ($maintenance->completed_at === null) {
             $maintenance->completed_at = now();
         }
+
+        // Regla de consistencia: si se marca Cumplido, el avance queda en 100.
+        // Así garantizamos el 100% también cuando el cambio viene por API,
+        // seed, tinker o cualquier flujo que no pase por el form.
+        if ($newStatus === MaintenanceStatus::Cumplido) {
+            $maintenance->progress_percent = 100;
+        }
     }
 
     public function updated(ScheduledMaintenance $maintenance): void

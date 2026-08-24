@@ -2,6 +2,8 @@
 
 namespace App\Filament\Soporte\Widgets;
 
+use App\Enums\MaintenanceStatus;
+use App\Models\ScheduledMaintenance;
 use App\Models\Ticket;
 use Filament\Widgets\Widget;
 
@@ -31,6 +33,18 @@ class WelcomeWidget extends Widget
             ->whereNotIn('status', ['resuelto', 'cerrado'])
             ->count();
 
+        // Mantenimientos programados asignados al usuario logueado.
+        // Solo pendientes — ya cumplidos/no cumplidos no cuentan.
+        // Overdue = pendientes cuya fecha ya pasó.
+        $myMaintenancesQuery = ScheduledMaintenance::query()
+            ->where('agent_id', $user?->id)
+            ->where('status', MaintenanceStatus::Pendiente->value);
+
+        $myMaintenancesOpen = (clone $myMaintenancesQuery)->count();
+        $myMaintenancesOverdue = (clone $myMaintenancesQuery)
+            ->where('scheduled_at', '<', now()->startOfDay())
+            ->count();
+
         $roles = $user?->getRoleNames()->implode(', ') ?? '';
         $roleLabel = match (true) {
             str_contains($roles, 'super_admin') => 'Super Administrador',
@@ -40,12 +54,23 @@ class WelcomeWidget extends Widget
             default => 'Usuario',
         };
 
+        // ¿El usuario puede ver el módulo de mantenimientos? El widget de
+        // mantenimientos solo lo mostramos si tiene rol operativo. Super
+        // admin/admin ya tienen KPIs dedicados en el listado.
+        $showMaintenances = $user?->hasAnyRole([
+            'super_admin', 'admin', 'supervisor_soporte',
+            'agente_soporte', 'tecnico_campo',
+        ]) ?? false;
+
         return [
             'greeting' => $greeting,
             'firstName' => $firstName,
             'fullName' => $user?->name,
             'roleLabel' => $roleLabel,
             'myOpen' => $myOpen,
+            'myMaintenancesOpen' => $myMaintenancesOpen,
+            'myMaintenancesOverdue' => $myMaintenancesOverdue,
+            'showMaintenances' => $showMaintenances,
             'avatarUrl' => null,
         ];
     }

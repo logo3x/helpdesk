@@ -348,26 +348,92 @@ class ScheduledMaintenanceForm
                     ]),
 
                 Section::make('Trazabilidad')
+                    ->description('Auditoría del registro: quién lo creó, cuándo, y la cadena de ciclos anteriores/siguientes.')
                     ->icon('heroicon-o-clock')
-                    ->columns(2)
+                    ->columns(3)
                     ->collapsible()
                     ->collapsed()
                     ->columnSpanFull()
                     ->visible(fn (string $operation) => $operation === 'edit')
                     ->schema([
+                        Placeholder::make('id_display')
+                            ->label('ID del registro')
+                            ->content(fn (?ScheduledMaintenance $record) => $record ? '#'.$record->id : '—'),
+
                         Placeholder::make('created_by_display')
                             ->label('Programado por')
                             ->content(fn (?ScheduledMaintenance $record) => $record?->createdBy?->name ?? '—'),
 
+                        Placeholder::make('created_at_display')
+                            ->label('Creado el')
+                            ->content(fn (?ScheduledMaintenance $record) => $record?->created_at
+                                ? $record->created_at->translatedFormat('d M Y H:i').' · '.$record->created_at->diffForHumans()
+                                : '—'),
+
+                        Placeholder::make('updated_at_display')
+                            ->label('Última actualización')
+                            ->content(fn (?ScheduledMaintenance $record) => $record?->updated_at
+                                ? $record->updated_at->translatedFormat('d M Y H:i').' · '.$record->updated_at->diffForHumans()
+                                : '—'),
+
                         Placeholder::make('completed_at_display')
                             ->label('Cerrado el')
-                            ->content(fn (?ScheduledMaintenance $record) => $record?->completed_at?->translatedFormat('d M Y H:i') ?? 'Aún no cerrado'),
+                            ->content(fn (?ScheduledMaintenance $record) => $record?->completed_at
+                                ? $record->completed_at->translatedFormat('d M Y H:i').' · '.$record->completed_at->diffForHumans()
+                                : 'Aún no cerrado'),
+
+                        Placeholder::make('duration_display')
+                            ->label('Tiempo de resolución')
+                            ->content(function (?ScheduledMaintenance $record) {
+                                if (! $record?->completed_at || ! $record?->created_at) {
+                                    return $record?->scheduled_at
+                                        ? ($record->isOverdue()
+                                            ? 'Vencido hace '.$record->scheduled_at->diffInDays(now()).' días'
+                                            : 'Faltan '.now()->diffInDays($record->scheduled_at, false).' días')
+                                        : '—';
+                                }
+                                $days = $record->created_at->diffInDays($record->completed_at);
+                                $hours = $record->created_at->diffInHours($record->completed_at) % 24;
+
+                                return $days > 0
+                                    ? "{$days}d {$hours}h desde la programación"
+                                    : "{$hours}h desde la programación";
+                            }),
 
                         Placeholder::make('parent_display')
                             ->label('Ciclo anterior')
                             ->content(fn (?ScheduledMaintenance $record) => $record?->parent
-                                ? '#'.$record->parent->id.' ('.$record->parent->scheduled_at->translatedFormat('d M Y').')'
+                                ? '#'.$record->parent->id.' — '.$record->parent->scheduled_at->translatedFormat('d M Y')
+                                    .' ('.$record->parent->status->label().')'
                                 : 'Este es el primer ciclo'),
+
+                        Placeholder::make('child_display')
+                            ->label('Ciclo siguiente')
+                            ->content(function (?ScheduledMaintenance $record) {
+                                $child = $record?->children()->orderBy('scheduled_at')->first();
+
+                                return $child
+                                    ? '#'.$child->id.' — '.$child->scheduled_at->translatedFormat('d M Y')
+                                        .' ('.$child->status->label().')'
+                                    : 'Aún no se ha generado';
+                            }),
+
+                        Placeholder::make('asset_snapshot_display')
+                            ->label('Activo (estado actual)')
+                            ->content(function (?ScheduledMaintenance $record) {
+                                if (! $record?->asset) {
+                                    return '—';
+                                }
+                                $a = $record->asset;
+                                $tag = $a->asset_tag ?: 'Sin TAG';
+                                $custodian = $a->user?->name ?? $a->custodian_name ?? 'Sin custodio';
+                                $location = collect([$a->management_area, $a->field, $a->location_zone])
+                                    ->filter()
+                                    ->implode(' · ') ?: 'Sin ubicación';
+
+                                return $tag.' · '.$custodian.' · '.$location;
+                            })
+                            ->columnSpanFull(),
                     ]),
             ]);
     }

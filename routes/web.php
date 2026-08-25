@@ -4,6 +4,7 @@ use App\Http\Controllers\AslController;
 use App\Http\Controllers\Assets\AssetHandoverPdfController;
 use App\Http\Controllers\Assets\AssetLifecyclePdfController;
 use App\Http\Controllers\Auth\AzureAuthController;
+use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\InventoryAgentController;
 use App\Http\Middleware\EnsureAslAccepted;
 use App\Livewire\Portal\Chatbot;
@@ -62,6 +63,14 @@ Route::get('agent/script', [InventoryAgentController::class, 'script'])->name('a
 Route::middleware('auth')->group(function () {
     Route::get('asl/accept', [AslController::class, 'show'])->name('asl.show');
     Route::post('asl/accept', [AslController::class, 'accept'])->name('asl.accept');
+
+    // Cambio obligatorio de password en primer login (cuentas locales
+    // precargadas con password = primeros 8 dígitos de cédula).
+    // Estas rutas NO usan ForcePasswordChange para evitar loop.
+    Route::get('password/first-change', [ForcePasswordChangeController::class, 'show'])
+        ->name('password.first-change');
+    Route::post('password/first-change', [ForcePasswordChangeController::class, 'store'])
+        ->name('password.first-change.update');
 });
 
 // Hoja de vida PDF — ruta simple para evitar restricciones IIS en rutas Filament

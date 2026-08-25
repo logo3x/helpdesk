@@ -66,12 +66,33 @@ class AzureAuthController extends Controller
             abort(403, 'Tu cuenta de Microsoft no pertenece a un dominio corporativo autorizado.');
         }
 
-        // Buscar primero por azure_id (id inmutable de Azure), luego por
-        // email — así reconocemos también a los usuarios precargados
-        // vía "Precarga de personas" antes de su primer login.
-        $user = User::where('azure_id', $azureUser->getId())
-            ->orWhere('email', $email)
-            ->first();
+        // Matching en 3 pasadas — la primera que encuentre gana.
+        //
+        //  1. azure_id (oid de Azure, id inmutable) — usuario ya conocido.
+        //  2. email exacto — típico de stub precargado por RRHH.
+        //  3. identification (cédula) — para el caso en que el email
+        //     precargado no coincide con el corporativo real de Azure.
+        //     Es el claim `employeeId` o similar que el tenant expone
+        //     en el token; si no viene, este paso se salta.
+        $azureIdentification = $this->extractIdentification($azureUser);
+
+        $user = User::where('azure_id', $azureUser->getId())->first();
+
+        if (! $user) {
+            $user = User::where('email', $email)->first();
+        }
+
+        if (! $user && $azureIdentification) {
+            $user = User::where('identification', $azureIdentification)
+                ->where(function ($q) {
+                    // Solo aceptamos matchear por cédula un stub Azure
+                    // pendiente. Si un usuario ya activo tiene esa cédula,
+                    // NO lo pisamos — sería confuso y potencialmente inseguro.
+                    $q->where('is_azure_pending', true)
+                        ->orWhereNull('azure_id');
+                })
+                ->first();
+        }
 
         $wasAzurePending = (bool) ($user?->is_azure_pending ?? false);
 
@@ -83,6 +104,20 @@ class AzureAuthController extends Controller
                 'email_verified_at' => $user->email_verified_at ?? now(),
             ];
 
+            // El email siempre lo alineamos al que viene de Azure — es
+            // la fuente de verdad para el login. Si el stub se precargó
+            // con un email distinto (ej: escrito a mano por RRHH y con
+            // typo), lo corregimos en el primer login exitoso.
+            if ($user->email !== $email) {
+                $updates['email'] = $email;
+            }
+
+            // Si el stub no tenía cédula pero Azure la trae, la seteamos
+            // — sin pisar la que ya venía de la precarga.
+            if (blank($user->identification) && ! blank($azureIdentification)) {
+                $updates['identification'] = $azureIdentification;
+            }
+
             // Si estaba como Azure pending, este es su primer login
             // exitoso. Lo activamos y guardamos el timestamp.
             if ($wasAzurePending) {
@@ -92,16 +127,17 @@ class AzureAuthController extends Controller
 
             $user->update($updates);
         } else {
-            $user = User::create([
+            $user = User::create(array_filter([
                 'azure_id' => $azureUser->getId(),
                 'name' => $azureUser->getName(),
                 'email' => $email,
+                'identification' => $azureIdentification,
                 'avatar_url' => $this->resolveAvatar($azureUser->getAvatar()),
                 'password' => Hash::make(Str::random(32)),
                 'email_verified_at' => now(),
                 'is_azure_pending' => false,
                 'azure_first_login_at' => now(),
-            ]);
+            ], fn ($v) => $v !== null));
         }
 
         // Sync department from Azure profile (if available in token)
@@ -119,6 +155,48 @@ class AzureAuthController extends Controller
         Auth::login($user, remember: true);
 
         return redirect()->intended($this->resolveRedirectUrl($user));
+    }
+
+    /**
+     * Intenta extraer la cédula del usuario desde los claims del token
+     * de Azure. Confipetrol expone la cédula típicamente en:
+     *   - user['employeeId']            (estándar Entra ID)
+     *   - user['extension_*_cedula']    (extensión custom del tenant)
+     *   - user['onPremisesImmutableId'] (fallback si viene sincronizada)
+     *
+     * Cualquier valor se normaliza a solo dígitos para poder matchear
+     * con users.identification (que también guardamos como dígitos).
+     * Devuelve null si el token no la expone — es lo esperable si
+     * todavía no se configuró el claim en el tenant.
+     */
+    protected function extractIdentification(mixed $azureUser): ?string
+    {
+        $userClaims = $azureUser->user ?? [];
+
+        $candidates = [
+            $userClaims['employeeId'] ?? null,
+            $userClaims['onPremisesImmutableId'] ?? null,
+        ];
+
+        // Extensiones dinámicas del tenant — ej: `extension_xxx_cedula`.
+        foreach ($userClaims as $key => $value) {
+            if (is_string($key) && str_contains(mb_strtolower($key), 'cedula')) {
+                $candidates[] = $value;
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            if (blank($candidate)) {
+                continue;
+            }
+
+            $onlyDigits = preg_replace('/\D/', '', (string) $candidate);
+            if ($onlyDigits !== '' && mb_strlen($onlyDigits) >= 6) {
+                return $onlyDigits;
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -141,10 +141,29 @@ class AzureAuthController extends Controller
 
     /**
      * Sync Spatie role from Azure AD group membership.
-     * Uses config/azure-roles.php mapping.
+     *
+     * REGLA (decidida 2026-08-24 tras bug de agentes perdiendo su rol):
+     * El SSO NO administra roles de usuarios existentes. Los roles se
+     * asignan/modifican desde el panel admin y son la fuente de verdad.
+     * Azure solo autentica.
+     *
+     * Solo asignamos un rol default cuando el usuario NO tiene NINGÚN
+     * rol asignado — típicamente porque acaba de ser creado en este
+     * mismo callback (primera vez que se autentica alguien nuevo).
+     *
+     * Bug previo: syncRoles([...]) borraba los roles existentes en
+     * cada login. Agentes que no estaban en el grupo Azure mapeado
+     * quedaban degradados a usuario_final.
+     *
+     * Uses config/azure-roles.php mapping only for NEW users.
      */
     protected function syncRole(User $user, mixed $azureUser): void
     {
+        // Si ya tiene algún rol, respetamos lo que hay en el panel.
+        if ($user->roles()->exists()) {
+            return;
+        }
+
         $groups = $azureUser->user['groups'] ?? [];
         $mapping = config('azure-roles', []);
         $defaultRole = $mapping['_default'] ?? 'usuario_final';
@@ -163,9 +182,7 @@ class AzureAuthController extends Controller
             }
         }
 
-        if (! $user->hasRole($assignedRole)) {
-            $user->syncRoles([$assignedRole]);
-        }
+        $user->assignRole($assignedRole);
     }
 
     /**

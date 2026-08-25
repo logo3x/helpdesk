@@ -11,7 +11,8 @@ test('authenticated users are redirected from dashboard to their panel', functio
     $user = User::factory()->create();
     $this->actingAs($user);
 
-    // Sin rol específico → portal del usuario final es el fallback.
+    // Sin rol específico → portal del usuario final (fallback) es
+    // /portal/chatbot desde 2026-05 (home del portal es el chatbot).
     $response = $this->get(route('dashboard'));
-    $response->assertRedirect('/portal');
+    $response->assertRedirect('/portal/chatbot');
 });

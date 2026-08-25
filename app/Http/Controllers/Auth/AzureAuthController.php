@@ -66,18 +66,31 @@ class AzureAuthController extends Controller
             abort(403, 'Tu cuenta de Microsoft no pertenece a un dominio corporativo autorizado.');
         }
 
-        // Buscar primero por azure_id, luego por email (para vincular cuentas existentes)
+        // Buscar primero por azure_id (id inmutable de Azure), luego por
+        // email — así reconocemos también a los usuarios precargados
+        // vía "Precarga de personas" antes de su primer login.
         $user = User::where('azure_id', $azureUser->getId())
             ->orWhere('email', $email)
             ->first();
 
+        $wasAzurePending = (bool) ($user?->is_azure_pending ?? false);
+
         if ($user) {
-            $user->update([
+            $updates = [
                 'azure_id' => $azureUser->getId(),
-                'name' => $azureUser->getName(),
+                'name' => $user->name ?: $azureUser->getName(),
                 'avatar_url' => $this->resolveAvatar($azureUser->getAvatar()),
                 'email_verified_at' => $user->email_verified_at ?? now(),
-            ]);
+            ];
+
+            // Si estaba como Azure pending, este es su primer login
+            // exitoso. Lo activamos y guardamos el timestamp.
+            if ($wasAzurePending) {
+                $updates['is_azure_pending'] = false;
+                $updates['azure_first_login_at'] = now();
+            }
+
+            $user->update($updates);
         } else {
             $user = User::create([
                 'azure_id' => $azureUser->getId(),
@@ -86,6 +99,8 @@ class AzureAuthController extends Controller
                 'avatar_url' => $this->resolveAvatar($azureUser->getAvatar()),
                 'password' => Hash::make(Str::random(32)),
                 'email_verified_at' => now(),
+                'is_azure_pending' => false,
+                'azure_first_login_at' => now(),
             ]);
         }
 

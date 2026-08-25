@@ -68,6 +68,9 @@ class User extends Authenticatable implements FilamentUser, HasName
             'kactus_payload' => 'array',
             'hired_at' => 'date',
             'terminated_at' => 'date',
+            'is_azure_pending' => 'boolean',
+            'azure_first_login_at' => 'datetime',
+            'password_must_change' => 'boolean',
         ];
     }
 

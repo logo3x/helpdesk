@@ -48,7 +48,7 @@ class ListAssets extends ListRecords
                 ->icon('heroicon-o-arrow-up-tray')
                 ->color('warning')
                 ->modalHeading('Carga masiva de activos desde Excel')
-                ->modalDescription('Sube el .xlsx con la estructura de la plantilla. Se crearán/actualizarán activos, proyectos, usuarios y departamentos según corresponda.')
+                ->modalDescription('Sube el .xlsx con la estructura de la plantilla. El custodio se busca por cédula primero (Identificación) y por email después. Si no existe, se crea un stub según la regla del email.')
                 ->modalSubmitActionLabel('Procesar')
                 ->modalWidth('lg')
                 ->schema([
@@ -62,17 +62,16 @@ class ListAssets extends ListRecords
                             'application/vnd.ms-excel',
                         ])
                         ->maxSize(10 * 1024)
-                        ->helperText('Máximo 10 MB. Usa la plantilla para asegurar los encabezados correctos.'),
+                        ->helperText('Máximo 10 MB. Usá la plantilla para asegurar los encabezados correctos.'),
                     Checkbox::make('dry_run')
                         ->label('Previsualizar (dry-run) sin guardar cambios')
                         ->default(false),
+                    Checkbox::make('strict_custodian')
+                        ->label('Modo estricto: rechazar filas cuyo custodio no exista')
+                        ->helperText('Recomendado si ya precargaste todas las personas. Evita que se creen stubs improvisados.')
+                        ->default(false),
                 ])
                 ->action(function (array $data): void {
-                    // FileUpload->disk('local') guarda con la ruta relativa
-                    // dentro del disk. En Laravel 11+ el disk `local` tiene
-                    // root = storage/app/private/, así que NO se puede
-                    // construir el path absoluto a mano con storage_path().
-                    // Hay que pedírselo al filesystem manager.
                     $relative = (string) $data['file'];
                     $disk = Storage::disk('local');
 
@@ -88,17 +87,23 @@ class ListAssets extends ListRecords
 
                     $absolute = $disk->path($relative);
 
-                    $report = app(InventoryImportService::class)
-                        ->importFromFile($absolute, (bool) ($data['dry_run'] ?? false));
+                    $report = app(InventoryImportService::class)->importFromFile(
+                        $absolute,
+                        (bool) ($data['dry_run'] ?? false),
+                        (bool) ($data['strict_custodian'] ?? false),
+                    );
 
                     $errors = count($report['errors']);
                     $message = sprintf(
-                        'Total: %d · Creadas: %d · Actualizadas: %d · Saltadas: %d · Errores: %d',
+                        'Total: %d · Creados: %d · Actualizados: %d · Saltados: %d · Errores: %d · Usuarios stub: %d · Proyectos: %d · Deptos: %d',
                         $report['total'],
                         $report['created'],
                         $report['updated'],
                         $report['skipped'],
                         $errors,
+                        $report['entities_created']['users'],
+                        $report['entities_created']['projects'],
+                        $report['entities_created']['departments'],
                     );
 
                     Notification::make()
@@ -107,10 +112,6 @@ class ListAssets extends ListRecords
                         ->{$errors === 0 ? 'success' : 'warning'}()
                         ->persistent()
                         ->send();
-
-                    // El archivo subido se mantiene en storage/app/imports
-                    // como respaldo auditoría — IT puede borrarlo después
-                    // si lo desea.
                 }),
 
             CreateAction::make(),

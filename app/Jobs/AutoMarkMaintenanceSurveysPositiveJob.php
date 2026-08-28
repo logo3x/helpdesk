@@ -16,9 +16,11 @@ class AutoMarkMaintenanceSurveysPositiveJob implements ShouldBeUnique, ShouldQue
 
     public function handle(): void
     {
+        $days = (int) config('tickets.maintenance_csat_auto_positive_days', 1);
+
         $surveys = MaintenanceSurvey::query()
             ->whereNull('responded_at')
-            ->where('created_at', '<=', now()->subDay())
+            ->where('created_at', '<=', now()->subDays($days))
             ->get();
 
         $count = 0;
@@ -27,13 +29,13 @@ class AutoMarkMaintenanceSurveysPositiveJob implements ShouldBeUnique, ShouldQue
             $survey->forceFill([
                 'rating' => 5,
                 'responded_at' => now(),
-                'comment' => trim((string) $survey->comment.' (auto-positiva: sin respuesta en 1 día)'),
+                'comment' => trim((string) $survey->comment." (auto-positiva: sin respuesta en {$days} día(s))"),
             ])->save();
             $count++;
         }
 
         if ($count > 0) {
-            Log::info("Auto-maintenance-CSAT: {$count} encuesta(s) marcadas como 5★.");
+            Log::info("Auto-maintenance-CSAT: {$count} encuesta(s) marcadas como 5★ tras {$days} día(s) sin respuesta.");
         }
     }
 }

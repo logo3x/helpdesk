@@ -14,7 +14,7 @@ return [
     | período, no se cierra (porque el estado cambia o el filtro vuelve a
     | empezar a contar desde resolved_at).
     */
-    'auto_close_days' => (int) env('TICKETS_AUTO_CLOSE_DAYS', 7),
+    'auto_close_days' => (int) env('TICKETS_AUTO_CLOSE_DAYS', 2),
 
     /*
     |--------------------------------------------------------------------------
@@ -27,5 +27,16 @@ return [
     | con "(auto-positiva: cliente no respondió en X días)" para diferenciar
     | en reportes.
     */
-    'csat_auto_positive_days' => (int) env('TICKETS_CSAT_AUTO_POSITIVE_DAYS', 7),
+    'csat_auto_positive_days' => (int) env('TICKETS_CSAT_AUTO_POSITIVE_DAYS', 1),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auto-positiva en encuesta de mantenimiento
+    |--------------------------------------------------------------------------
+    |
+    | Días tras enviar la encuesta de mantenimiento antes de que
+    | AutoMarkMaintenanceSurveysPositiveJob la marque como 5 estrellas
+    | automáticamente.
+    */
+    'maintenance_csat_auto_positive_days' => (int) env('MAINTENANCE_CSAT_AUTO_POSITIVE_DAYS', 1),
 ];

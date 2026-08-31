@@ -3,10 +3,12 @@
 namespace App\Observers;
 
 use App\Enums\MaintenanceStatus;
+use App\Jobs\SendMaintenanceSurveyJob;
 use App\Models\AssetHistory;
 use App\Models\ScheduledMaintenance;
 use App\Models\User;
 use App\Notifications\ScheduledMaintenanceAssignedNotification;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Reacciona al ciclo de vida de un ScheduledMaintenance.
@@ -92,9 +94,32 @@ class ScheduledMaintenanceObserver
 
         if ($maintenance->status === MaintenanceStatus::Cumplido) {
             $this->updateAssetMaintenanceFields($maintenance);
+            $this->dispatchSatisfactionSurvey($maintenance);
         }
 
         $this->generateNextOccurrence($maintenance);
+    }
+
+    /**
+     * Dispara el envío de la encuesta de satisfacción al custodio del
+     * activo. Solo se dispara al Cumplido — un No Cumplido no tiene
+     * sentido encuestar porque el servicio no se prestó.
+     *
+     * La encuesta se crea vía `SendMaintenanceSurveyJob`, que además:
+     *   - Evita duplicados (un survey pendiente por asset+usuario).
+     *   - Notifica al custodio con link al portal.
+     * Y a las 24h el `AutoMarkMaintenanceSurveysPositiveJob` la marca
+     * como 5★ si no respondió.
+     */
+    protected function dispatchSatisfactionSurvey(ScheduledMaintenance $maintenance): void
+    {
+        $asset = $maintenance->asset;
+        if (! $asset || ! $asset->user_id) {
+            // Sin activo o sin custodio no hay a quién encuestar.
+            return;
+        }
+
+        SendMaintenanceSurveyJob::dispatch($asset);
     }
 
     protected function logInAssetHistory(ScheduledMaintenance $maintenance): void
@@ -176,7 +201,7 @@ class ScheduledMaintenanceObserver
         // Log explícito con la evidencia de días — así si alguien
         // reporta "cuatrimestral se hizo con 90 días" podemos rastrear
         // exactamente qué frequency tenía el mtto padre.
-        \Log::info('[MTTO] Generando siguiente ciclo', [
+        Log::info('[MTTO] Generando siguiente ciclo', [
             'parent_id' => $maintenance->id,
             'parent_scheduled_at' => $maintenance->scheduled_at->toDateString(),
             'parent_frequency' => $maintenance->frequency?->value,

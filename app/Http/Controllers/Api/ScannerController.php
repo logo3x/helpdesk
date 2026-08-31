@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ManagementArea;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\InventoryService;
@@ -145,11 +146,16 @@ class ScannerController extends Controller
             ], 500);
         }
 
+        // Gerencia se valida contra el enum. Si viene un valor libre
+        // (versión vieja del scanner PS1 o input manual), queda NULL
+        // y el admin lo puede corregir después desde el panel.
+        $normalizedGerencia = ManagementArea::tryNormalize($data['management_area'] ?? null)?->value;
+
         $adminFields = array_filter([
             'custodian_name' => $data['custodian_name'] ?? null,
             'field' => $data['field'] ?? null,
             'location_zone' => $data['location_zone'] ?? null,
-            'management_area' => $data['management_area'] ?? null,
+            'management_area' => $normalizedGerencia,
             'asset_tag' => $data['asset_tag'] ?? null,
             'notes' => $data['notes'] ?? null,
         ], fn ($v) => $v !== null && $v !== '');
@@ -307,8 +313,28 @@ class ScannerController extends Controller
         $lines[] = 'Write-Host ""';
         $lines[] = '$CustodianName  = (Read-Host "    Nombre del custodio   ").Trim()';
         $lines[] = '$Field          = (Read-Host "    Campo operativo        ").Trim()';
-        $lines[] = '$LocationZone   = (Read-Host "    Ubicacion / Zona       ").Trim()';
-        $lines[] = '$ManagementArea = (Read-Host "    Gerencia               ").Trim()';
+        $lines[] = '$LocationZone   = (Read-Host "    Ubicacion              ").Trim()';
+        $lines[] = '';
+        $lines[] = '# Gerencia: menu cerrado. El backend valida contra el enum ManagementArea.';
+        $lines[] = 'Write-Host "    Gerencia:"';
+        $lines[] = 'Write-Host "      1) Zona 1"';
+        $lines[] = 'Write-Host "      2) Zona 2"';
+        $lines[] = 'Write-Host "      3) Zona 3"';
+        $lines[] = 'Write-Host "      4) Zona 4"';
+        $lines[] = 'Write-Host "      5) Zona 5"';
+        $lines[] = 'Write-Host "      6) Administracion"';
+        $lines[] = 'Write-Host "      Enter para omitir"';
+        $lines[] = '$MgmtChoice = (Read-Host "    Opcion (1-6)").Trim()';
+        $lines[] = 'switch ($MgmtChoice) {';
+        $lines[] = '    "1" { $ManagementArea = "Zona 1" }';
+        $lines[] = '    "2" { $ManagementArea = "Zona 2" }';
+        $lines[] = '    "3" { $ManagementArea = "Zona 3" }';
+        $lines[] = '    "4" { $ManagementArea = "Zona 4" }';
+        $lines[] = '    "5" { $ManagementArea = "Zona 5" }';
+        $lines[] = '    "6" { $ManagementArea = "Administración" }';
+        $lines[] = '    default { $ManagementArea = "" }';
+        $lines[] = '}';
+        $lines[] = '';
         $lines[] = '$AssetTag       = (Read-Host "    TAG / Etiqueta         ").Trim()';
         $lines[] = '$Notes          = (Read-Host "    Notas                  ").Trim()';
         $lines[] = 'Write-Host ""';

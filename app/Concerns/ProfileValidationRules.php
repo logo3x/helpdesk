@@ -2,6 +2,7 @@
 
 namespace App\Concerns;
 
+use App\Enums\ManagementArea;
 use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
@@ -21,7 +22,7 @@ trait ProfileValidationRules
             'identification' => ['nullable', 'string', 'max:30'],
             'position' => ['nullable', 'string', 'max:150'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'management_area' => ['nullable', 'string', 'max:120'],
+            'management_area' => ['nullable', Rule::in(ManagementArea::values())],
             'field' => ['nullable', 'string', 'max:100'],
             'location_zone' => ['nullable', 'string', 'max:100'],
         ];

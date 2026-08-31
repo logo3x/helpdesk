@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ManagementArea;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -194,7 +195,10 @@ class PeopleImportService
         $name = (string) $row['name'];
         $position = $row['position'] ?? null;
         $phone = $row['phone'] ?? null;
-        $managementArea = $row['management_area'] ?? null;
+        // Normalizamos gerencia a uno de los 6 valores oficiales.
+        // Si viene algo no reconocido, se guarda NULL (queda vacío en
+        // el form y el usuario/admin lo debe corregir después).
+        $managementArea = ManagementArea::tryNormalize($row['management_area'] ?? null)?->value;
 
         $department = $this->resolveDepartment($row, $report);
         $isAzure = $email !== null && $this->isAzureEmail($email);

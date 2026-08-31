@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ManagementArea;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -39,7 +40,7 @@ class PeopleTemplateService
         ['Departamento', 22, 'Tecnología', 'Nombre del departamento (se crea si no existe).'],
         ['Rol', 20, 'usuario_final', 'usuario_final | agente_soporte | supervisor_soporte | tecnico_campo | editor_kb | admin | super_admin.'],
         ['Telefono', 14, '3001234567', 'Teléfono de contacto (opcional).'],
-        ['Gerencia', 22, 'Tecnología', 'Área gerencial (opcional).'],
+        ['Gerencia', 22, 'Administración', 'Debe ser una de: Zona 1, Zona 2, Zona 3, Zona 4, Zona 5, Administración.'],
     ];
 
     protected const VALID_ROLES = [
@@ -128,6 +129,15 @@ class PeopleTemplateService
             list: '"'.implode(',', self::VALID_ROLES).'"',
             prompt: 'Rol del usuario',
             promptTitle: 'Rol',
+        );
+
+        // Dropdown de gerencia en columna H — Sprint 7 lista cerrada.
+        $this->applyDropdown(
+            $sheet,
+            column: 'H',
+            list: '"'.implode(',', ManagementArea::values()).'"',
+            prompt: 'Gerencia oficial de Confipetrol',
+            promptTitle: 'Gerencia',
         );
 
         // Identificación en negrita en toda la columna A — es la clave.

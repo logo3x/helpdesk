@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Assets\Schemas;
 
+use App\Enums\ManagementArea;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
@@ -164,7 +165,7 @@ class AssetForm
                                     ->placeholder('Sin departamento'),
 
                                 Select::make('project_id')
-                                    ->label('Proyecto / Contrato')
+                                    ->label('Proyecto')
                                     ->relationship('project', 'name', fn ($query) => $query->where('is_active', true)->orderBy('name'))
                                     ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->code} · {$record->name}")
                                     ->searchable(['code', 'name', 'client'])
@@ -172,10 +173,12 @@ class AssetForm
                                     ->placeholder('Sin proyecto')
                                     ->helperText('Busca por código (ej: 499015105) o nombre del proyecto.'),
 
-                                TextInput::make('management_area')
+                                Select::make('management_area')
                                     ->label('Gerencia')
-                                    ->placeholder('Ej: HSEQ, Operaciones')
-                                    ->maxLength(120),
+                                    ->options(ManagementArea::options())
+                                    ->native(false)
+                                    ->searchable()
+                                    ->placeholder('Seleccioná una gerencia'),
 
                                 TextInput::make('field')
                                     ->label('Campo')
@@ -183,8 +186,8 @@ class AssetForm
                                     ->maxLength(100),
 
                                 TextInput::make('location_zone')
-                                    ->label('Ubicación / Zona')
-                                    ->placeholder('Ej: ZONA 4, Bodega central')
+                                    ->label('Ubicación')
+                                    ->placeholder('Ej: Bodega central, Piso 3')
                                     ->maxLength(100),
                             ]),
                     ])

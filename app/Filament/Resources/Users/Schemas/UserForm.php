@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use App\Enums\ManagementArea;
 use App\Models\User;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -91,10 +92,12 @@ class UserForm
                             ->tel()
                             ->maxLength(30),
 
-                        TextInput::make('management_area')
+                        Select::make('management_area')
                             ->label('Gerencia')
-                            ->placeholder('Ej: HSEQ, Operaciones')
-                            ->maxLength(120),
+                            ->options(ManagementArea::options())
+                            ->native(false)
+                            ->searchable()
+                            ->placeholder('Seleccioná una gerencia'),
 
                         TextInput::make('field')
                             ->label('Campo')
@@ -102,8 +105,8 @@ class UserForm
                             ->maxLength(100),
 
                         TextInput::make('location_zone')
-                            ->label('Ubicación / Zona')
-                            ->placeholder('Ej: ZONA 4, Bodega central')
+                            ->label('Ubicación')
+                            ->placeholder('Ej: Bodega central, Piso 3')
                             ->maxLength(100),
                     ])
                     ->columns(2),

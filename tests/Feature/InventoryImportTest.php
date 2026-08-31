@@ -59,7 +59,10 @@ it('imports new assets and creates the related project, custodian and maintenanc
     expect($report['updated'])->toBe(0);
     expect($report['errors'])->toBe([]);
     expect($report['entities_created']['projects'])->toBe(1);
-    expect($report['entities_created']['users'])->toBe(2); // custodian + maintenance responsible
+    // Sprint 5+: solo se crea el custodio. El "maintenance responsible"
+    // dejó de venir en la plantilla (esos datos viven ahora en el módulo
+    // Mantenimientos Programados).
+    expect($report['entities_created']['users'])->toBe(1);
 
     $asset = Asset::query()->where('asset_tag', 'TAG-T-001')->first();
     expect($asset)->not->toBeNull();
@@ -70,8 +73,8 @@ it('imports new assets and creates the related project, custodian and maintenanc
     expect($asset->project?->code)->toBe('TEST-PROJ-1');
     expect($asset->user?->name)->toBe('Juan Test');
     expect($asset->user?->identification)->toBe('99999111');
-    // El hook booted() auto-calcula next_maintenance_at = last + 180.
-    expect($asset->next_maintenance_at?->toDateString())->toBe('2026-07-14');
+    // Sprint 5+: la plantilla ya no incluye columnas de mantenimiento —
+    // esos datos viven en el módulo Mantenimientos Programados.
 
     @unlink($path);
 });

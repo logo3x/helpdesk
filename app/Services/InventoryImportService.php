@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ManagementArea;
 use App\Models\Asset;
 use App\Models\Department;
 use App\Models\Project;
@@ -252,7 +253,7 @@ class InventoryImportService
             'status' => $this->normalizeStatus($row['status'] ?? null),
             'field' => $row['field'] ?? null,
             'location_zone' => $row['location_zone_extended'] ?? $row['location_zone'] ?? null,
-            'management_area' => $row['management_area'] ?? null,
+            'management_area' => ManagementArea::tryNormalize($row['management_area'] ?? null)?->value,
             'phone_line' => $row['phone_line'] ?? null,
             'imei' => isset($row['imei']) ? (string) $row['imei'] : null,
             'notes' => $row['notes'] ?? null,

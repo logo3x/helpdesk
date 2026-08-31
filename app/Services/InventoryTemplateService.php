@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ManagementArea;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -64,7 +65,7 @@ class InventoryTemplateService
         ['Campo', 16, 'Curito', 'Campo o zona operativa donde está físicamente el equipo.', false],
         ['Ubicacion', 20, 'Bloque A', 'Subzona o piso dentro del campo.', false],
         ['Zona', 16, 'Meta', 'Zona geográfica más amplia (opcional).', false],
-        ['Gerencia', 22, 'Tecnología', 'Área gerencial responsable del equipo.', false],
+        ['Gerencia', 22, 'Administración', 'Debe ser una de: Zona 1, Zona 2, Zona 3, Zona 4, Zona 5, Administración.', false],
         ['Linea', 14, '3001234567', 'Línea telefónica asociada (para celulares/módems).', false],
         ['IMEI', 18, '350000000000001', 'IMEI del dispositivo móvil.', false],
         ['Observacion', 40, 'Sin novedad', 'Notas internas del activo.', false],
@@ -164,6 +165,15 @@ class InventoryTemplateService
             list: '"'.implode(',', self::VALID_STATUSES).'"',
             prompt: 'Estado / condición del equipo',
             promptTitle: 'Estado',
+        );
+
+        // Dropdown Gerencia — columna R (posición 18) — Sprint 7.
+        $this->applyDropdown(
+            $sheet,
+            column: 'R',
+            list: '"'.implode(',', ManagementArea::values()).'"',
+            prompt: 'Gerencia oficial de Confipetrol',
+            promptTitle: 'Gerencia',
         );
     }
 

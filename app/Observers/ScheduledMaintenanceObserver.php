@@ -5,6 +5,8 @@ namespace App\Observers;
 use App\Enums\MaintenanceStatus;
 use App\Models\AssetHistory;
 use App\Models\ScheduledMaintenance;
+use App\Models\User;
+use App\Notifications\ScheduledMaintenanceAssignedNotification;
 
 /**
  * Reacciona al ciclo de vida de un ScheduledMaintenance.
@@ -171,7 +173,18 @@ class ScheduledMaintenanceObserver
         // aunque el actual se haya cerrado tarde o como no_cumplido.
         $nextDate = $nextDateProbe;
 
-        ScheduledMaintenance::create([
+        // Log explícito con la evidencia de días — así si alguien
+        // reporta "cuatrimestral se hizo con 90 días" podemos rastrear
+        // exactamente qué frequency tenía el mtto padre.
+        \Log::info('[MTTO] Generando siguiente ciclo', [
+            'parent_id' => $maintenance->id,
+            'parent_scheduled_at' => $maintenance->scheduled_at->toDateString(),
+            'parent_frequency' => $maintenance->frequency?->value,
+            'days_added' => $days,
+            'next_scheduled_at' => $nextDate->toDateString(),
+        ]);
+
+        $child = ScheduledMaintenance::create([
             'asset_id' => $maintenance->asset_id,
             'agent_id' => $maintenance->agent_id,
             'created_by_id' => $maintenance->agent_id,
@@ -181,5 +194,13 @@ class ScheduledMaintenanceObserver
             'progress_percent' => 0,
             'frequency' => $maintenance->frequency,
         ]);
+
+        // Notificar al agente que ya tiene programado el próximo ciclo
+        // — sin esto el agente tenía que ir a mirar cuándo era el
+        // siguiente. Reutilizamos la notif de asignación existente.
+        if ($child->agent_id) {
+            $agent = User::find($child->agent_id);
+            $agent?->notify(new ScheduledMaintenanceAssignedNotification($child));
+        }
     }
 }

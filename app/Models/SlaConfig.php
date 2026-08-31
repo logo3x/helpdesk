@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use App\Enums\TicketPriority;
+use App\Observers\SlaConfigObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[ObservedBy(SlaConfigObserver::class)]
 class SlaConfig extends Model
 {
     use HasFactory;

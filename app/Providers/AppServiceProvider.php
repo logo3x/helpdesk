@@ -8,6 +8,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -42,6 +43,22 @@ class AppServiceProvider extends ServiceProvider
             SocialiteWasCalled::class,
             MicrosoftExtendSocialite::class.'@handle',
         );
+
+        // Gate::before — el rol `admin` obtiene bypass total, igual que
+        // `super_admin` (que ya tiene bypass configurado en Shield).
+        // Sin esto, un admin sin permisos asignados uno por uno no ve
+        // resources como KB, roles, canned responses, etc.
+        //
+        // Devuelve null (no true) para NO cortar el pipeline cuando el
+        // usuario no es admin — deja que sigan corriendo las policies
+        // normales.
+        Gate::before(function ($user, string $ability) {
+            if (method_exists($user, 'hasRole') && $user->hasRole('admin')) {
+                return true;
+            }
+
+            return null;
+        });
     }
 
     /**

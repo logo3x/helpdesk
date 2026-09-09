@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Soporte\Resources\KbArticles\KbArticleResource;
 use App\Filament\Widgets\AdminStatsWidget;
 use App\Filament\Widgets\StaleAssetsWidget;
 use App\Filament\Widgets\TicketsByStatusChart;
@@ -61,6 +62,13 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Configuración')->collapsed(),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
+            ->resources([
+                // Reutilizamos el KbArticleResource del panel Soporte —
+                // el admin necesita ver y editar KB también, no solo el
+                // equipo operativo. El resource es idéntico, solo cambia
+                // el panel donde vive.
+                KbArticleResource::class,
+            ])
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,

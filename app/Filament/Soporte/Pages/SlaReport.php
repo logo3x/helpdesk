@@ -9,11 +9,13 @@ use App\Models\EscalationLog;
 use App\Models\Ticket;
 use BackedEnum;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\CarbonInterface;
 use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Date;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -45,9 +47,18 @@ class SlaReport extends Page
 
     /**
      * Ventana de tiempo del reporte en días (binding del <select>
-     * en la vista, con wire:model.live).
+     * en la vista, con wire:model.live). Usado cuando dateFrom/dateTo
+     * están vacíos.
      */
     public string $window = '30';
+
+    /**
+     * Rango personalizado (formato Y-m-d). Cuando ambos tienen valor,
+     * se ignora $window y se filtra por [dateFrom, dateTo].
+     */
+    public ?string $dateFrom = null;
+
+    public ?string $dateTo = null;
 
     public static function shouldRegisterNavigation(): bool
     {
@@ -61,7 +72,7 @@ class SlaReport extends Page
 
     public function getViewData(): array
     {
-        $days = (int) $this->window;
+        [$fromDate, $toDate, $labelDays] = $this->resolveRange();
 
         // Scope: admin/super_admin ven todos, supervisor solo su depto.
         $user = auth()->user();
@@ -76,13 +87,79 @@ class SlaReport extends Page
         $priorities = TicketPriority::cases();
 
         return [
-            'window' => $days,
-            'report' => $this->buildMatrix($departments, $priorities, $days),
+            'window' => $labelDays,
+            'fromDate' => $fromDate,
+            'toDate' => $toDate,
+            'isCustomRange' => $this->hasCustomRange(),
+            'report' => $this->buildMatrix($departments, $priorities, $fromDate, $toDate),
             'priorities' => $priorities,
             'escalations' => $this->latestEscalations($isAdmin, $user?->department_id),
             'atRisk' => $this->atRiskTickets($isAdmin, $user?->department_id),
-            'summary' => $this->summary($days, $isAdmin, $user?->department_id),
+            'summary' => $this->summary($fromDate, $toDate, $isAdmin, $user?->department_id),
         ];
+    }
+
+    /**
+     * Aplica un preset rápido de rango. Limpia cualquier rango
+     * personalizado previo.
+     */
+    public function applyPreset(string $days): void
+    {
+        $this->window = $days;
+        $this->dateFrom = null;
+        $this->dateTo = null;
+    }
+
+    /**
+     * Limpia el rango personalizado y vuelve al preset.
+     */
+    public function clearCustomRange(): void
+    {
+        $this->dateFrom = null;
+        $this->dateTo = null;
+    }
+
+    protected function hasCustomRange(): bool
+    {
+        return ! empty($this->dateFrom) && ! empty($this->dateTo);
+    }
+
+    /**
+     * Devuelve el rango efectivo del reporte:
+     *   [CarbonInterface $from, CarbonInterface $to, int $labelDays]
+     *
+     * - Si el usuario definió dateFrom + dateTo, se usan esos.
+     * - Si no, se calcula desde now()->subDays($window).
+     *
+     * `labelDays` es solo para mostrar en la vista (etiquetas y textos
+     * que decían "últimos X días").
+     */
+    protected function resolveRange(): array
+    {
+        if ($this->hasCustomRange()) {
+            try {
+                // Uso Date::parse (proxy CarbonImmutable configurado en
+                // AppServiceProvider) para que el tipo sea compatible con
+                // el resto de fechas del proyecto.
+                $from = Date::parse($this->dateFrom)->startOfDay();
+                $to = Date::parse($this->dateTo)->endOfDay();
+                if ($from->gt($to)) {
+                    // Si invirtieron las fechas, las cruzamos silenciosamente.
+                    [$from, $to] = [$to->startOfDay(), $from->endOfDay()];
+                }
+                $labelDays = (int) $from->diffInDays($to) + 1;
+
+                return [$from, $to, $labelDays];
+            } catch (\Throwable) {
+                // Fecha inválida → cae al preset.
+            }
+        }
+
+        $days = max(1, (int) $this->window);
+        $from = now()->subDays($days)->startOfDay();
+        $to = now()->endOfDay();
+
+        return [$from, $to, $days];
     }
 
     protected function getHeaderActions(): array
@@ -128,13 +205,13 @@ class SlaReport extends Page
      *
      * @return array{resolved: int, breached: int, compliance: ?float}
      */
-    protected function summary(int $days, bool $isAdmin, ?int $deptId): array
+    protected function summary(CarbonInterface $from, CarbonInterface $to, bool $isAdmin, ?int $deptId): array
     {
         $base = $this->scopeToDepartment(
             Ticket::query()
                 ->whereNotNull('sla_config_id')
                 ->whereNotNull('resolved_at')
-                ->where('resolved_at', '>=', now()->subDays($days)),
+                ->whereBetween('resolved_at', [$from, $to]),
             $isAdmin,
             $deptId,
         );
@@ -158,7 +235,7 @@ class SlaReport extends Page
      * @param  array<int, TicketPriority>  $priorities
      * @return array<int, array{department: string, priorities: array<int, array{label: string, total: int, breached: int, compliance: ?float}>}>
      */
-    protected function buildMatrix(Collection $departments, array $priorities, int $days): array
+    protected function buildMatrix(Collection $departments, array $priorities, CarbonInterface $from, CarbonInterface $to): array
     {
         $report = [];
 
@@ -171,7 +248,7 @@ class SlaReport extends Page
                     ->where('priority', $priority)
                     ->whereNotNull('sla_config_id')
                     ->whereNotNull('resolved_at')
-                    ->where('resolved_at', '>=', now()->subDays($days));
+                    ->whereBetween('resolved_at', [$from, $to]);
 
                 $total = (clone $query)->count();
                 $breached = (clone $query)->where('resolution_breached', true)->count();

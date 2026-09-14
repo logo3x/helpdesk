@@ -9,10 +9,12 @@ use App\Models\EscalationLog;
 use App\Models\Ticket;
 use BackedEnum;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\CarbonInterface;
 use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Date;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -46,24 +48,81 @@ class SlaReport extends Page
     /**
      * Ventana de tiempo del reporte en días. Bindeada a un <select> en
      * la vista con wire:model.live para que el reporte se recalcule
-     * sin recargar la página.
+     * sin recargar la página. Usado cuando dateFrom/dateTo están vacíos.
      */
     public string $window = '30';
 
+    /**
+     * Rango personalizado (formato Y-m-d). Cuando ambos tienen valor,
+     * se ignora $window y se filtra por [dateFrom, dateTo].
+     */
+    public ?string $dateFrom = null;
+
+    public ?string $dateTo = null;
+
     public function getViewData(): array
     {
-        $days = (int) $this->window;
+        [$from, $to, $labelDays] = $this->resolveRange();
         $departments = Department::where('is_active', true)->orderBy('name')->get();
         $priorities = TicketPriority::cases();
 
         return [
-            'window' => $days,
-            'report' => $this->buildMatrix($departments, $priorities, $days),
+            'window' => $labelDays,
+            'fromDate' => $from,
+            'toDate' => $to,
+            'isCustomRange' => $this->hasCustomRange(),
+            'report' => $this->buildMatrix($departments, $priorities, $from, $to),
             'priorities' => $priorities,
             'escalations' => $this->latestEscalations(),
             'atRisk' => $this->atRiskTickets(),
-            'summary' => $this->summary($days),
+            'summary' => $this->summary($from, $to),
         ];
+    }
+
+    public function applyPreset(string $days): void
+    {
+        $this->window = $days;
+        $this->dateFrom = null;
+        $this->dateTo = null;
+    }
+
+    public function clearCustomRange(): void
+    {
+        $this->dateFrom = null;
+        $this->dateTo = null;
+    }
+
+    protected function hasCustomRange(): bool
+    {
+        return ! empty($this->dateFrom) && ! empty($this->dateTo);
+    }
+
+    /**
+     * @return array{0: CarbonInterface, 1: CarbonInterface, 2: int}
+     */
+    protected function resolveRange(): array
+    {
+        if ($this->hasCustomRange()) {
+            try {
+                // Uso now()->parse... para respetar el proxy CarbonImmutable
+                // configurado en AppServiceProvider vía Date::use().
+                $from = Date::parse($this->dateFrom)->startOfDay();
+                $to = Date::parse($this->dateTo)->endOfDay();
+                if ($from->gt($to)) {
+                    [$from, $to] = [$to->startOfDay(), $from->endOfDay()];
+                }
+                $labelDays = (int) $from->diffInDays($to) + 1;
+
+                return [$from, $to, $labelDays];
+            } catch (\Throwable) {
+            }
+        }
+
+        $days = max(1, (int) $this->window);
+        $from = now()->subDays($days)->startOfDay();
+        $to = now()->endOfDay();
+
+        return [$from, $to, $days];
     }
 
     protected function getHeaderActions(): array
@@ -96,12 +155,12 @@ class SlaReport extends Page
      *
      * @return array{resolved: int, breached: int, compliance: ?float}
      */
-    protected function summary(int $days): array
+    protected function summary(CarbonInterface $from, CarbonInterface $to): array
     {
         $base = Ticket::query()
             ->whereNotNull('sla_config_id')
             ->whereNotNull('resolved_at')
-            ->where('resolved_at', '>=', now()->subDays($days));
+            ->whereBetween('resolved_at', [$from, $to]);
 
         $resolved = (clone $base)->count();
         $breached = (clone $base)->where('resolution_breached', true)->count();
@@ -122,7 +181,7 @@ class SlaReport extends Page
      * @param  array<int, TicketPriority>  $priorities
      * @return array<int, array{department: string, priorities: array<int, array{label: string, total: int, breached: int, compliance: ?float}>}>
      */
-    protected function buildMatrix(Collection $departments, array $priorities, int $days): array
+    protected function buildMatrix(Collection $departments, array $priorities, CarbonInterface $from, CarbonInterface $to): array
     {
         $report = [];
 
@@ -135,7 +194,7 @@ class SlaReport extends Page
                     ->where('priority', $priority)
                     ->whereNotNull('sla_config_id')
                     ->whereNotNull('resolved_at')
-                    ->where('resolved_at', '>=', now()->subDays($days));
+                    ->whereBetween('resolved_at', [$from, $to]);
 
                 $total = (clone $query)->count();
                 $breached = (clone $query)->where('resolution_breached', true)->count();

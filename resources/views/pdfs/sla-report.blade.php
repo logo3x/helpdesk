@@ -49,7 +49,16 @@
     <div class="header">
         <div class="header-left">
             <h1>Reporte de cumplimiento SLA</h1>
-            <div class="meta">Ventana: últimos {{ $window }} días · Generado: {{ now()->translatedFormat('d/m/Y H:i') }}</div>
+            <div class="meta">
+                Rango:
+                @if ($isCustomRange ?? false)
+                    {{ $fromDate->translatedFormat('d M Y') }} — {{ $toDate->translatedFormat('d M Y') }}
+                    ({{ $window }} día{{ $window === 1 ? '' : 's' }})
+                @else
+                    últimos {{ $window }} días
+                @endif
+                · Generado: {{ now()->translatedFormat('d/m/Y H:i') }}
+            </div>
         </div>
         <div class="header-right">
             @if (file_exists(public_path('images/logo-confipetrol-dark.png')))

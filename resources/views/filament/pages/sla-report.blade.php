@@ -58,17 +58,87 @@
         .sla-kpi-hint  { margin-top:0.25rem; font-size:0.75rem; color:rgb(161 161 170); }
     </style>
 
-    {{-- ── Selector de ventana ──────────────────────────────────────── --}}
-    <div class="sla-header">
-        <p class="sla-header-note">
-            Cumplimiento de SLA en los últimos <strong>{{ $window }}</strong> días.
+    {{-- ── Selector de rango ────────────────────────────────────────── --}}
+    <style>
+        .sla-range-bar {
+            display:flex; flex-wrap:wrap; align-items:center; gap:0.75rem;
+            padding:0.75rem 1rem; margin-bottom:1rem;
+            background:rgb(249 250 251); border:1px solid rgb(229 231 235);
+            border-radius:0.5rem;
+        }
+        .dark .sla-range-bar { background:rgba(63,63,70,0.35); border-color:rgb(63 63 70); }
+        .sla-range-note { flex:1; min-width:200px; font-size:0.85rem; color:rgb(75 85 99); margin:0; }
+        .dark .sla-range-note { color:rgb(212 212 216); }
+        .sla-preset-group { display:flex; flex-wrap:wrap; gap:0.25rem; }
+        .sla-preset-btn {
+            padding:0.35rem 0.75rem; font-size:0.75rem; font-weight:500;
+            background:white; border:1px solid rgb(209 213 219); border-radius:0.375rem;
+            color:rgb(55 65 81); cursor:pointer; transition:all 0.15s;
+        }
+        .dark .sla-preset-btn { background:rgb(24 24 27); border-color:rgb(63 63 70); color:rgb(212 212 216); }
+        .sla-preset-btn:hover { background:rgb(243 244 246); }
+        .dark .sla-preset-btn:hover { background:rgb(39 39 42); }
+        .sla-preset-btn.active {
+            background:rgb(59 130 246); color:white; border-color:rgb(37 99 235);
+        }
+        .sla-range-custom {
+            display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;
+            padding-left:0.75rem; border-left:1px solid rgb(209 213 219);
+        }
+        .dark .sla-range-custom { border-left-color:rgb(63 63 70); }
+        .sla-range-custom label { font-size:0.75rem; color:rgb(107 114 128); margin:0; }
+        .sla-range-input {
+            padding:0.3rem 0.5rem; font-size:0.8rem;
+            border:1px solid rgb(209 213 219); border-radius:0.375rem;
+            background:white; color:rgb(17 24 39);
+        }
+        .dark .sla-range-input { background:rgb(24 24 27); border-color:rgb(63 63 70); color:rgb(244 244 245); }
+        .sla-clear-btn {
+            padding:0.3rem 0.6rem; font-size:0.7rem; font-weight:500;
+            background:transparent; border:none; color:rgb(107 114 128);
+            cursor:pointer; text-decoration:underline;
+        }
+        .sla-clear-btn:hover { color:rgb(220 38 38); }
+    </style>
+
+    <div class="sla-range-bar">
+        <p class="sla-range-note">
+            @if ($isCustomRange ?? false)
+                Cumplimiento del <strong>{{ $fromDate->translatedFormat('d M Y') }}</strong>
+                al <strong>{{ $toDate->translatedFormat('d M Y') }}</strong>
+                ({{ $window }} día{{ $window === 1 ? '' : 's' }}).
+            @else
+                Cumplimiento de SLA en los últimos <strong>{{ $window }}</strong> días.
+            @endif
         </p>
-        <select wire:model.live="window" class="sla-header-select">
-            <option value="7">Últimos 7 días</option>
-            <option value="30">Últimos 30 días</option>
-            <option value="90">Últimos 90 días</option>
-            <option value="365">Último año</option>
-        </select>
+
+        {{-- Presets rápidos --}}
+        <div class="sla-preset-group">
+            @foreach ([
+                '7' => '7 días',
+                '30' => '30 días',
+                '90' => '90 días',
+                '180' => '6 meses',
+                '365' => '1 año',
+            ] as $preset => $label)
+                <button type="button"
+                        wire:click="applyPreset('{{ $preset }}')"
+                        class="sla-preset-btn {{ ! ($isCustomRange ?? false) && (string) $window === $preset ? 'active' : '' }}">
+                    {{ $label }}
+                </button>
+            @endforeach
+        </div>
+
+        {{-- Rango personalizado --}}
+        <div class="sla-range-custom">
+            <label for="dateFrom">Desde:</label>
+            <input type="date" id="dateFrom" wire:model.live="dateFrom" class="sla-range-input" max="{{ now()->format('Y-m-d') }}">
+            <label for="dateTo">Hasta:</label>
+            <input type="date" id="dateTo" wire:model.live="dateTo" class="sla-range-input" max="{{ now()->format('Y-m-d') }}">
+            @if ($isCustomRange ?? false)
+                <button type="button" wire:click="clearCustomRange" class="sla-clear-btn" title="Limpiar rango">✕</button>
+            @endif
+        </div>
     </div>
 
     {{-- ── KPI cards globales ─────────────────────────────────────────── --}}
@@ -183,7 +253,13 @@
 
     {{-- ── Matriz cumplimiento dept × prioridad ─────────────────────── --}}
     <x-filament::section class="sla-section">
-        <x-slot name="heading">Cumplimiento SLA por departamento ({{ $window }} días)</x-slot>
+        <x-slot name="heading">Cumplimiento SLA por departamento
+            @if ($isCustomRange ?? false)
+                ({{ $fromDate->translatedFormat('d M') }} — {{ $toDate->translatedFormat('d M Y') }})
+            @else
+                (últimos {{ $window }} días)
+            @endif
+        </x-slot>
         <x-slot name="description">
             Cada celda muestra el porcentaje de tickets resueltos sin breach del cruce departamento × prioridad.
         </x-slot>

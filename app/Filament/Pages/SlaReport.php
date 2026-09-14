@@ -7,6 +7,7 @@ use App\Enums\TicketStatus;
 use App\Models\Department;
 use App\Models\EscalationLog;
 use App\Models\Ticket;
+use App\Services\ConsolidadoIndicadoresExporter;
 use BackedEnum;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonInterface;
@@ -133,6 +134,13 @@ class SlaReport extends Page
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('gray')
                 ->action(fn () => $this->exportPdf()),
+
+            Action::make('exportConsolidado')
+                ->label('Exportar Consolidado (Excel)')
+                ->icon('heroicon-o-table-cells')
+                ->color('success')
+                ->tooltip('Descarga el "Consolidado de Indicadores TI" con la plantilla oficial del Grupo Protexa.')
+                ->action(fn () => $this->exportConsolidado()),
         ];
     }
 
@@ -147,6 +155,24 @@ class SlaReport extends Page
             fn () => print ($pdf->output()),
             $filename,
             ['Content-Type' => 'application/pdf'],
+        );
+    }
+
+    public function exportConsolidado(): StreamedResponse
+    {
+        $year = $this->hasCustomRange() && $this->dateFrom
+            ? (int) Date::parse($this->dateFrom)->format('Y')
+            : (int) now()->format('Y');
+
+        $binary = app(ConsolidadoIndicadoresExporter::class)->toBinary($year);
+        $filename = "consolidado-indicadores-ti-{$year}.xlsx";
+
+        return response()->streamDownload(
+            fn () => print ($binary),
+            $filename,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ],
         );
     }
 

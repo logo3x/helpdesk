@@ -124,32 +124,111 @@ class RagService
 
         $articles = KbArticle::query()->published()->get(['id', 'title', 'body']);
 
-        return $articles
-            ->map(function (KbArticle $article) use ($queryStems) {
-                $haystackStems = $this->tokenizeAndStem(
-                    $article->title.' '.$article->body,
-                    keepStopwords: true,
-                );
+        if ($articles->isEmpty()) {
+            return collect();
+        }
 
-                // Set de stems del haystack para matching O(1).
-                $haystackSet = $haystackStems->flip();
+        // Pre-tokenizamos cada artículo una sola vez y de paso contamos
+        // en cuántos documentos aparece cada stem (document frequency).
+        // Sirve para el peso IDF: un stem presente en casi todos los
+        // artículos ("equipo", "no", "usuario") aporta casi nada; uno
+        // raro ("enciende", "vpn") es señal fuerte de relevancia.
+        $docs = [];
+        $documentFrequency = [];
 
-                // Cada stem del query cuenta si está en el haystack.
-                // El título pesa doble (palabras del título son señal fuerte
-                // de relevancia) para que un match en el title supere a un
-                // simple match en el body.
-                $titleStems = $this->tokenizeAndStem($article->title, keepStopwords: true)->flip();
+        foreach ($articles as $article) {
+            $titleSet = $this->tokenizeAndStem($article->title, keepStopwords: true)->flip();
+            $bodySet = $this->tokenizeAndStem($article->body, keepStopwords: true)->flip();
+
+            $docs[] = [
+                'article' => $article,
+                'titleSet' => $titleSet,
+                'bodySet' => $bodySet,
+            ];
+
+            foreach ($queryStems as $stem) {
+                if ($titleSet->has($stem) || $bodySet->has($stem)) {
+                    $documentFrequency[$stem] = ($documentFrequency[$stem] ?? 0) + 1;
+                }
+            }
+        }
+
+        $totalDocs = count($docs);
+
+        // Peso IDF por stem, normalizado a [0.15, 1]. Un stem presente en
+        // TODOS los documentos tiende al piso; uno raro tiende a 1.
+        //
+        // El piso de 0.15 evita dos degeneraciones:
+        //  - KB con pocos artículos, donde log() colapsa a 0 y ningún
+        //    término tendría peso (ej: 1 solo artículo publicado).
+        //  - Un término legítimo que casualmente está en todos los docs
+        //    quedaría con peso 0 y se ignoraría por completo.
+        $idf = [];
+        $totalIdf = 0.0;
+        foreach ($queryStems as $stem) {
+            $df = $documentFrequency[$stem] ?? 0;
+
+            if ($df === 0) {
+                // No aparece en ningún documento — peso nominal completo.
+                // No suma score a nadie, pero sí al denominador, lo que
+                // penaliza correctamente los matches parciales.
+                $weight = 1.0;
+            } elseif ($totalDocs <= 1) {
+                // Con un solo documento no hay discriminación posible.
+                $weight = 1.0;
+            } else {
+                $raw = log(($totalDocs + 1) / ($df + 1)) / log($totalDocs + 1);
+                $weight = 0.15 + (0.85 * max($raw, 0.0));
+            }
+
+            $idf[$stem] = $weight;
+            $totalIdf += $weight;
+        }
+
+        // Si TODOS los stems del query son ubicuos (IDF ~0), no hay
+        // señal útil — mejor devolver vacío que un match aleatorio.
+        if ($totalIdf <= 0.0001) {
+            return collect();
+        }
+
+        return collect($docs)
+            ->map(function (array $doc) use ($queryStems, $idf, $totalIdf) {
+                /** @var KbArticle $article */
+                $article = $doc['article'];
 
                 $score = 0.0;
+                $matchedInTitle = 0;
+
                 foreach ($queryStems as $stem) {
-                    if ($titleStems->has($stem)) {
-                        $score += 1.5;
-                    } elseif ($haystackSet->has($stem)) {
-                        $score += 1.0;
+                    $weight = $idf[$stem];
+
+                    if ($doc['titleSet']->has($stem)) {
+                        // Match en el título: señal fuerte, peso completo.
+                        $score += $weight;
+                        $matchedInTitle++;
+                    } elseif ($doc['bodySet']->has($stem)) {
+                        // Match solo en el cuerpo: vale la mitad. Evita que
+                        // un artículo largo gane por mencionar la palabra
+                        // de pasada en un párrafo cualquiera.
+                        $score += $weight * 0.5;
                     }
                 }
 
-                $similarity = $queryStems->count() > 0 ? $score / $queryStems->count() : 0.0;
+                $similarity = $score / $totalIdf;
+
+                // Sin ningún match en el título el techo es 0.40, por
+                // debajo de los dos umbrales que responden con el artículo
+                // literal (0.55 alta, 0.42 media). Un artículo que solo
+                // menciona las palabras de pasada en el cuerpo puede
+                // servir de contexto para el LLM, pero nunca se muestra
+                // como respuesta directa.
+                //
+                // Este es el guardarraíl del caso reportado: "mi equipo no
+                // enciende" devolvía el artículo de Wi-Fi con score 1.0
+                // porque su cuerpo mencionaba "equipo" y "no".
+                if ($matchedInTitle === 0) {
+                    $similarity = min($similarity, 0.40);
+                }
 
                 return [
                     'content' => mb_substr($article->body, 0, 1500),
@@ -187,6 +266,12 @@ class RagService
             'esto', 'esta', 'estos', 'estas', 'eso', 'esa', 'esos', 'esas',
             'aqui', 'alli', 'aca', 'alla',
             'hola', 'buenas', 'gracias', 'favor',
+            // Negaciones y conectores: aparecen en casi todos los
+            // artículos, así que no discriminan nada. Sin esto, una
+            // consulta como "mi equipo no enciende" sumaba un match
+            // gratis por el "no" en cualquier documento.
+            'no', 'ni', 'si', 'pero', 'como', 'cuando', 'donde', 'cual',
+            'mas', 'muy', 'ya', 'solo', 'tambien', 'todo', 'toda',
         ];
 
         $normalized = $this->stripAccentsAndPunctuation(mb_strtolower($text));

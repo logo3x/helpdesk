@@ -25,6 +25,34 @@ it('reporta falta de API key sin llamar a la red', function () {
     Http::assertNothingSent();
 });
 
+it('reporta modelo sin configurar y sugiere opciones vigentes', function () {
+    config([
+        'services.llm.api_key' => 'test-key',
+        'services.llm.provider' => 'openrouter',
+        'services.llm.model' => '',
+    ]);
+
+    Http::fake([
+        'openrouter.ai/api/v1/models' => Http::response([
+            'data' => [[
+                'id' => 'vigente/chat:free',
+                'context_length' => 100000,
+                'pricing' => ['prompt' => '0', 'completion' => '0'],
+                'architecture' => [
+                    'input_modalities' => ['text'],
+                    'output_modalities' => ['text'],
+                ],
+            ]],
+        ], 200),
+    ]);
+
+    $result = app(LlmService::class)->healthCheck();
+
+    expect($result['ok'])->toBeFalse();
+    expect($result['title'])->toBe('Falta configurar el modelo');
+    expect($result['detail'])->toContain('vigente/chat:free');
+});
+
 it('reporta éxito cuando el modelo responde', function () {
     config([
         'services.llm.api_key' => 'test-key',

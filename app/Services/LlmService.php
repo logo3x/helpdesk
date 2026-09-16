@@ -25,7 +25,9 @@ class LlmService
     public function __construct()
     {
         $this->provider = config('services.llm.provider', 'openrouter');
-        $this->model = config('services.llm.model', 'google/gemma-4-31b:free');
+        // Sin default: el modelo se define en el .env. Ver la nota en
+        // config/services.php sobre por qué no hay valor hardcodeado.
+        $this->model = config('services.llm.model', '');
         $this->apiKey = config('services.llm.api_key', '');
     }
 
@@ -51,6 +53,22 @@ class LlmService
                 'title' => 'Falta la API key',
                 'detail' => 'La variable LLM_API_KEY está vacía en el archivo .env del servidor. '
                     .'Sin ella el asistente no puede generar respuestas.',
+            ];
+        }
+
+        if (blank($this->model)) {
+            $suggestions = $this->suggestAvailableModels();
+
+            $detail = 'La variable LLM_MODEL está vacía en el .env del servidor. ';
+            $detail .= $suggestions !== []
+                ? "\n\nModelos disponibles ahora mismo en tu cuenta:\n· ".implode("\n· ", $suggestions)
+                    ."\n\nCopia uno a LLM_MODEL, luego ejecuta config:clear y config:cache."
+                : 'Además, no se pudo consultar el catálogo del proveedor para sugerirte opciones.';
+
+            return $base + [
+                'ok' => false,
+                'title' => 'Falta configurar el modelo',
+                'detail' => $detail,
             ];
         }
 
@@ -105,7 +123,7 @@ class LlmService
     }
 
     /**
-     * Consulta el catálogo de OpenRouter y devuelve hasta 6 ids de
+     * Consulta el catálogo de OpenRouter y devuelve hasta 12 ids de
      * modelos gratuitos vigentes, ordenados por context window.
      *
      * Devuelve [] si el proveedor no es OpenRouter o si la consulta
@@ -173,7 +191,7 @@ class LlmService
                     return false;
                 })
                 ->sortByDesc(fn (array $m): int => (int) ($m['context_length'] ?? 0))
-                ->take(6)
+                ->take(12)
                 ->pluck('id')
                 ->values()
                 ->all();

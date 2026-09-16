@@ -64,18 +64,27 @@ return [
     */
     'llm' => [
         'provider' => env('LLM_PROVIDER', 'openrouter'),
-        // OJO: los modelos ":free" de OpenRouter rotan y se descontinúan
-        // sin aviso. Cuando eso pasa la API responde 404 y el chatbot
-        // cae al fallback sin explicación visible.
+        // El modelo SIEMPRE se define en el .env — aquí no hay default
+        // útil a propósito.
         //
-        // Usa el botón "Probar conexión con la IA" en Métricas del
-        // chatbot: si el modelo murió, te lista los que están vigentes
-        // en ese momento para copiar al .env.
+        // Motivo: los modelos ":free" de OpenRouter rotan y se
+        // descontinúan sin aviso. Cualquier nombre hardcodeado aquí
+        // queda obsoleto en semanas y provoca 404 silenciosos que
+        // tumban el chatbot sin explicación.
         //
-        // Histórico de bajas:
+        // Para saber qué modelos están vigentes HOY en tu cuenta, usa
+        // el botón "Probar conexión con la IA" en Métricas del chatbot:
+        // consulta el catálogo real del proveedor y lista los
+        // disponibles para copiar al .env.
+        //
+        // Copia el ID EXACTO desde la URL de openrouter.ai/<id>. Los
+        // sufijos importan: "gemma-4-31b-it:free" (it = instruct) existe,
+        // "gemma-4-31b:free" no.
+        //
+        // Histórico de bajas (no volver a usarlos):
         //   2026-09-16  meta-llama/llama-3.1-8b-instruct:free
         //   2026-09-16  google/gemini-2.0-flash-exp:free
-        'model' => env('LLM_MODEL', 'google/gemma-4-31b:free'),
+        'model' => env('LLM_MODEL', ''),
         'api_key' => env('LLM_API_KEY', ''),
         'embedding_model' => env('LLM_EMBEDDING_MODEL', 'nomic-ai/nomic-embed-text-v1.5'),
         // Feature flag: habilita el botón "Redactar con IA" en el form

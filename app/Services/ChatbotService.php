@@ -8,6 +8,7 @@ use App\Models\ChatSession;
 use App\Models\Department;
 use App\Models\Ticket;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Orchestrates the chatbot pipeline:
@@ -289,12 +290,33 @@ class ChatbotService
             ];
         }
 
-        // 8. Fallback final.
+        // 8. Fallback final — llegamos aquí SOLO si el LLM se llamó y
+        //    devolvió vacío (rate limit, API key inválida, timeout...).
+        //
+        //    Se marca con source_kind = 'llm_failed' (distinto de
+        //    'fallback') para poder separar en métricas dos situaciones
+        //    que se ven iguales para el usuario pero requieren acciones
+        //    muy distintas:
+        //      - fallback   → la KB no tenía nada. Normal, hay que
+        //                     escribir el artículo que falta.
+        //      - llm_failed → el servicio de IA está caído o sin cuota.
+        //                     Es una alerta operativa, no un hueco de KB.
+        Log::warning('[CHATBOT] El LLM no devolvió respuesta', [
+            'session_id' => $session->id,
+            'query' => mb_substr($userMessage, 0, 200),
+            'kb_article_id' => $topKb['article_id'] ?? null,
+            'kb_similarity' => $topSimilarity,
+        ]);
+
         return [
             'No encontré información específica para tu consulta. '
             .'Puedo ayudarte a crear un ticket de soporte — solo escribe **"crear ticket"** '
             .'o **"hablar con un agente"** y te conecto con alguien del equipo.',
-            $this->meta('fallback'),
+            $this->meta(
+                'llm_failed',
+                $topKb['article_id'] ?? null,
+                $topSimilarity,
+            ),
         ];
     }
 

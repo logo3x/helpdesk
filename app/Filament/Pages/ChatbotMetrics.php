@@ -107,12 +107,13 @@ class ChatbotMetrics extends Page
     protected function donutDataset(array $rows): array
     {
         $palette = [
-            'kb_high' => '#10b981',   // emerald
-            'kb_medium' => '#84cc16', // lime
-            'flow' => '#0ea5e9',      // sky
-            'llm' => '#6366f1',       // indigo
-            'fallback' => '#f43f5e',  // rose
-            'system' => '#9ca3af',    // gray
+            'kb_high' => '#10b981',    // emerald
+            'kb_medium' => '#84cc16',  // lime
+            'flow' => '#0ea5e9',       // sky
+            'llm' => '#6366f1',        // indigo
+            'fallback' => '#f43f5e',   // rose
+            'llm_failed' => '#b91c1c', // red-700 — alerta operativa
+            'system' => '#9ca3af',     // gray
         ];
 
         $labels = [];
@@ -126,7 +127,8 @@ class ChatbotMetrics extends Page
                 'kb_medium' => 'KB media',
                 'flow' => 'Flujo',
                 'llm' => 'LLM',
-                'fallback' => 'Fallback',
+                'fallback' => 'Fallback (sin KB)',
+                'llm_failed' => '⚠ Fallo del LLM',
                 'system' => 'Sistema',
                 default => 'Sin clasificar',
             };

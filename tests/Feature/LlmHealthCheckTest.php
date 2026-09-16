@@ -97,6 +97,38 @@ it('traduce cada status HTTP a un diagnóstico propio', function (int $status, s
     'petición inválida' => [400, 'El proveedor rechazó la petición'],
 ]);
 
+it('muestra el detalle del upstream cuando OpenRouter lo envuelve', function () {
+    config([
+        'services.llm.api_key' => 'clave-valida',
+        'services.llm.provider' => 'openrouter',
+        'services.llm.model' => 'google/gemma-4-31b-it:free',
+    ]);
+
+    // Forma real en que OpenRouter reporta un fallo del proveedor
+    // upstream: mensaje genérico + detalle en error.metadata.
+    Http::fake([
+        'openrouter.ai/api/v1/chat/*' => Http::response([
+            'error' => [
+                'message' => 'Provider returned error',
+                'code' => 429,
+                'metadata' => [
+                    'provider_name' => 'Google AI Studio',
+                    'raw' => 'Resource has been exhausted (e.g. check quota).',
+                ],
+            ],
+        ], 429),
+        'openrouter.ai/api/v1/models' => Http::response(['data' => []], 200),
+    ]);
+
+    $result = app(LlmService::class)->healthCheck();
+
+    expect($result['ok'])->toBeFalse();
+    // El mensaje genérico no basta: debe verse el detalle real.
+    expect($result['detail'])->toContain('Resource has been exhausted');
+    // Y debe aclarar que la cuota puede ser del upstream, no de la cuenta.
+    expect($result['detail'])->toContain('upstream');
+});
+
 it('reporta error del proveedor ante un 5xx', function () {
     config([
         'services.llm.api_key' => 'clave-valida',

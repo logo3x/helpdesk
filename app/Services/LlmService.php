@@ -126,8 +126,27 @@ class LlmService
      */
     protected function explainFailure(int $status, string $body): array
     {
-        $apiMessage = json_decode($body, true)['error']['message'] ?? null;
-        $suffix = $apiMessage ? "\n\nRespuesta del proveedor: «{$apiMessage}»" : '';
+        $decoded = json_decode($body, true) ?: [];
+        $error = $decoded['error'] ?? [];
+        $apiMessage = $error['message'] ?? null;
+
+        // OpenRouter envuelve los errores del proveedor upstream en un
+        // mensaje genérico ("Provider returned error") y pone el detalle
+        // real en error.metadata. Sin esto el diagnóstico se queda a
+        // medias justo cuando más falta hace.
+        $metadata = $error['metadata'] ?? [];
+        $upstream = $metadata['raw']
+            ?? $metadata['provider_name']
+            ?? null;
+
+        $suffix = '';
+        if ($apiMessage) {
+            $suffix .= "\n\nRespuesta del proveedor: «{$apiMessage}»";
+        }
+        if ($upstream) {
+            $suffix .= "\n\nDetalle del servicio upstream: «"
+                .mb_substr(is_string($upstream) ? $upstream : json_encode($upstream), 0, 300).'»';
+        }
 
         return match (true) {
             $status === 401, $status === 403 => [
@@ -156,8 +175,14 @@ class LlmService
 
             $status === 429 => [
                 'title' => 'Límite de peticiones alcanzado',
-                'detail' => 'Se agotó la cuota del modelo. Los modelos gratuitos tienen un '
-                    .'tope diario. Espera o cambia a un modelo de pago.'.$suffix,
+                'detail' => "El modelo «{$this->model}» rechazó la petición por límite de uso."
+                    ."\n\nEn los modelos gratuitos esto suele venir del proveedor upstream "
+                    .'(Google, NVIDIA...), cuya cuota es compartida entre todos los usuarios '
+                    .'de OpenRouter y se satura en horas pico — no de tu cuenta.'
+                    ."\n\nQué hacer: probar otro modelo gratuito de la lista, reintentar en "
+                    .'unos minutos, o migrar a un modelo de pago para tener capacidad propia.'
+                    .$this->formatSuggestions()
+                    .$suffix,
             ],
 
             $status >= 500 => [

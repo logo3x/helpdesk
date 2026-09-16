@@ -25,8 +25,68 @@ class LlmService
     public function __construct()
     {
         $this->provider = config('services.llm.provider', 'openrouter');
-        $this->model = config('services.llm.model', 'meta-llama/llama-3.1-8b-instruct:free');
+        $this->model = config('services.llm.model', 'google/gemini-2.0-flash-exp:free');
         $this->apiKey = config('services.llm.api_key', '');
+    }
+
+    /**
+     * Prueba la conexión con el proveedor y devuelve un diagnóstico
+     * legible. Pensado para el botón "Probar conexión" de la página
+     * de Métricas del chatbot.
+     *
+     * No lanza excepciones: siempre devuelve el array de resultado.
+     *
+     * @return array{ok: bool, title: string, detail: string, provider: string, model: string}
+     */
+    public function healthCheck(): array
+    {
+        $base = [
+            'provider' => $this->provider,
+            'model' => $this->model,
+        ];
+
+        if (blank($this->apiKey)) {
+            return $base + [
+                'ok' => false,
+                'title' => 'Falta la API key',
+                'detail' => 'La variable LLM_API_KEY está vacía en el archivo .env del servidor. '
+                    .'Sin ella el asistente no puede generar respuestas.',
+            ];
+        }
+
+        $start = microtime(true);
+
+        try {
+            $reply = $this->chat(
+                [['role' => 'user', 'content' => 'Responde únicamente con la palabra: OK']],
+                'Eres un servicio de verificación. Responde solo lo que se te pide.',
+            );
+        } catch (\Throwable $e) {
+            return $base + [
+                'ok' => false,
+                'title' => 'Error inesperado',
+                'detail' => mb_substr($e->getMessage(), 0, 300),
+            ];
+        }
+
+        $ms = (int) round((microtime(true) - $start) * 1000);
+
+        if (blank($reply)) {
+            return $base + [
+                'ok' => false,
+                'title' => 'El modelo no respondió',
+                'detail' => "El proveedor rechazó la petición o el modelo «{$this->model}» ya no existe. "
+                    .'Los modelos gratuitos de OpenRouter se descontinúan sin aviso. '
+                    .'Revisa storage/logs/laravel.log (busca «LlmService») para ver el código HTTP exacto: '
+                    .'404 = modelo inexistente · 401 = API key inválida · 429 = sin cuota.',
+            ];
+        }
+
+        return $base + [
+            'ok' => true,
+            'title' => 'Conexión correcta',
+            'detail' => "El modelo respondió en {$ms} ms. Respuesta recibida: «".mb_substr(trim($reply), 0, 80).'»',
+        ];
     }
 
     /**
@@ -140,10 +200,30 @@ class LlmService
             // intentos. Devolvemos null para que el caller (asistente IA,
             // RAG fallback) muestre un mensaje amigable en lugar de
             // tirarle 500 al usuario.
-            Log::error('LlmService OpenRouter unexpected error', [
-                'error' => $e->getMessage(),
-                'class' => $e::class,
-            ]);
+            //
+            // El 404 merece un mensaje propio porque es el caso más
+            // confuso de diagnosticar: el servicio "funciona", la API key
+            // es válida, pero el modelo configurado fue descontinuado por
+            // el proveedor. Pasó el 2026-09-16 con llama-3.1-8b:free.
+            $status = method_exists($e, 'response') && $e->response
+                ? $e->response->status()
+                : null;
+
+            if ($status === 404) {
+                Log::error('LlmService: el modelo configurado ya no existe en el proveedor', [
+                    'model' => $this->model,
+                    'provider' => $this->provider,
+                    'hint' => 'Los modelos ":free" de OpenRouter se descontinúan sin aviso. '
+                        .'Actualizá LLM_MODEL en el .env con un modelo vigente.',
+                ]);
+            } else {
+                Log::error('LlmService OpenRouter unexpected error', [
+                    'error' => $e->getMessage(),
+                    'class' => $e::class,
+                    'status' => $status,
+                    'model' => $this->model,
+                ]);
+            }
         }
 
         return null;

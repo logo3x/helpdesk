@@ -13,8 +13,10 @@ use App\Models\ChatSession;
 use App\Models\Department;
 use App\Models\KbArticle;
 use App\Models\Ticket;
+use App\Services\LlmService;
 use BackedEnum;
 use Carbon\CarbonInterface;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Enums\Width;
@@ -584,5 +586,32 @@ class ChatbotMetrics extends Page
             ),
             'chatbot-metrics-'.now()->format('Y-m-d').'.xlsx',
         );
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('testLlm')
+                ->label('Probar conexión con la IA')
+                ->icon('heroicon-o-signal')
+                ->color('gray')
+                ->tooltip('Envía una petición de prueba al modelo configurado y reporta si responde.')
+                ->action(function (): void {
+                    $result = app(LlmService::class)->healthCheck();
+
+                    $body = $result['detail']
+                        ."\n\nProveedor: {$result['provider']}"
+                        ."\nModelo: {$result['model']}";
+
+                    $notification = Notification::make()
+                        ->title($result['title'])
+                        ->body($body)
+                        ->persistent();
+
+                    $result['ok']
+                        ? $notification->success()->send()
+                        : $notification->danger()->send();
+                }),
+        ];
     }
 }

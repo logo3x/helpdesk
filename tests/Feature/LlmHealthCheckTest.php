@@ -81,17 +81,29 @@ it('sugiere modelos gratuitos vigentes cuando el configurado falla', function ()
                     'id' => 'vigente/modelo-grande:free',
                     'context_length' => 128000,
                     'pricing' => ['prompt' => '0', 'completion' => '0'],
+                    'architecture' => [
+                        'input_modalities' => ['text'],
+                        'output_modalities' => ['text'],
+                    ],
                 ],
                 [
                     'id' => 'vigente/modelo-chico:free',
                     'context_length' => 8000,
                     'pricing' => ['prompt' => '0', 'completion' => '0'],
+                    'architecture' => [
+                        'input_modalities' => ['text'],
+                        'output_modalities' => ['text'],
+                    ],
                 ],
                 [
                     // De pago: no debe sugerirse.
                     'id' => 'premium/modelo-pago',
                     'context_length' => 200000,
                     'pricing' => ['prompt' => '0.003', 'completion' => '0.015'],
+                    'architecture' => [
+                        'input_modalities' => ['text'],
+                        'output_modalities' => ['text'],
+                    ],
                 ],
             ],
         ], 200),
@@ -104,6 +116,69 @@ it('sugiere modelos gratuitos vigentes cuando el configurado falla', function ()
     expect($result['detail'])->toContain('vigente/modelo-chico:free');
     // Los de pago no se sugieren.
     expect($result['detail'])->not->toContain('premium/modelo-pago');
+});
+
+it('no sugiere modelos de audio, embeddings ni rerankers', function () {
+    config([
+        'services.llm.api_key' => 'test-key',
+        'services.llm.provider' => 'openrouter',
+        'services.llm.model' => 'modelo/descontinuado:free',
+    ]);
+
+    $freeText = ['prompt' => '0', 'completion' => '0'];
+
+    Http::fake([
+        'openrouter.ai/api/v1/chat/*' => Http::response(['error' => 'No such model'], 404),
+        'openrouter.ai/api/v1/models' => Http::response([
+            'data' => [
+                [
+                    'id' => 'bueno/chat-model:free',
+                    'context_length' => 100000,
+                    'pricing' => $freeText,
+                    'architecture' => [
+                        'input_modalities' => ['text'],
+                        'output_modalities' => ['text'],
+                    ],
+                ],
+                [
+                    // Modelo de música: entra texto, sale audio.
+                    'id' => 'google/lyria-3-pro-preview',
+                    'context_length' => 999999,
+                    'pricing' => $freeText,
+                    'architecture' => [
+                        'input_modalities' => ['text'],
+                        'output_modalities' => ['audio'],
+                    ],
+                ],
+                [
+                    // Embeddings: texto→texto pero no conversa.
+                    'id' => 'nvidia/nemotron-3-embed-1b:free',
+                    'context_length' => 500000,
+                    'pricing' => $freeText,
+                    'architecture' => [
+                        'input_modalities' => ['text'],
+                        'output_modalities' => ['text'],
+                    ],
+                ],
+                [
+                    'id' => 'nvidia/llama-rerank-vl-1b:free',
+                    'context_length' => 400000,
+                    'pricing' => $freeText,
+                    'architecture' => [
+                        'input_modalities' => ['text'],
+                        'output_modalities' => ['text'],
+                    ],
+                ],
+            ],
+        ], 200),
+    ]);
+
+    $result = app(LlmService::class)->healthCheck();
+
+    expect($result['detail'])->toContain('bueno/chat-model:free');
+    expect($result['detail'])->not->toContain('lyria');
+    expect($result['detail'])->not->toContain('embed');
+    expect($result['detail'])->not->toContain('rerank');
 });
 
 it('degrada elegantemente si el catálogo de modelos no responde', function () {

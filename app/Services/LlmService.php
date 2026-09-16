@@ -25,7 +25,7 @@ class LlmService
     public function __construct()
     {
         $this->provider = config('services.llm.provider', 'openrouter');
-        $this->model = config('services.llm.model', 'google/gemini-2.0-flash-exp:free');
+        $this->model = config('services.llm.model', 'google/gemma-4-31b:free');
         $this->apiKey = config('services.llm.api_key', '');
     }
 
@@ -138,13 +138,40 @@ class LlmService
                     return ((float) ($pricing['prompt'] ?? 1)) === 0.0
                         && ((float) ($pricing['completion'] ?? 1)) === 0.0;
                 })
-                // Descartamos modelos de razonamiento y multimodales:
-                // gastan tokens en <thinking> o esperan imágenes, y para
-                // un chatbot de KB solo añaden latencia.
-                ->reject(fn (array $m): bool => str_contains(
-                    mb_strtolower((string) ($m['id'] ?? '')),
-                    'thinking',
-                ))
+                // Solo modelos de CHAT que reciben y devuelven texto.
+                // OpenRouter mezcla en el mismo endpoint modelos de audio
+                // (lyria, tts, whisper), de imagen y de embeddings; sin
+                // este filtro el diagnóstico sugería modelos de música.
+                ->filter(function (array $m): bool {
+                    $arch = $m['architecture'] ?? [];
+                    $inputs = $arch['input_modalities'] ?? [];
+                    $outputs = $arch['output_modalities'] ?? [];
+
+                    // Si el proveedor no declara modalidades, no podemos
+                    // garantizar que sea de texto — mejor descartarlo.
+                    if ($inputs === [] || $outputs === []) {
+                        return false;
+                    }
+
+                    return in_array('text', $inputs, true)
+                        && in_array('text', $outputs, true);
+                })
+                // Descartamos por nombre lo que la modalidad no captura:
+                // embeddings y rerankers declaran texto→texto pero no
+                // sirven para conversar. Los "thinking" gastan tokens
+                // razonando antes de responder, lo que añade latencia
+                // sin valor para un chatbot de KB.
+                ->reject(function (array $m): bool {
+                    $id = mb_strtolower((string) ($m['id'] ?? ''));
+
+                    foreach (['thinking', 'embed', 'rerank', 'tts', 'whisper', 'guard', 'safety'] as $needle) {
+                        if (str_contains($id, $needle)) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                })
                 ->sortByDesc(fn (array $m): int => (int) ($m['context_length'] ?? 0))
                 ->take(6)
                 ->pluck('id')

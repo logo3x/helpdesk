@@ -67,10 +67,15 @@ return [
         // OJO: los modelos ":free" de OpenRouter rotan y se descontinúan
         // sin aviso. Cuando eso pasa la API responde 404 y el chatbot
         // cae al fallback sin explicación visible.
-        // Usa el botón "Probar conexión" en Métricas del chatbot para
-        // verificar que el modelo configurado sigue existiendo.
-        // (2026-09-16: llama-3.1-8b-instruct:free dejó de existir.)
-        'model' => env('LLM_MODEL', 'google/gemini-2.0-flash-exp:free'),
+        //
+        // Usa el botón "Probar conexión con la IA" en Métricas del
+        // chatbot: si el modelo murió, te lista los que están vigentes
+        // en ese momento para copiar al .env.
+        //
+        // Histórico de bajas:
+        //   2026-09-16  meta-llama/llama-3.1-8b-instruct:free
+        //   2026-09-16  google/gemini-2.0-flash-exp:free
+        'model' => env('LLM_MODEL', 'google/gemma-4-31b:free'),
         'api_key' => env('LLM_API_KEY', ''),
         'embedding_model' => env('LLM_EMBEDDING_MODEL', 'nomic-ai/nomic-embed-text-v1.5'),
         // Feature flag: habilita el botón "Redactar con IA" en el form

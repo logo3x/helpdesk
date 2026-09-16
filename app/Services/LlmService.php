@@ -57,69 +57,147 @@ class LlmService
         }
 
         if (blank($this->model)) {
-            $suggestions = $this->suggestAvailableModels();
-
-            $detail = 'La variable LLM_MODEL está vacía en el .env del servidor. ';
-            $detail .= $suggestions !== []
-                ? "\n\nModelos disponibles ahora mismo en tu cuenta:\n· ".implode("\n· ", $suggestions)
-                    ."\n\nCopia uno a LLM_MODEL, luego ejecuta config:clear y config:cache."
-                : 'Además, no se pudo consultar el catálogo del proveedor para sugerirte opciones.';
-
             return $base + [
                 'ok' => false,
                 'title' => 'Falta configurar el modelo',
-                'detail' => $detail,
+                'detail' => 'La variable LLM_MODEL está vacía en el .env del servidor.'
+                    .$this->formatSuggestions(),
             ];
         }
 
+        // Hacemos la petición directamente (sin pasar por chat()) para
+        // poder leer el status HTTP. chat() devuelve null ante cualquier
+        // error, lo que hacía imposible distinguir una API key revocada
+        // de un modelo inexistente: el diagnóstico culpaba al modelo
+        // cuando el problema real era la autenticación.
         $start = microtime(true);
 
         try {
-            $reply = $this->chat(
-                [['role' => 'user', 'content' => 'Responde únicamente con la palabra: OK']],
-                'Eres un servicio de verificación. Responde solo lo que se te pide.',
-            );
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$this->apiKey}",
+                'Content-Type' => 'application/json',
+                'HTTP-Referer' => config('app.url'),
+                'X-Title' => config('app.name'),
+            ])
+                ->timeout(30)
+                ->post($this->chatEndpoint(), [
+                    'model' => $this->model,
+                    'messages' => [[
+                        'role' => 'user',
+                        'content' => 'Responde únicamente con la palabra: OK',
+                    ]],
+                    'max_tokens' => 50,
+                ]);
         } catch (\Throwable $e) {
             return $base + [
                 'ok' => false,
-                'title' => 'Error inesperado',
-                'detail' => mb_substr($e->getMessage(), 0, 300),
+                'title' => 'No se pudo conectar con el proveedor',
+                'detail' => 'El servidor no pudo alcanzar '.$this->chatEndpoint().'. '
+                    ."Puede ser un bloqueo de firewall o falta de salida a internet.\n\nDetalle: "
+                    .mb_substr($e->getMessage(), 0, 200),
             ];
         }
 
         $ms = (int) round((microtime(true) - $start) * 1000);
 
-        if (blank($reply)) {
-            // Al fallar, consultamos el catálogo real del proveedor en
-            // vez de adivinar: así el mensaje sugiere modelos que SÍ
-            // existen hoy, no los que existían cuando se escribió esto.
-            $suggestions = $this->suggestAvailableModels();
-
-            $detail = "El proveedor rechazó la petición o el modelo «{$this->model}» ya no existe. ";
-
-            if ($suggestions !== []) {
-                $detail .= "\n\nModelos gratuitos disponibles ahora mismo en tu cuenta:\n· "
-                    .implode("\n· ", $suggestions)
-                    ."\n\nCopia uno de estos a LLM_MODEL en el .env del servidor, "
-                    .'luego ejecuta config:clear y config:cache.';
-            } else {
-                $detail .= 'No se pudo obtener el catálogo de modelos del proveedor. '
-                    .'Revisa storage/logs/laravel.log (busca «LlmService») para ver el código HTTP: '
-                    .'404 = modelo inexistente · 401 = API key inválida · 429 = sin cuota.';
-            }
+        if ($response->successful()) {
+            $reply = $this->provider === 'anthropic'
+                ? $response->json('content.0.text')
+                : $response->json('choices.0.message.content');
 
             return $base + [
-                'ok' => false,
-                'title' => 'El modelo no respondió',
-                'detail' => $detail,
+                'ok' => true,
+                'title' => 'Conexión correcta',
+                'detail' => "El modelo respondió en {$ms} ms. Respuesta recibida: «"
+                    .mb_substr(trim((string) $reply), 0, 80).'»',
             ];
         }
 
-        return $base + [
-            'ok' => true,
-            'title' => 'Conexión correcta',
-            'detail' => "El modelo respondió en {$ms} ms. Respuesta recibida: «".mb_substr(trim($reply), 0, 80).'»',
-        ];
+        return $base + ['ok' => false] + $this->explainFailure(
+            $response->status(),
+            $response->body(),
+        );
+    }
+
+    /**
+     * Traduce un fallo HTTP del proveedor a un diagnóstico accionable.
+     *
+     * @return array{title: string, detail: string}
+     */
+    protected function explainFailure(int $status, string $body): array
+    {
+        $apiMessage = json_decode($body, true)['error']['message'] ?? null;
+        $suffix = $apiMessage ? "\n\nRespuesta del proveedor: «{$apiMessage}»" : '';
+
+        return match (true) {
+            $status === 401, $status === 403 => [
+                'title' => 'La API key no es válida',
+                'detail' => 'El proveedor rechazó las credenciales. La clave en LLM_API_KEY '
+                    .'fue revocada, está mal copiada o pertenece a otra cuenta.'
+                    ."\n\nGenera una nueva en openrouter.ai/keys y actualiza LLM_API_KEY "
+                    .'en el .env del servidor.'
+                    .$suffix,
+            ],
+
+            $status === 402 => [
+                'title' => 'Sin créditos disponibles',
+                'detail' => 'La cuenta no tiene saldo para este modelo. Cambia a un modelo '
+                    .'gratuito o recarga créditos en openrouter.ai.'.$suffix,
+            ],
+
+            $status === 404 => [
+                'title' => 'El modelo no existe',
+                'detail' => "El proveedor no reconoce «{$this->model}». Verifica que el id esté "
+                    .'escrito exactamente como aparece en la URL de openrouter.ai/<id> — '
+                    .'los sufijos importan.'
+                    .$this->formatSuggestions()
+                    .$suffix,
+            ],
+
+            $status === 429 => [
+                'title' => 'Límite de peticiones alcanzado',
+                'detail' => 'Se agotó la cuota del modelo. Los modelos gratuitos tienen un '
+                    .'tope diario. Espera o cambia a un modelo de pago.'.$suffix,
+            ],
+
+            $status >= 500 => [
+                'title' => 'El proveedor tuvo un error interno',
+                'detail' => "El servicio respondió {$status}. Es un problema del proveedor, "
+                    .'no de la configuración. Vuelve a intentar en unos minutos.'.$suffix,
+            ],
+
+            default => [
+                'title' => 'El proveedor rechazó la petición',
+                'detail' => "Código HTTP {$status}.".$suffix,
+            ],
+        };
+    }
+
+    /**
+     * Bloque de texto con los modelos sugeridos, o cadena vacía si no
+     * se pudo consultar el catálogo.
+     */
+    protected function formatSuggestions(): string
+    {
+        $suggestions = $this->suggestAvailableModels();
+
+        if ($suggestions === []) {
+            return '';
+        }
+
+        return "\n\nModelos gratuitos disponibles ahora mismo en tu cuenta:\n· "
+            .implode("\n· ", $suggestions)
+            ."\n\nCopia uno a LLM_MODEL, luego ejecuta config:clear y config:cache.";
+    }
+
+    /**
+     * Endpoint de chat según el proveedor configurado.
+     */
+    protected function chatEndpoint(): string
+    {
+        return $this->provider === 'anthropic'
+            ? 'https://api.anthropic.com/v1/messages'
+            : 'https://openrouter.ai/api/v1/chat/completions';
     }
 
     /**
@@ -156,10 +234,18 @@ class LlmService
                     return ((float) ($pricing['prompt'] ?? 1)) === 0.0
                         && ((float) ($pricing['completion'] ?? 1)) === 0.0;
                 })
-                // Solo modelos de CHAT que reciben y devuelven texto.
-                // OpenRouter mezcla en el mismo endpoint modelos de audio
-                // (lyria, tts, whisper), de imagen y de embeddings; sin
-                // este filtro el diagnóstico sugería modelos de música.
+                // Solo modelos de CHAT. OpenRouter mezcla en el mismo
+                // endpoint modelos de audio, imagen y embeddings.
+                //
+                // La clave está en la SALIDA: debe ser exclusivamente
+                // texto. Los modelos de música como lyria declaran
+                // output ["text","audio"] — incluyen texto, así que un
+                // in_array() los dejaba pasar. Exigimos que el único
+                // output sea texto.
+                //
+                // La ENTRADA sí puede ser multimodal: Gemma acepta
+                // ["image","text","video"] y funciona perfecto como
+                // chatbot enviándole solo texto.
                 ->filter(function (array $m): bool {
                     $arch = $m['architecture'] ?? [];
                     $inputs = $arch['input_modalities'] ?? [];
@@ -172,7 +258,7 @@ class LlmService
                     }
 
                     return in_array('text', $inputs, true)
-                        && in_array('text', $outputs, true);
+                        && $outputs === ['text'];
                 })
                 // Descartamos por nombre lo que la modalidad no captura:
                 // embeddings y rerankers declaran texto→texto pero no

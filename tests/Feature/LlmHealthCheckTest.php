@@ -64,6 +64,67 @@ it('reporta fallo y menciona modelos descontinuados cuando el modelo no existe',
     expect($result['detail'])->toContain('modelo/que-ya-no-existe:free');
 });
 
+it('sugiere modelos gratuitos vigentes cuando el configurado falla', function () {
+    config([
+        'services.llm.api_key' => 'test-key',
+        'services.llm.provider' => 'openrouter',
+        'services.llm.model' => 'modelo/descontinuado:free',
+    ]);
+
+    Http::fake([
+        // La petición de chat falla (modelo inexistente).
+        'openrouter.ai/api/v1/chat/*' => Http::response(['error' => 'No such model'], 404),
+        // El catálogo sí responde con modelos vigentes.
+        'openrouter.ai/api/v1/models' => Http::response([
+            'data' => [
+                [
+                    'id' => 'vigente/modelo-grande:free',
+                    'context_length' => 128000,
+                    'pricing' => ['prompt' => '0', 'completion' => '0'],
+                ],
+                [
+                    'id' => 'vigente/modelo-chico:free',
+                    'context_length' => 8000,
+                    'pricing' => ['prompt' => '0', 'completion' => '0'],
+                ],
+                [
+                    // De pago: no debe sugerirse.
+                    'id' => 'premium/modelo-pago',
+                    'context_length' => 200000,
+                    'pricing' => ['prompt' => '0.003', 'completion' => '0.015'],
+                ],
+            ],
+        ], 200),
+    ]);
+
+    $result = app(LlmService::class)->healthCheck();
+
+    expect($result['ok'])->toBeFalse();
+    expect($result['detail'])->toContain('vigente/modelo-grande:free');
+    expect($result['detail'])->toContain('vigente/modelo-chico:free');
+    // Los de pago no se sugieren.
+    expect($result['detail'])->not->toContain('premium/modelo-pago');
+});
+
+it('degrada elegantemente si el catálogo de modelos no responde', function () {
+    config([
+        'services.llm.api_key' => 'test-key',
+        'services.llm.provider' => 'openrouter',
+        'services.llm.model' => 'modelo/descontinuado:free',
+    ]);
+
+    Http::fake([
+        'openrouter.ai/api/v1/chat/*' => Http::response(['error' => 'No such model'], 404),
+        'openrouter.ai/api/v1/models' => Http::response([], 500),
+    ]);
+
+    $result = app(LlmService::class)->healthCheck();
+
+    expect($result['ok'])->toBeFalse();
+    // Sin catálogo, cae al mensaje con la guía de códigos HTTP.
+    expect($result['detail'])->toContain('404');
+});
+
 it('incluye siempre proveedor y modelo en el resultado', function () {
     config([
         'services.llm.api_key' => 'test-key',

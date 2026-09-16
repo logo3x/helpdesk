@@ -72,13 +72,28 @@ class LlmService
         $ms = (int) round((microtime(true) - $start) * 1000);
 
         if (blank($reply)) {
+            // Al fallar, consultamos el catálogo real del proveedor en
+            // vez de adivinar: así el mensaje sugiere modelos que SÍ
+            // existen hoy, no los que existían cuando se escribió esto.
+            $suggestions = $this->suggestAvailableModels();
+
+            $detail = "El proveedor rechazó la petición o el modelo «{$this->model}» ya no existe. ";
+
+            if ($suggestions !== []) {
+                $detail .= "\n\nModelos gratuitos disponibles ahora mismo en tu cuenta:\n· "
+                    .implode("\n· ", $suggestions)
+                    ."\n\nCopia uno de estos a LLM_MODEL en el .env del servidor, "
+                    .'luego ejecuta config:clear y config:cache.';
+            } else {
+                $detail .= 'No se pudo obtener el catálogo de modelos del proveedor. '
+                    .'Revisa storage/logs/laravel.log (busca «LlmService») para ver el código HTTP: '
+                    .'404 = modelo inexistente · 401 = API key inválida · 429 = sin cuota.';
+            }
+
             return $base + [
                 'ok' => false,
                 'title' => 'El modelo no respondió',
-                'detail' => "El proveedor rechazó la petición o el modelo «{$this->model}» ya no existe. "
-                    .'Los modelos gratuitos de OpenRouter se descontinúan sin aviso. '
-                    .'Revisa storage/logs/laravel.log (busca «LlmService») para ver el código HTTP exacto: '
-                    .'404 = modelo inexistente · 401 = API key inválida · 429 = sin cuota.',
+                'detail' => $detail,
             ];
         }
 
@@ -87,6 +102,61 @@ class LlmService
             'title' => 'Conexión correcta',
             'detail' => "El modelo respondió en {$ms} ms. Respuesta recibida: «".mb_substr(trim($reply), 0, 80).'»',
         ];
+    }
+
+    /**
+     * Consulta el catálogo de OpenRouter y devuelve hasta 6 ids de
+     * modelos gratuitos vigentes, ordenados por context window.
+     *
+     * Devuelve [] si el proveedor no es OpenRouter o si la consulta
+     * falla — el caller degrada el mensaje elegantemente.
+     *
+     * @return array<int, string>
+     */
+    protected function suggestAvailableModels(): array
+    {
+        if ($this->provider !== 'openrouter') {
+            return [];
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$this->apiKey}",
+            ])
+                ->timeout(15)
+                ->get('https://openrouter.ai/api/v1/models');
+
+            if (! $response->successful()) {
+                return [];
+            }
+
+            return collect($response->json('data', []))
+                // Solo los gratuitos: prompt y completion a costo cero.
+                ->filter(function (array $m): bool {
+                    $pricing = $m['pricing'] ?? [];
+
+                    return ((float) ($pricing['prompt'] ?? 1)) === 0.0
+                        && ((float) ($pricing['completion'] ?? 1)) === 0.0;
+                })
+                // Descartamos modelos de razonamiento y multimodales:
+                // gastan tokens en <thinking> o esperan imágenes, y para
+                // un chatbot de KB solo añaden latencia.
+                ->reject(fn (array $m): bool => str_contains(
+                    mb_strtolower((string) ($m['id'] ?? '')),
+                    'thinking',
+                ))
+                ->sortByDesc(fn (array $m): int => (int) ($m['context_length'] ?? 0))
+                ->take(6)
+                ->pluck('id')
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            Log::warning('LlmService: no se pudo obtener el catálogo de modelos', [
+                'error' => mb_substr($e->getMessage(), 0, 200),
+            ]);
+
+            return [];
+        }
     }
 
     /**

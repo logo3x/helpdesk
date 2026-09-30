@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Portal\Chatbot;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
 use App\Models\KbArticle;
@@ -120,4 +121,25 @@ it('persists user feedback on an assistant message', function () {
     $fresh = $message->fresh();
     expect($fresh->helpful)->toBeTrue();
     expect($fresh->feedback_at)->not->toBeNull();
+});
+
+it('muestra el aviso de feedback visible y confirma al votar', function () {
+    $session = app(ChatbotService::class)->getOrCreateSession($this->user);
+    $answer = ChatMessage::create([
+        'chat_session_id' => $session->id,
+        'role' => 'assistant',
+        'content' => 'Reinicia el equipo.',
+        'source_kind' => 'llm',
+    ]);
+
+    $this->actingAs($this->user);
+
+    Livewire\Livewire::test(Chatbot::class)
+        ->assertSee('¿Te sirvió esta respuesta?')
+        ->assertSee('👍 Sí')
+        ->call('rateMessage', $answer->id, true)
+        ->assertSee('Gracias por tu opinión')
+        ->assertDontSee('¿Te sirvió esta respuesta?');
+
+    expect($answer->fresh()->helpful)->toBeTrue();
 });

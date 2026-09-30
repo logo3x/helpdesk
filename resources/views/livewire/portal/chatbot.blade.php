@@ -143,27 +143,31 @@
                                     && in_array($sourceKind, ['kb_high', 'kb_medium', 'llm'], true);
                             @endphp
                             @if ($canRate)
-                                <div class="ml-2 flex items-center gap-1 text-xs text-zinc-400">
+                                <div class="ml-8 mt-1 text-xs">
                                     @if ($msg['helpful'] === null)
-                                        <span>¿Te sirvió?</span>
-                                        <button
-                                            type="button"
-                                            wire:click="rateMessage({{ $msg['id'] }}, true)"
-                                            class="rounded p-1 hover:bg-zinc-100 hover:text-emerald-600 dark:hover:bg-zinc-700"
-                                            title="Sí, me sirvió">
-                                            👍
-                                        </button>
-                                        <button
-                                            type="button"
-                                            wire:click="rateMessage({{ $msg['id'] }}, false)"
-                                            class="rounded p-1 hover:bg-zinc-100 hover:text-rose-600 dark:hover:bg-zinc-700"
-                                            title="No me sirvió">
-                                            👎
-                                        </button>
+                                        <div class="inline-flex flex-wrap items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 py-1 pl-3 pr-1 text-indigo-900 shadow-sm dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-200">
+                                            <span class="font-semibold">¿Te sirvió esta respuesta?</span>
+                                            <button
+                                                type="button"
+                                                wire:click="rateMessage({{ $msg['id'] }}, true)"
+                                                wire:loading.attr="disabled"
+                                                class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-3 py-1 font-semibold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50 dark:border-emerald-500/40 dark:bg-zinc-800 dark:text-emerald-300 dark:hover:bg-emerald-500/10"
+                                                title="Sí, me sirvió">
+                                                👍 Sí
+                                            </button>
+                                            <button
+                                                type="button"
+                                                wire:click="rateMessage({{ $msg['id'] }}, false)"
+                                                wire:loading.attr="disabled"
+                                                class="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-white px-3 py-1 font-semibold text-rose-700 transition hover:border-rose-400 hover:bg-rose-50 dark:border-rose-500/40 dark:bg-zinc-800 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                                                title="No me sirvió">
+                                                👎 No
+                                            </button>
+                                        </div>
                                     @elseif ($msg['helpful'] === true)
-                                        <span class="font-medium text-emerald-600">👍 Gracias por tu feedback</span>
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">👍 Gracias por tu opinión</span>
                                     @else
-                                        <span class="font-medium text-rose-600">👎 Tomamos nota — escribe "crear ticket" si necesitas un agente.</span>
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">👎 Tomamos nota. Escribe «crear ticket» si necesitas un agente.</span>
                                     @endif
                                 </div>
                             @endif

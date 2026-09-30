@@ -90,6 +90,10 @@ class SlaReport extends Page
         $priorities = TicketPriority::cases();
         $scopeDepartmentId = $isAdmin ? null : $user?->department_id;
 
+        $atRisk = $this->atRiskTickets($isAdmin, $user?->department_id);
+        $breached = $this->breachedTickets($fromDate, $toDate, $scopeDepartmentId);
+        $escalations = $this->escalationsInRange($fromDate, $toDate, $scopeDepartmentId);
+
         return [
             'window' => $labelDays,
             'fromDate' => $fromDate,
@@ -97,12 +101,14 @@ class SlaReport extends Page
             'isCustomRange' => $this->hasCustomRange(),
             'report' => $this->buildMatrix($departments, $priorities, $fromDate, $toDate),
             'priorities' => $priorities,
-            'escalations' => $this->escalationsInRange($fromDate, $toDate, $scopeDepartmentId),
-            'atRisk' => $this->atRiskTickets($isAdmin, $user?->department_id),
+            'escalations' => $this->controlEscalationTable($escalations),
+            'atRisk' => $this->controlRiskTable($atRisk),
             'summary' => $this->summary($fromDate, $toDate, $isAdmin, $user?->department_id),
-            'breachedTickets' => $this->breachedTickets($fromDate, $toDate, $scopeDepartmentId),
-            'breachFilter' => $this->breachFilterLabel(),
+            'breachedTickets' => $this->controlBreachTable($breached),
+            'tableTotals' => ['risk' => $atRisk->count(), 'breach' => $breached->count(), 'escalations' => $escalations->count()],
+            'tableOptions' => $this->tableFilterOptions($departments, $atRisk, $breached, $escalations),
             'ticketRoute' => $this->ticketViewRouteName(),
+            'slaPolicies' => $this->slaPolicyMatrix($departments),
         ];
     }
 

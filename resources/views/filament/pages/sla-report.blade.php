@@ -60,6 +60,39 @@
         a.sla-kpi-link:hover { box-shadow:0 4px 12px rgba(0,0,0,0.08); transform:translateY(-1px); }
         .sla-kpi-cta { color:rgb(225 29 72); font-weight:600; }
 
+        .sla-filter-bar {
+            display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;
+            margin-bottom:0.75rem;
+        }
+        .sla-filter-search {
+            display:flex; align-items:center; gap:0.35rem; flex:1 1 14rem;
+            color:rgb(161 161 170);
+        }
+        .sla-filter-input {
+            padding:0.3rem 0.5rem; font-size:0.8rem;
+            border:1px solid rgb(209 213 219); border-radius:0.375rem;
+            background:white; color:rgb(17 24 39);
+        }
+        .dark .sla-filter-input { background:rgb(24 24 27); border-color:rgb(63 63 70); color:rgb(244 244 245); }
+        .sla-filter-text { width:100%; }
+        .sla-filter-clear {
+            font-size:0.75rem; color:rgb(107 114 128); text-decoration:underline;
+            background:transparent; border:none; cursor:pointer;
+        }
+        .sla-filter-clear:hover { color:rgb(220 38 38); }
+        .sla-filter-count { margin-left:auto; font-size:0.75rem; color:rgb(113 113 122); }
+        .sla-filter-empty { font-size:0.875rem; color:rgb(161 161 170); padding:0.5rem 0; }
+
+        .sla-sort-btn {
+            display:inline-flex; align-items:center; gap:0.25rem;
+            background:transparent; border:none; padding:0; cursor:pointer;
+            font:inherit; color:inherit; text-transform:inherit; letter-spacing:inherit;
+        }
+        .sla-sort-btn:hover { color:rgb(37 99 235); }
+        .sla-sort-btn.is-active { color:rgb(37 99 235); }
+        .sla-sort-arrow { font-size:0.6rem; opacity:0.6; }
+        .sla-sort-btn.is-active .sla-sort-arrow { opacity:1; }
+
         .sla-info {
             display:inline-block; vertical-align:-0.15rem; margin-left:0.2rem;
             color:rgb(161 161 170); cursor:help; flex-shrink:0;
@@ -71,6 +104,18 @@
             background:white; font-size:0.85rem; color:rgb(63 63 70);
         }
         .dark .sla-help { background:rgb(24 24 27); border-color:rgb(63 63 70); color:rgb(212 212 216); }
+        .sla-policy-cell {
+            display:grid; grid-template-columns:auto auto; gap:0 0.35rem; justify-content:center; align-items:baseline;
+            padding:0.35rem 0.5rem; border-radius:0.375rem; text-decoration:none; color:inherit;
+        }
+        a.sla-policy-cell:hover { background:rgb(239 246 255); }
+        .dark a.sla-policy-cell:hover { background:rgba(59,130,246,0.12); }
+        .sla-policy-edit {
+            grid-column:1 / -1; font-size:0.65rem; font-weight:600; color:rgb(37 99 235);
+            opacity:0; transition:opacity .15s;
+        }
+        a.sla-policy-cell:hover .sla-policy-edit, a.sla-policy-cell:focus .sla-policy-edit { opacity:1; }
+
         .sla-help summary { cursor:pointer; padding:0.6rem 1rem; font-weight:600; color:rgb(37 99 235); }
         .sla-help-body { padding:0 1rem 0.75rem; }
         .sla-help-body p { margin:0.4rem 0; }
@@ -186,6 +231,64 @@
         </div>
     </details>
 
+    {{-- ── Políticas SLA vigentes ───────────────────────────────────── --}}
+    <details class="sla-help sla-policies">
+        <summary>
+            Políticas SLA vigentes por departamento
+            <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Límites de primera respuesta y resolución que se aplican hoy a los tickets nuevos, en horas hábiles. Un cambio no modifica las fechas de los tickets ya creados." style="width:0.95rem;height:0.95rem;" />
+        </summary>
+        <div class="sla-help-body">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-400 dark:border-zinc-700">
+                            <th class="px-3 py-2 text-left font-semibold">Departamento</th>
+                            @foreach ($priorities as $p)
+                                <th class="px-3 py-2 text-center font-semibold">{{ $p->getLabel() }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($slaPolicies['rows'] as $policyRow)
+                            <tr class="border-b border-zinc-100 dark:border-zinc-800">
+                                <td class="px-3 py-2 font-semibold text-zinc-700 dark:text-zinc-300">{{ $policyRow['department'] }}</td>
+                                @foreach ($policyRow['cells'] as $cell)
+                                    @php($config = $cell['config'])
+                                    <td class="px-3 py-2 text-center">
+                                        @if ($cell['url'])<a href="{{ $cell['url'] }}" class="sla-policy-cell" title="{{ $config ? 'Editar política' : 'Crear política' }}">@else<span class="sla-policy-cell">@endif
+                                            @if ($config && $config->is_active)
+                                                <span class="text-xs text-zinc-500">1ª resp.</span>
+                                                <span class="font-mono text-xs font-semibold">{{ \App\Services\SlaService::formatMinutes($config->first_response_minutes) }}</span>
+                                                <span class="text-xs text-zinc-500">Resol.</span>
+                                                <span class="font-mono text-xs font-semibold">{{ \App\Services\SlaService::formatMinutes($config->resolution_minutes) }}</span>
+                                            @elseif ($config)
+                                                <span class="text-xs font-semibold text-zinc-400">Inactiva</span>
+                                                <span class="text-[10px] text-zinc-400">{{ \App\Services\SlaService::formatMinutes($config->resolution_minutes) }}</span>
+                                            @else
+                                                <span class="text-xs font-semibold text-rose-500">Sin SLA</span>
+                                            @endif
+                                            @if ($cell['url'])
+                                                <span class="sla-policy-edit">{{ $config ? '✎ Editar' : '+ Crear' }}</span>
+                                            @endif
+                                        @if ($cell['url'])</a>@else</span>@endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <p class="mt-2 text-xs text-zinc-500">
+                «Sin SLA» o «Inactiva»: los tickets nuevos de ese departamento y prioridad no tendrán tiempos ni aparecerán en el cumplimiento.
+                @if ($slaPolicies['canEdit'])
+                    <a href="{{ $slaPolicies['indexUrl'] }}" class="font-semibold text-primary-600 hover:underline">Administrar todas las políticas →</a>
+                @else
+                    Solo un administrador puede modificarlas.
+                @endif
+            </p>
+        </div>
+    </details>
+
     {{-- ── KPI cards globales ─────────────────────────────────────────── --}}
     <div class="sla-kpi-grid"
          x-data="{}"
@@ -239,21 +342,55 @@
             Tickets NO resueltos con SLA configurado. Permite intervenir antes de que el incumplimiento quede registrado.
         </x-slot>
 
-        @if ($atRisk->isEmpty())
+        @if ($tableTotals['risk'] === 0)
             <div class="flex items-center gap-2 text-sm text-emerald-600">
                 <x-heroicon-o-check-circle style="width:1rem;height:1rem;flex-shrink:0;" />
                 Sin tickets en riesgo. Todos los SLA abiertos están holgados.
             </div>
         @else
+            <div class="sla-filter-bar">
+                <div class="sla-filter-search">
+                    <x-heroicon-o-magnifying-glass style="width:0.9rem;height:0.9rem;flex-shrink:0;" />
+                    <input type="search" wire:model.live.debounce.400ms="tableFilters.risk.search"
+                           placeholder="Buscar ticket, asunto o persona…" class="sla-filter-input sla-filter-text" aria-label="Buscar">
+                </div>
+                <select wire:model.live="tableFilters.risk.department" class="sla-filter-input" aria-label="Todos los departamentos">
+                    <option value="">Todos los departamentos</option>
+                    @foreach ($tableOptions['departments'] as $optionValue => $optionLabel)
+                        <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="tableFilters.risk.priority" class="sla-filter-input" aria-label="Todas las prioridades">
+                    <option value="">Todas las prioridades</option>
+                    @foreach ($tableOptions['priorities'] as $optionValue => $optionLabel)
+                        <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="tableFilters.risk.agent" class="sla-filter-input" aria-label="Todos los agentes">
+                    <option value="">Todos los agentes</option>
+                    @foreach ($tableOptions['agents'] as $optionValue => $optionLabel)
+                        <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                @php($isFilteredRisk = collect($tableFilters['risk'])->filter(fn ($v) => $v !== '')->isNotEmpty() || $tableSorts['risk']['column'] !== '')
+                @if ($isFilteredRisk)
+                    <button type="button" wire:click="resetTableControls('risk')" class="sla-filter-clear">Limpiar filtros</button>
+                @endif
+                <span class="sla-filter-count">Mostrando {{ $atRisk->count() }} de {{ $tableTotals['risk'] }}</span>
+            </div>
+
+            @if ($atRisk->isEmpty())
+                <p class="sla-filter-empty">Ningún ticket coincide con los filtros.</p>
+            @else
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-400 dark:border-zinc-700">
-                            <th class="px-3 py-2.5 text-left font-semibold">Ticket</th>
-                            <th class="px-3 py-2.5 text-left font-semibold">Departamento</th>
-                            <th class="px-3 py-2.5 text-left font-semibold">Asignado</th>
-                            <th class="px-3 py-2.5 text-center font-semibold">Prioridad</th>
-                            <th class="px-3 py-2.5 text-right font-semibold">Vence en</th>
+                            <x-sla-report.sort-header table="risk" column="ticket" label="Ticket" align="left" :sort="$tableSorts['risk']" />
+                            <x-sla-report.sort-header table="risk" column="department" label="Departamento" align="left" :sort="$tableSorts['risk']" />
+                            <x-sla-report.sort-header table="risk" column="agent" label="Asignado" align="left" :sort="$tableSorts['risk']" />
+                            <x-sla-report.sort-header table="risk" column="priority" label="Prioridad" align="center" :sort="$tableSorts['risk']" />
+                            <x-sla-report.sort-header table="risk" column="due" label="Vence en" align="right" :sort="$tableSorts['risk']" />
                         </tr>
                     </thead>
                     <tbody>
@@ -294,6 +431,7 @@
                     </tbody>
                 </table>
             </div>
+            @endif
         @endif
     </x-filament::section>
 
@@ -359,45 +497,67 @@
     <div id="sla-incumplidos" style="scroll-margin-top:5rem;"></div>
     <x-filament::section class="sla-section">
         <x-slot name="heading">
-            Tickets con SLA incumplido ({{ $breachedTickets->count() }}{{ $breachedTickets->count() >= 100 ? '+' : '' }})
+            Tickets con SLA incumplido ({{ $tableTotals['breach'] }}{{ $tableTotals['breach'] >= 100 ? '+' : '' }})
             <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Tickets resueltos en el rango cuyo tiempo de resolución superó el límite de su política SLA. Haz clic en el número para abrir el ticket." style="width:0.95rem;height:0.95rem;" />
         </x-slot>
         <x-slot name="description">
             Tickets resueltos en el rango que superaron el tiempo de resolución. Son los que cuenta el indicador «SLA incumplidos». Los tiempos están en horas hábiles.
         </x-slot>
 
-        @if ($breachFilter)
-            <div class="mb-3 flex flex-wrap items-center gap-2 text-xs">
-                <span class="text-zinc-500">Filtrado por:</span>
-                @if ($breachFilter['department'])
-                    <span class="rounded-full bg-primary-50 px-2.5 py-0.5 font-semibold text-primary-700 dark:bg-primary-950/50 dark:text-primary-300">{{ $breachFilter['department'] }}</span>
-                @endif
-                @if ($breachFilter['priority'])
-                    <span class="rounded-full bg-primary-50 px-2.5 py-0.5 font-semibold text-primary-700 dark:bg-primary-950/50 dark:text-primary-300">Prioridad {{ $breachFilter['priority'] }}</span>
-                @endif
-                <button type="button" wire:click="clearBreachFilter" class="text-zinc-500 underline hover:text-rose-600">Ver todos</button>
-            </div>
-        @endif
-
-        @if ($breachedTickets->isEmpty())
+        @php($breachHasSqlFilter = $tableFilters['breach']['department'] !== '' || $tableFilters['breach']['priority'] !== '')
+        @if ($tableTotals['breach'] === 0 && ! $breachHasSqlFilter)
             <div class="flex items-center gap-2 text-sm text-emerald-600">
                 <x-heroicon-o-check-circle style="width:1rem;height:1rem;flex-shrink:0;" />
                 No hay tickets resueltos con el SLA incumplido en este rango.
             </div>
         @else
+            <div class="sla-filter-bar">
+                <div class="sla-filter-search">
+                    <x-heroicon-o-magnifying-glass style="width:0.9rem;height:0.9rem;flex-shrink:0;" />
+                    <input type="search" wire:model.live.debounce.400ms="tableFilters.breach.search"
+                           placeholder="Buscar ticket, asunto o persona…" class="sla-filter-input sla-filter-text" aria-label="Buscar">
+                </div>
+                <select wire:model.live="tableFilters.breach.department" class="sla-filter-input" aria-label="Todos los departamentos">
+                    <option value="">Todos los departamentos</option>
+                    @foreach ($tableOptions['departments'] as $optionValue => $optionLabel)
+                        <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="tableFilters.breach.priority" class="sla-filter-input" aria-label="Todas las prioridades">
+                    <option value="">Todas las prioridades</option>
+                    @foreach ($tableOptions['priorities'] as $optionValue => $optionLabel)
+                        <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="tableFilters.breach.agent" class="sla-filter-input" aria-label="Todos los agentes">
+                    <option value="">Todos los agentes</option>
+                    @foreach ($tableOptions['agents'] as $optionValue => $optionLabel)
+                        <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                @php($isFilteredBreach = collect($tableFilters['breach'])->filter(fn ($v) => $v !== '')->isNotEmpty() || $tableSorts['breach']['column'] !== '')
+                @if ($isFilteredBreach)
+                    <button type="button" wire:click="resetTableControls('breach')" class="sla-filter-clear">Limpiar filtros</button>
+                @endif
+                <span class="sla-filter-count">Mostrando {{ $breachedTickets->count() }} de {{ $tableTotals['breach'] }}</span>
+            </div>
+
+            @if ($breachedTickets->isEmpty())
+                <p class="sla-filter-empty">Ningún ticket coincide con los filtros.</p>
+            @else
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-400 dark:border-zinc-700">
-                            <th class="px-3 py-2.5 text-left font-semibold">Ticket</th>
-                            <th class="px-3 py-2.5 text-left font-semibold">Departamento</th>
-                            <th class="px-3 py-2.5 text-center font-semibold">Prioridad</th>
-                            <th class="px-3 py-2.5 text-left font-semibold">Atendido por <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Agente asignado actualmente al ticket." style="width:0.95rem;height:0.95rem;" /></th>
-                            <th class="px-3 py-2.5 text-left font-semibold">Solicitante</th>
-                            <th class="px-3 py-2.5 text-right font-semibold">Límite SLA <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Tiempo máximo de resolución de la política SLA según departamento y prioridad, en horas hábiles." style="width:0.95rem;height:0.95rem;" /></th>
-                            <th class="px-3 py-2.5 text-right font-semibold">Tiempo real <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Horas hábiles desde la creación hasta la resolución, sin contar el tiempo en Pendiente cliente." style="width:0.95rem;height:0.95rem;" /></th>
-                            <th class="px-3 py-2.5 text-right font-semibold">Exceso <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Cuánto tiempo hábil pasó después del límite." style="width:0.95rem;height:0.95rem;" /></th>
-                            <th class="px-3 py-2.5 text-left font-semibold">Creado / Resuelto</th>
+                            <x-sla-report.sort-header table="breach" column="ticket" label="Ticket" align="left" :sort="$tableSorts['breach']" />
+                            <x-sla-report.sort-header table="breach" column="department" label="Departamento" align="left" :sort="$tableSorts['breach']" />
+                            <x-sla-report.sort-header table="breach" column="priority" label="Prioridad" align="center" :sort="$tableSorts['breach']" />
+                            <x-sla-report.sort-header table="breach" column="agent" label="Atendido por" align="left" :sort="$tableSorts['breach']" tip="Agente asignado actualmente al ticket." />
+                            <x-sla-report.sort-header table="breach" column="requester" label="Solicitante" align="left" :sort="$tableSorts['breach']" />
+                            <x-sla-report.sort-header table="breach" column="limit" label="Límite SLA" align="right" :sort="$tableSorts['breach']" tip="Tiempo máximo de resolución de la política SLA según departamento y prioridad, en horas hábiles." />
+                            <x-sla-report.sort-header table="breach" column="elapsed" label="Tiempo real" align="right" :sort="$tableSorts['breach']" tip="Horas hábiles desde la creación hasta la resolución, sin contar el tiempo en Pendiente cliente." />
+                            <x-sla-report.sort-header table="breach" column="overdue" label="Exceso" align="right" :sort="$tableSorts['breach']" tip="Cuánto tiempo hábil pasó después del límite." />
+                            <x-sla-report.sort-header table="breach" column="resolved" label="Creado / Resuelto" align="left" :sort="$tableSorts['breach']" />
                         </tr>
                     </thead>
                     <tbody>
@@ -447,30 +607,77 @@
                     </tbody>
                 </table>
             </div>
+            @endif
         @endif
     </x-filament::section>
 
     {{-- ── Últimas escalaciones ──────────────────────────────────────── --}}
     <x-filament::section class="sla-section">
-        <x-slot name="heading">Últimas escalaciones ({{ $escalations->count() }}) <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Cada 5 minutos, en horario hábil, el sistema compara el tiempo transcurrido de los tickets abiertos con su límite y registra una alerta al 70%, otra al 90% y el incumplimiento al 100%." style="width:0.95rem;height:0.95rem;" /></x-slot>
+        <x-slot name="heading">Últimas escalaciones ({{ $tableTotals['escalations'] }}) <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Cada 5 minutos, en horario hábil, el sistema compara el tiempo transcurrido de los tickets abiertos con su límite y registra una alerta al 70%, otra al 90% y el incumplimiento al 100%." style="width:0.95rem;height:0.95rem;" /></x-slot>
         <x-slot name="description">
             Alertas registradas en el rango: avisos preventivos al 70% y 90% del tiempo, e incumplimientos al 100%. Se muestran las 50 más recientes.
         </x-slot>
 
-        @if ($escalations->isEmpty())
+        @if ($tableTotals['escalations'] === 0)
             <p class="text-sm text-zinc-400">No hay escalaciones en este rango.</p>
         @else
+            <div class="sla-filter-bar">
+                <div class="sla-filter-search">
+                    <x-heroicon-o-magnifying-glass style="width:0.9rem;height:0.9rem;flex-shrink:0;" />
+                    <input type="search" wire:model.live.debounce.400ms="tableFilters.escalations.search"
+                           placeholder="Buscar ticket, asunto o persona…" class="sla-filter-input sla-filter-text" aria-label="Buscar">
+                </div>
+                <select wire:model.live="tableFilters.escalations.type" class="sla-filter-input" aria-label="Todas las alertas">
+                    <option value="">Todas las alertas</option>
+                    @foreach (['breach' => 'Incumplido', 'warning_90' => 'Alerta 90%', 'warning_70' => 'Alerta 70%'] as $optionValue => $optionLabel)
+                        <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="tableFilters.escalations.metric" class="sla-filter-input" aria-label="Primera respuesta y resolución">
+                    <option value="">Primera respuesta y resolución</option>
+                    @foreach (['resolution' => 'Resolución', 'first_response' => 'Primera respuesta'] as $optionValue => $optionLabel)
+                        <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="tableFilters.escalations.department" class="sla-filter-input" aria-label="Todos los departamentos">
+                    <option value="">Todos los departamentos</option>
+                    @foreach ($tableOptions['departments'] as $optionValue => $optionLabel)
+                        <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="tableFilters.escalations.agent" class="sla-filter-input" aria-label="Todos los agentes">
+                    <option value="">Todos los agentes</option>
+                    @foreach ($tableOptions['agents'] as $optionValue => $optionLabel)
+                        <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="tableFilters.escalations.status" class="sla-filter-input" aria-label="Todos los estados">
+                    <option value="">Todos los estados</option>
+                    @foreach ($tableOptions['statuses'] as $optionValue => $optionLabel)
+                        <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                @php($isFilteredEscalations = collect($tableFilters['escalations'])->filter(fn ($v) => $v !== '')->isNotEmpty() || $tableSorts['escalations']['column'] !== '')
+                @if ($isFilteredEscalations)
+                    <button type="button" wire:click="resetTableControls('escalations')" class="sla-filter-clear">Limpiar filtros</button>
+                @endif
+                <span class="sla-filter-count">Mostrando {{ $escalations->count() }} de {{ $tableTotals['escalations'] }}</span>
+            </div>
+
+            @if ($escalations->isEmpty())
+                <p class="sla-filter-empty">Ninguna escalación coincide con los filtros.</p>
+            @else
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-400 dark:border-zinc-700">
-                            <th class="px-3 py-2.5 text-left font-semibold">Ticket</th>
-                            <th class="px-3 py-2.5 text-left font-semibold">Alerta <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Alerta 70% / 90%: aviso preventivo, el ticket aún cumple. Incumplido: se superó el 100% del límite." style="width:0.95rem;height:0.95rem;" /></th>
-                            <th class="px-3 py-2.5 text-left font-semibold">Departamento</th>
-                            <th class="px-3 py-2.5 text-left font-semibold">Atendido por <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Agente asignado actualmente al ticket." style="width:0.95rem;height:0.95rem;" /></th>
-                            <th class="px-3 py-2.5 text-center font-semibold">Estado actual <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Estado del ticket hoy, no al momento de la alerta." style="width:0.95rem;height:0.95rem;" /></th>
-                            <th class="px-3 py-2.5 text-right font-semibold">Tiempo consumido <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Tiempo hábil transcurrido al registrar la alerta frente al límite SLA." style="width:0.95rem;height:0.95rem;" /></th>
-                            <th class="px-3 py-2.5 text-left font-semibold">Fecha</th>
+                            <x-sla-report.sort-header table="escalations" column="ticket" label="Ticket" align="left" :sort="$tableSorts['escalations']" />
+                            <x-sla-report.sort-header table="escalations" column="type" label="Alerta" align="left" :sort="$tableSorts['escalations']" tip="Alerta 70% / 90%: aviso preventivo, el ticket aún cumple. Incumplido: se superó el 100% del límite." />
+                            <x-sla-report.sort-header table="escalations" column="department" label="Departamento" align="left" :sort="$tableSorts['escalations']" />
+                            <x-sla-report.sort-header table="escalations" column="agent" label="Atendido por" align="left" :sort="$tableSorts['escalations']" tip="Agente asignado actualmente al ticket." />
+                            <x-sla-report.sort-header table="escalations" column="status" label="Estado actual" align="center" :sort="$tableSorts['escalations']" tip="Estado del ticket hoy, no al momento de la alerta." />
+                            <x-sla-report.sort-header table="escalations" column="consumed" label="Tiempo consumido" align="right" :sort="$tableSorts['escalations']" tip="Tiempo hábil transcurrido al registrar la alerta frente al límite SLA." />
+                            <x-sla-report.sort-header table="escalations" column="date" label="Fecha" align="left" :sort="$tableSorts['escalations']" />
                         </tr>
                     </thead>
                     <tbody>
@@ -531,6 +738,7 @@
                     </tbody>
                 </table>
             </div>
+            @endif
         @endif
     </x-filament::section>
 </x-filament-panels::page>

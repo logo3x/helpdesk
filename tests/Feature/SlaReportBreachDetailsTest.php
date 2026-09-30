@@ -74,13 +74,66 @@ it('filtra los incumplidos por departamento y prioridad desde la matriz', functi
 
     Livewire::test(AdminSlaReport::class)
         ->call('filterBreaches', $this->department->id, TicketPriority::Alta->value)
-        ->assertSet('breachDepartmentId', $this->department->id)
-        ->assertSet('breachPriority', 'alta')
+        ->assertSet('tableFilters.breach.department', (string) $this->department->id)
+        ->assertSet('tableFilters.breach.priority', 'alta')
         ->assertSee($alta->number)
         ->assertDontSee($otroDepto->number)
         ->call('clearBreachFilter')
-        ->assertSet('breachDepartmentId', null)
+        ->assertSet('tableFilters.breach.department', '')
         ->assertSee($otroDepto->number);
+});
+
+it('ordena la tabla de incumplidos por columna y alterna la dirección', function () {
+    Carbon::setTestNow('2026-09-29 10:00:00');
+    // 240 min reales → exceso 120; 180 min reales → exceso 60.
+    breachedTicket(['number' => 'TK-EXCESO-ALTO']);
+    breachedTicket(['number' => 'TK-EXCESO-BAJO', 'resolved_at' => Carbon::parse('2026-09-22 12:00:00')]);
+
+    Livewire::test(AdminSlaReport::class)
+        ->call('sortTable', 'breach', 'overdue')
+        ->assertSet('tableSorts.breach', ['column' => 'overdue', 'direction' => 'asc'])
+        ->assertSeeInOrder(['TK-EXCESO-BAJO', 'TK-EXCESO-ALTO'])
+        ->call('sortTable', 'breach', 'overdue')
+        ->assertSet('tableSorts.breach.direction', 'desc')
+        ->assertSeeInOrder(['TK-EXCESO-ALTO', 'TK-EXCESO-BAJO']);
+});
+
+it('filtra los incumplidos por búsqueda y agente sin perder el total', function () {
+    Carbon::setTestNow('2026-09-29 10:00:00');
+    $otroAgente = User::factory()->create(['name' => 'Pedro Otro']);
+    breachedTicket(['subject' => 'Impresora sin conexión']);
+    breachedTicket(['subject' => 'Correo bloqueado', 'assigned_to_id' => $otroAgente->id]);
+
+    Livewire::test(AdminSlaReport::class)
+        ->set('tableFilters.breach.search', 'correo')
+        ->assertSee('Correo bloqueado')
+        ->assertDontSee('Impresora sin conexión')
+        ->assertSee('Mostrando 1 de 2')
+        ->call('resetTableControls', 'breach')
+        ->set('tableFilters.breach.agent', (string) $this->agent->id)
+        ->assertSee('Impresora sin conexión')
+        ->assertDontSee('Correo bloqueado');
+});
+
+it('filtra las escalaciones por tipo de alerta', function () {
+    Carbon::setTestNow('2026-09-29 10:00:00');
+    // Sin marca de incumplido, para que solo aparezcan en la tabla de escalaciones.
+    $incumplido = breachedTicket(['number' => 'TK-INCUMPLIDO', 'resolution_breached' => false]);
+    $alerta = breachedTicket(['number' => 'TK-ALERTA', 'resolution_breached' => false]);
+
+    EscalationLog::create(['ticket_id' => $incumplido->id, 'type' => 'resolution_breach', 'sla_minutes' => 120, 'elapsed_minutes' => 125]);
+    EscalationLog::create(['ticket_id' => $alerta->id, 'type' => 'warning_70_resolution', 'sla_minutes' => 120, 'elapsed_minutes' => 85]);
+
+    Livewire::test(AdminSlaReport::class)
+        ->set('tableFilters.escalations.type', 'warning_70')
+        ->assertSee('TK-ALERTA')
+        ->assertDontSee('TK-INCUMPLIDO')
+        ->set('tableFilters.escalations.type', 'breach')
+        ->assertSee('TK-INCUMPLIDO')
+        ->assertDontSee('TK-ALERTA')
+        ->set('tableFilters.escalations.search', 'no-existe')
+        ->assertSee('Ninguna escalación coincide con los filtros.')
+        ->assertSee('Mostrando 0 de 2');
 });
 
 it('muestra las escalaciones en español con el agente y el estado del ticket', function () {

@@ -69,6 +69,10 @@ class SlaReport extends Page
         $departments = Department::where('is_active', true)->orderBy('name')->get();
         $priorities = TicketPriority::cases();
 
+        $atRisk = $this->atRiskTickets();
+        $breached = $this->breachedTickets($from, $to);
+        $escalations = $this->escalationsInRange($from, $to);
+
         return [
             'window' => $labelDays,
             'fromDate' => $from,
@@ -76,12 +80,14 @@ class SlaReport extends Page
             'isCustomRange' => $this->hasCustomRange(),
             'report' => $this->buildMatrix($departments, $priorities, $from, $to),
             'priorities' => $priorities,
-            'escalations' => $this->escalationsInRange($from, $to),
-            'atRisk' => $this->atRiskTickets(),
+            'escalations' => $this->controlEscalationTable($escalations),
+            'atRisk' => $this->controlRiskTable($atRisk),
             'summary' => $this->summary($from, $to),
-            'breachedTickets' => $this->breachedTickets($from, $to),
-            'breachFilter' => $this->breachFilterLabel(),
+            'breachedTickets' => $this->controlBreachTable($breached),
+            'tableTotals' => ['risk' => $atRisk->count(), 'breach' => $breached->count(), 'escalations' => $escalations->count()],
+            'tableOptions' => $this->tableFilterOptions($departments, $atRisk, $breached, $escalations),
             'ticketRoute' => $this->ticketViewRouteName(),
+            'slaPolicies' => $this->slaPolicyMatrix($departments),
         ];
     }
 

@@ -2,35 +2,57 @@
 
 namespace App\Filament\Resources\SatisfactionSurveys\Widgets;
 
+use App\Filament\Concerns\HasHelpLabels;
+use App\Filament\Resources\SatisfactionSurveys\Pages\ListSatisfactionSurveys;
+use App\Filament\Resources\SatisfactionSurveys\Tables\SatisfactionSurveysTable;
 use App\Models\SatisfactionSurvey;
+use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Livewire\Attributes\Locked;
 
+/**
+ * KPIs de las encuestas. Se calculan sobre la consulta de la tabla de
+ * la página, así que respetan los filtros y la búsqueda activos.
+ */
 class SurveyStatsWidget extends StatsOverviewWidget
 {
+    use HasHelpLabels;
+    use InteractsWithPageTable;
+
+    /**
+     * Página de listado cuya tabla alimenta el widget (admin o soporte).
+     */
+    #[Locked]
+    public string $tablePageClass = ListSatisfactionSurveys::class;
+
+    protected function getTablePage(): string
+    {
+        return $this->tablePageClass;
+    }
+
     protected function getStats(): array
     {
-        $total = SatisfactionSurvey::count();
-        $responded = SatisfactionSurvey::whereNotNull('responded_at')->count();
+        $base = $this->getPageTableQuery()->reorder();
+
+        $total = (clone $base)->count();
+        $responded = (clone $base)->whereNotNull('responded_at')->count();
+        $autoPositive = (clone $base)->whereNotNull('responded_at')
+            ->where('comment', 'like', '%'.SatisfactionSurveysTable::AUTO_POSITIVE_MARK.'%')
+            ->count();
+        $realResponses = $responded - $autoPositive;
         $pending = $total - $responded;
-        $responseRate = $total > 0 ? round($responded / $total * 100) : 0;
+        $responseRate = $total > 0 ? round($realResponses / $total * 100) : 0;
 
-        $avgGeneral = SatisfactionSurvey::whereNotNull('responded_at')->avg('rating') ?? 0;
-
-        // Promedios por dimensión
-        $dims = [
-            'rating_attention' => 'Atención general',
-            'rating_contact' => 'Facilidad de contacto',
-            'rating_resolution' => 'Resolución',
-            'rating_time' => 'Tiempo de solución',
-            'rating_knowledge' => 'Conocimiento técnico',
-            'rating_attitude' => 'Amabilidad',
-        ];
+        $avgGeneral = (float) ((clone $base)->whereNotNull('responded_at')->avg('rating') ?? 0);
 
         $dimStats = [];
-        foreach ($dims as $field => $label) {
-            $avg = SatisfactionSurvey::whereNotNull('responded_at')->whereNotNull($field)->avg($field) ?? 0;
-            $dimStats[$label] = round($avg, 2);
+        foreach (SatisfactionSurvey::DIMENSIONS as $field => $label) {
+            $avg = (clone $base)->whereNotNull($field)->avg($field);
+
+            if ($avg !== null) {
+                $dimStats[$this->shortDimensionLabel($field, $label)] = round((float) $avg, 2);
+            }
         }
         arsort($dimStats);
 
@@ -38,32 +60,42 @@ class SurveyStatsWidget extends StatsOverviewWidget
         $worstDim = array_key_last($dimStats);
 
         return [
-            Stat::make('Total encuestas', $total)
+            Stat::make(static::helpLabel('Total encuestas', 'Encuestas enviadas que coinciden con los filtros actuales. Se envían al cerrar un ticket.'), $total)
                 ->description("{$responded} respondidas · {$pending} pendientes")
                 ->icon('heroicon-o-clipboard-document-list')
                 ->color('primary'),
 
-            Stat::make('Tasa de respuesta', "{$responseRate}%")
-                ->description($responded.' de '.$total.' encuestas completadas')
+            Stat::make(static::helpLabel('Tasa de respuesta', 'Porcentaje de encuestas que el usuario respondió. No cuenta las auto-positivas, porque esas no las respondió nadie.'), "{$responseRate}%")
+                ->description("{$realResponses} de {$total} respondidas por el usuario")
                 ->icon('heroicon-o-check-circle')
                 ->color($responseRate >= 70 ? 'success' : ($responseRate >= 40 ? 'warning' : 'danger')),
 
-            Stat::make('Promedio general', number_format($avgGeneral, 2).' / 5')
+            Stat::make(static::helpLabel('Promedio general', 'Promedio de la calificación (1 a 5) de las encuestas respondidas. Incluye las auto-positivas, que cuentan como 5. Filtra por «Respondida por el usuario» para ver solo respuestas reales.'), number_format($avgGeneral, 2).' / 5')
                 ->description($responded > 0
-                    ? 'Basado en '.$responded.' respuestas'
+                    ? "{$realResponses} reales · {$autoPositive} auto-positivas"
                     : 'Sin datos aún')
                 ->icon('heroicon-o-star')
                 ->color($avgGeneral >= 4 ? 'success' : ($avgGeneral >= 3 ? 'warning' : 'danger')),
 
-            Stat::make('Mejor dimensión', $bestDim ?? '—')
+            Stat::make(static::helpLabel('Mejor dimensión', 'La pregunta con el promedio más alto. Solo cuenta respuestas reales, porque las auto-positivas no califican las preguntas.'), $bestDim ?? '—')
                 ->description(isset($dimStats[$bestDim]) ? number_format($dimStats[$bestDim], 2).' / 5' : '—')
                 ->icon('heroicon-o-arrow-trending-up')
                 ->color('success'),
 
-            Stat::make('Área de mejora', $worstDim ?? '—')
+            Stat::make(static::helpLabel('Área de mejora', 'La pregunta con el promedio más bajo: el aspecto del servicio que más conviene reforzar.'), $worstDim ?? '—')
                 ->description(isset($dimStats[$worstDim]) ? number_format($dimStats[$worstDim], 2).' / 5' : '—')
                 ->icon('heroicon-o-arrow-trending-down')
                 ->color('warning'),
         ];
+    }
+
+    protected function shortDimensionLabel(string $field, string $label): string
+    {
+        return match ($field) {
+            'rating_resolution' => 'Resolución',
+            'rating_knowledge' => 'Conocimiento técnico',
+            'rating_attitude' => 'Amabilidad',
+            default => $label,
+        };
     }
 }

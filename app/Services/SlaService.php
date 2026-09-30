@@ -221,6 +221,24 @@ class SlaService
         return $created;
     }
 
+    /**
+     * Formatea minutos hábiles para mostrar en reportes: "45 min",
+     * "2 h", "2 h 30 min".
+     */
+    public static function formatMinutes(int $minutes): string
+    {
+        $minutes = max(0, $minutes);
+
+        if ($minutes < 60) {
+            return "{$minutes} min";
+        }
+
+        $hours = intdiv($minutes, 60);
+        $rest = $minutes % 60;
+
+        return $rest > 0 ? "{$hours} h {$rest} min" : "{$hours} h";
+    }
+
     protected function isBusinessDay(CarbonInterface $date): bool
     {
         return $date->isWeekday();

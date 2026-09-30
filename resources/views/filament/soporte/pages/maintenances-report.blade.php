@@ -44,12 +44,7 @@
         .mr-table tr:hover td { background: rgb(250 250 250); }
         .dark .mr-table tr:hover td { background: rgb(39 39 42); }
 
-        .mr-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; }
-        .mr-bar-label { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem; }
-        .mr-bar-track { flex: 2 1 auto; background: rgb(228 228 231); height: 8px; border-radius: 4px; overflow: hidden; }
-        .dark .mr-bar-track { background: rgb(63 63 70); }
-        .mr-bar-fill { height: 100%; background: rgb(220 38 38); border-radius: 4px; }
-        .mr-bar-count { flex: 0 0 auto; font-size: 0.85rem; font-variant-numeric: tabular-nums; color: rgb(113 113 122); }
+        .mr-pie-wrap { position: relative; height: 280px; }
 
         .mr-status-badge {
             display: inline-block; padding: 0.125rem 0.5rem;
@@ -101,15 +96,43 @@
         </div>
     </div>
 
-    {{-- Charts row: mensual + top razones --}}
+    {{-- Charts row: estado + razones (torta) --}}
+    @php($statusTotals = [
+        'Cumplidos' => collect($monthly)->sum('cumplidos'),
+        'No cumplidos' => collect($monthly)->sum('no_cumplidos'),
+        'Pendientes' => collect($monthly)->sum('pendientes'),
+    ])
     <div class="mr-charts">
-        {{-- Cumplimiento mensual --}}
+        {{-- Distribución por estado --}}
         <div class="mr-card">
-            <h3 class="mr-section-title">Cumplimiento mensual</h3>
+            <h3 class="mr-section-title">Distribución por estado</h3>
             @if(empty($monthly))
                 <p class="text-sm text-gray-500">No hay datos en esta ventana.</p>
             @else
-                <canvas id="mr-monthly" height="260"></canvas>
+                <div class="mr-pie-wrap"><canvas id="mr-status-pie"></canvas></div>
+
+                @if(count($monthly) > 1)
+                    <table class="mr-table" style="margin-top: 1rem;">
+                        <thead>
+                            <tr>
+                                <th>Mes</th>
+                                <th style="text-align:right;">Cumplidos</th>
+                                <th style="text-align:right;">No cumplidos</th>
+                                <th style="text-align:right;">Pendientes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($monthly as $month => $row)
+                                <tr>
+                                    <td>{{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $month)->translatedFormat('M Y') }}</td>
+                                    <td style="text-align:right;">{{ $row['cumplidos'] }}</td>
+                                    <td style="text-align:right;">{{ $row['no_cumplidos'] }}</td>
+                                    <td style="text-align:right;">{{ $row['pendientes'] }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
             @endif
         </div>
 
@@ -119,16 +142,7 @@
             @if(empty($reasons))
                 <p class="text-sm text-gray-500">Sin registros de "no cumplido" en esta ventana.</p>
             @else
-                @php($maxCount = collect($reasons)->max('count') ?: 1)
-                @foreach($reasons as $r)
-                    <div class="mr-bar">
-                        <span class="mr-bar-label" title="{{ $r['reason'] }}">{{ \Illuminate\Support\Str::limit($r['reason'], 40) }}</span>
-                        <span class="mr-bar-track">
-                            <span class="mr-bar-fill" style="width: {{ round(($r['count'] / $maxCount) * 100) }}%;"></span>
-                        </span>
-                        <span class="mr-bar-count">{{ $r['count'] }}</span>
-                    </div>
-                @endforeach
+                <div class="mr-pie-wrap"><canvas id="mr-reasons-pie"></canvas></div>
             @endif
         </div>
     </div>
@@ -205,38 +219,59 @@
     </div>
 
     {{-- Chart.js CDN (mismo patrón que ChatbotMetrics) --}}
-    @if(!empty($monthly))
+    @if(!empty($monthly) || !empty($reasons))
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <script>
             (function() {
-                const labels = @json(array_keys($monthly));
-                const cumplidos = @json(collect($monthly)->pluck('cumplidos')->all());
-                const noCumplidos = @json(collect($monthly)->pluck('no_cumplidos')->all());
-                const pendientes = @json(collect($monthly)->pluck('pendientes')->all());
-
-                const el = document.getElementById('mr-monthly');
-                if (!el) return;
-                if (window.mrMonthlyChart) { window.mrMonthlyChart.destroy(); }
-
-                window.mrMonthlyChart = new Chart(el, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            { label: 'Cumplidos',    data: cumplidos,    backgroundColor: 'rgb(22 163 74)' },
-                            { label: 'No cumplidos', data: noCumplidos,  backgroundColor: 'rgb(220 38 38)' },
-                            { label: 'Pendientes',   data: pendientes,   backgroundColor: 'rgb(161 161 170)' },
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        scales: {
-                            x: { stacked: true },
-                            y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } },
+                // Muestra "n (x%)" en el tooltip de cada porción.
+                const tooltipWithPercent = {
+                    callbacks: {
+                        label: (ctx) => {
+                            const total = ctx.dataset.data.reduce((a, b) => a + b, 0) || 1;
+                            return ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed / total * 100)}%)`;
                         },
-                        plugins: { legend: { position: 'bottom' } }
-                    }
-                });
+                    },
+                };
+
+                const pieOptions = {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' }, tooltip: tooltipWithPercent },
+                };
+
+                const statusEl = document.getElementById('mr-status-pie');
+                if (statusEl) {
+                    if (window.mrStatusChart) { window.mrStatusChart.destroy(); }
+                    window.mrStatusChart = new Chart(statusEl, {
+                        type: 'pie',
+                        data: {
+                            labels: @json(array_keys($statusTotals)),
+                            datasets: [{
+                                data: @json(array_values($statusTotals)),
+                                backgroundColor: ['rgb(22 163 74)', 'rgb(220 38 38)', 'rgb(161 161 170)'],
+                            }],
+                        },
+                        options: pieOptions,
+                    });
+                }
+
+                const reasonsEl = document.getElementById('mr-reasons-pie');
+                if (reasonsEl) {
+                    if (window.mrReasonsChart) { window.mrReasonsChart.destroy(); }
+                    window.mrReasonsChart = new Chart(reasonsEl, {
+                        type: 'pie',
+                        data: {
+                            labels: @json(collect($reasons)->map(fn ($r) => \Illuminate\Support\Str::limit($r['reason'], 40))->all()),
+                            datasets: [{
+                                data: @json(collect($reasons)->pluck('count')->all()),
+                                backgroundColor: [
+                                    'rgb(220 38 38)', 'rgb(234 88 12)', 'rgb(217 119 6)', 'rgb(202 138 4)', 'rgb(101 163 13)',
+                                    'rgb(13 148 136)', 'rgb(37 99 235)', 'rgb(124 58 237)', 'rgb(219 39 119)', 'rgb(113 113 122)',
+                                ],
+                            }],
+                        },
+                        options: pieOptions,
+                    });
+                }
             })();
         </script>
     @endif

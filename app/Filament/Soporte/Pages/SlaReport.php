@@ -4,8 +4,8 @@ namespace App\Filament\Soporte\Pages;
 
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
+use App\Filament\Concerns\HasSlaBreachDetails;
 use App\Models\Department;
-use App\Models\EscalationLog;
 use App\Models\Ticket;
 use App\Services\ConsolidadoIndicadoresExporter;
 use BackedEnum;
@@ -32,10 +32,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * tickets en riesgo, matriz dept×prioridad y escalaciones recientes.
  * Por eso esta page necesita exponer las MISMAS variables que el
  * Admin SlaReport: window, summary, report, atRisk, priorities,
- * escalations.
+ * escalations, breachedTickets, breachFilter, ticketRoute.
  */
 class SlaReport extends Page
 {
+    use HasSlaBreachDetails;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
 
     protected static ?string $navigationLabel = 'Reporte SLA';
@@ -86,6 +88,7 @@ class SlaReport extends Page
         $departments = $departmentsQuery->orderBy('name')->get();
 
         $priorities = TicketPriority::cases();
+        $scopeDepartmentId = $isAdmin ? null : $user?->department_id;
 
         return [
             'window' => $labelDays,
@@ -94,10 +97,18 @@ class SlaReport extends Page
             'isCustomRange' => $this->hasCustomRange(),
             'report' => $this->buildMatrix($departments, $priorities, $fromDate, $toDate),
             'priorities' => $priorities,
-            'escalations' => $this->latestEscalations($isAdmin, $user?->department_id),
+            'escalations' => $this->escalationsInRange($fromDate, $toDate, $scopeDepartmentId),
             'atRisk' => $this->atRiskTickets($isAdmin, $user?->department_id),
             'summary' => $this->summary($fromDate, $toDate, $isAdmin, $user?->department_id),
+            'breachedTickets' => $this->breachedTickets($fromDate, $toDate, $scopeDepartmentId),
+            'breachFilter' => $this->breachFilterLabel(),
+            'ticketRoute' => $this->ticketViewRouteName(),
         ];
+    }
+
+    protected function ticketViewRouteName(): string
+    {
+        return 'filament.soporte.resources.tickets.view';
     }
 
     /**
@@ -263,14 +274,14 @@ class SlaReport extends Page
      *
      * @param  Collection<int, Department>  $departments
      * @param  array<int, TicketPriority>  $priorities
-     * @return array<int, array{department: string, priorities: array<int, array{label: string, total: int, breached: int, compliance: ?float}>}>
+     * @return array<int, array{department: string, department_id: int, priorities: array<int, array{label: string, value: string, total: int, breached: int, compliance: ?float}>}>
      */
     protected function buildMatrix(Collection $departments, array $priorities, CarbonInterface $from, CarbonInterface $to): array
     {
         $report = [];
 
         foreach ($departments as $dept) {
-            $row = ['department' => $dept->name, 'priorities' => []];
+            $row = ['department' => $dept->name, 'department_id' => $dept->id, 'priorities' => []];
 
             foreach ($priorities as $priority) {
                 $query = Ticket::query()
@@ -286,6 +297,7 @@ class SlaReport extends Page
 
                 $row['priorities'][] = [
                     'label' => $priority->getLabel(),
+                    'value' => $priority->value,
                     'total' => $total,
                     'breached' => $breached,
                     'compliance' => $compliance,
@@ -336,23 +348,5 @@ class SlaReport extends Page
                 'is_breached' => $diff < 0,
             ];
         });
-    }
-
-    /**
-     * Últimas escalaciones, filtradas al depto del supervisor si aplica.
-     *
-     * @return Collection<int, EscalationLog>
-     */
-    protected function latestEscalations(bool $isAdmin, ?int $deptId): Collection
-    {
-        $query = EscalationLog::with('ticket:id,number,subject,department_id', 'notifiedUser:id,name')
-            ->latest()
-            ->limit(20);
-
-        if (! $isAdmin && $deptId) {
-            $query->whereHas('ticket', fn ($q) => $q->where('department_id', $deptId));
-        }
-
-        return $query->get();
     }
 }

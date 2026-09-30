@@ -164,27 +164,68 @@
         </table>
     @endif
 
-    <h2>Escalaciones recientes</h2>
+    <h2>Tickets con SLA incumplido</h2>
+    @if ($breachedTickets->isEmpty())
+        <p class="muted">No hay tickets resueltos con el SLA incumplido en el rango.</p>
+    @else
+        <table class="list">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Ticket</th>
+                    <th>Asunto</th>
+                    <th style="width: 13%;">Departamento</th>
+                    <th style="width: 8%;">Prioridad</th>
+                    <th style="width: 14%;">Atendido por</th>
+                    <th style="width: 9%; text-align: right;">Límite</th>
+                    <th style="width: 9%; text-align: right;">Tiempo real</th>
+                    <th style="width: 9%; text-align: right;">Exceso</th>
+                    <th style="width: 10%; text-align: right;">Resuelto</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($breachedTickets as $row)
+                    @php($t = $row['ticket'])
+                    <tr>
+                        <td><strong>{{ $t->number }}</strong></td>
+                        <td>{{ \Illuminate\Support\Str::limit($t->subject ?? '', 55) }}</td>
+                        <td>{{ $t->department?->name ?? '—' }}</td>
+                        <td>{{ $t->priority?->getLabel() }}</td>
+                        <td>{{ $t->assignee?->name ?? 'Sin asignar' }}</td>
+                        <td style="text-align: right;">{{ \App\Services\SlaService::formatMinutes($row['limit_minutes']) }}</td>
+                        <td style="text-align: right;">{{ \App\Services\SlaService::formatMinutes($row['elapsed_minutes']) }}</td>
+                        <td style="text-align: right;" class="risk-breached">{{ $row['overdue_minutes'] > 0 ? '+'.\App\Services\SlaService::formatMinutes($row['overdue_minutes']) : '—' }}</td>
+                        <td style="text-align: right;">{{ $t->resolved_at?->translatedFormat('d/m/Y H:i') }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    <h2>Escalaciones del periodo</h2>
     @if ($escalations->isEmpty())
         <p class="muted">No se registraron escalaciones SLA.</p>
     @else
         <table class="list">
             <thead>
                 <tr>
-                    <th style="width: 12%;">Ticket</th>
-                    <th style="width: 14%;">Tipo</th>
-                    <th style="width: 16%;">Notificado a</th>
+                    <th style="width: 10%;">Ticket</th>
+                    <th style="width: 16%;">Alerta</th>
                     <th>Asunto del ticket</th>
-                    <th style="width: 14%; text-align: right;">Fecha</th>
+                    <th style="width: 14%;">Atendido por</th>
+                    <th style="width: 10%;">Estado</th>
+                    <th style="width: 13%; text-align: right;">Consumido</th>
+                    <th style="width: 11%; text-align: right;">Fecha</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($escalations as $log)
                     <tr>
                         <td><strong>{{ $log->ticket?->number ?? '—' }}</strong></td>
-                        <td>{{ ucfirst((string) $log->type) }}</td>
-                        <td>{{ $log->notifiedUser?->name ?? '—' }}</td>
-                        <td>{{ \Illuminate\Support\Str::limit($log->ticket?->subject ?? '', 60) }}</td>
+                        <td class="{{ $log->isBreach() ? 'risk-breached' : 'risk-warning' }}">{{ $log->typeLabel() }} · {{ $log->metricLabel() }}</td>
+                        <td>{{ \Illuminate\Support\Str::limit($log->ticket?->subject ?? '', 55) }}</td>
+                        <td>{{ $log->ticket?->assignee?->name ?? 'Sin asignar' }}</td>
+                        <td>{{ $log->ticket?->status?->getLabel() ?? '—' }}</td>
+                        <td style="text-align: right;">{{ \App\Services\SlaService::formatMinutes($log->elapsed_minutes) }} / {{ \App\Services\SlaService::formatMinutes($log->sla_minutes) }}</td>
                         <td style="text-align: right;">{{ $log->created_at?->translatedFormat('d/m/Y H:i') ?? '—' }}</td>
                     </tr>
                 @endforeach

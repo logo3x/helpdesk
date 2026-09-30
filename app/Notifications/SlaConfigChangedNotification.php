@@ -3,7 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\SlaConfig;
-use Filament\Notifications\Actions\Action as FilamentAction;
+use Filament\Actions\Action as FilamentAction;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;

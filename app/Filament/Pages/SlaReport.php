@@ -4,8 +4,8 @@ namespace App\Filament\Pages;
 
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
+use App\Filament\Concerns\HasSlaBreachDetails;
 use App\Models\Department;
-use App\Models\EscalationLog;
 use App\Models\Ticket;
 use App\Services\ConsolidadoIndicadoresExporter;
 use BackedEnum;
@@ -34,6 +34,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class SlaReport extends Page
 {
+    use HasSlaBreachDetails;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
 
     protected static ?string $navigationLabel = 'Reporte SLA';
@@ -74,10 +76,18 @@ class SlaReport extends Page
             'isCustomRange' => $this->hasCustomRange(),
             'report' => $this->buildMatrix($departments, $priorities, $from, $to),
             'priorities' => $priorities,
-            'escalations' => $this->latestEscalations(),
+            'escalations' => $this->escalationsInRange($from, $to),
             'atRisk' => $this->atRiskTickets(),
             'summary' => $this->summary($from, $to),
+            'breachedTickets' => $this->breachedTickets($from, $to),
+            'breachFilter' => $this->breachFilterLabel(),
+            'ticketRoute' => $this->ticketViewRouteName(),
         ];
+    }
+
+    protected function ticketViewRouteName(): string
+    {
+        return 'filament.admin.resources.tickets.view';
     }
 
     public function applyPreset(string $days): void
@@ -205,14 +215,14 @@ class SlaReport extends Page
      *
      * @param  Collection<int, Department>  $departments
      * @param  array<int, TicketPriority>  $priorities
-     * @return array<int, array{department: string, priorities: array<int, array{label: string, total: int, breached: int, compliance: ?float}>}>
+     * @return array<int, array{department: string, department_id: int, priorities: array<int, array{label: string, value: string, total: int, breached: int, compliance: ?float}>}>
      */
     protected function buildMatrix(Collection $departments, array $priorities, CarbonInterface $from, CarbonInterface $to): array
     {
         $report = [];
 
         foreach ($departments as $dept) {
-            $row = ['department' => $dept->name, 'priorities' => []];
+            $row = ['department' => $dept->name, 'department_id' => $dept->id, 'priorities' => []];
 
             foreach ($priorities as $priority) {
                 $query = Ticket::query()
@@ -228,6 +238,7 @@ class SlaReport extends Page
 
                 $row['priorities'][] = [
                     'label' => $priority->getLabel(),
+                    'value' => $priority->value,
                     'total' => $total,
                     'breached' => $breached,
                     'compliance' => $compliance,
@@ -277,16 +288,5 @@ class SlaReport extends Page
                 'is_breached' => $diff < 0,
             ];
         });
-    }
-
-    /**
-     * @return Collection<int, EscalationLog>
-     */
-    protected function latestEscalations(): Collection
-    {
-        return EscalationLog::with('ticket:id,number,subject', 'notifiedUser:id,name')
-            ->latest()
-            ->limit(20)
-            ->get();
     }
 }

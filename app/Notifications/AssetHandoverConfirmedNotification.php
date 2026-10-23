@@ -4,10 +4,11 @@ namespace App\Notifications;
 
 use App\Models\AssetHandover;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class AssetHandoverConfirmedNotification extends Notification
+class AssetHandoverConfirmedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 

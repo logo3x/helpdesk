@@ -6,6 +6,7 @@ use App\Models\ScheduledMaintenance;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -13,7 +14,7 @@ use Illuminate\Notifications\Notification;
  * Notifica al agente que se le asignó un mantenimiento programado.
  * Canales: database (campanita Filament) + mail (si SMTP disponible).
  */
-class ScheduledMaintenanceAssignedNotification extends Notification
+class ScheduledMaintenanceAssignedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 

@@ -6,6 +6,7 @@ use App\Models\ScheduledMaintenance;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -13,7 +14,7 @@ use Illuminate\Notifications\Notification;
  * Notifica al agente que un mantenimiento se acerca a la fecha
  * programada (por defecto 30 días de anticipación).
  */
-class ScheduledMaintenanceDueNotification extends Notification
+class ScheduledMaintenanceDueNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 

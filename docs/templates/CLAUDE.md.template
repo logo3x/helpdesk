@@ -1,0 +1,106 @@
+# {{PROYECTO}} — Guía para Claude
+
+Este archivo lo lee Claude al abrir cualquier sesión en este repo. Mantener corto y accionable.
+
+## Qué es este proyecto
+
+{{DESCRIPCION_UNA_LINEA}}
+
+Ejemplo: "Portal interno de gestión legal de Confipetrol para seguimiento de casos, contratos y vencimientos."
+
+## Stack
+
+{{STACK}}
+
+Ejemplo: `Laravel 13 · Livewire 4 · Flux UI 2 · Filament 5 · MySQL · Pest 4 · Tailwind 4 · PHP 8.5`
+
+## Flujo de trabajo (Git-first multi-dispositivo)
+
+- **Fuente de verdad**: este repo. No la memoria de una sesión de Claude.
+- **Planes/backlog**: en `docs/pendientes.md` y `docs/plan-v{{VERSION}}.md`.
+- **Handoff entre PC/web/móvil**: `git pull` → leer plan vigente → trabajar → `git push`.
+- **Rama principal**: `main`. Trabajo directo o PRs según el ítem.
+- **Un ítem = un commit** con tests cuando toca código.
+
+Al iniciar sesión, Claude debe:
+1. Leer `docs/pendientes.md` para ver prioridades.
+2. Leer `docs/plan-v*.md` más reciente para contexto de la iteración actual.
+3. Si no hay plan vigente, preguntar antes de arrancar.
+
+## Convenciones de código
+
+### Idioma
+- Nombres en inglés (clases, variables, columnas).
+- Comentarios de código en español.
+- Mensajes de commit en español, imperativo: `feat(módulo): descripción corta`.
+- UI, PDFs y mails en **español neutro** (sin voseo rioplatense): "tú puedes", "cuéntame", "revisa".
+
+### Convención de commits
+```
+feat(area): nueva funcionalidad
+fix(area): corrección de bug
+docs(area): cambio de documentación
+refactor(area): reorganización sin cambio funcional
+test(area): tests nuevos o actualizados
+chore: tareas de infra sin impacto funcional
+```
+
+Cada commit cierra UN ítem del backlog. Referencia opcional: `(#X Tanda Y, vA.B.C)`.
+
+### Testing
+- Framework: {{FRAMEWORK_TESTS}} (ej: Pest 4).
+- Cada cambio funcional incluye test que lo cubre.
+- Correr: `{{COMANDO_TESTS}}` (ej: `php artisan test --compact`).
+- No eliminar tests sin aprobación explícita del usuario.
+
+### Formato
+- Ejecutar antes de cada commit: `{{COMANDO_FORMATEADOR}}` (ej: `vendor/bin/pint --dirty --format agent`).
+
+### Seguridad
+- Nunca commitear secretos (`.env`, keys, tokens).
+- Nunca `--force` sobre `main` ni skip de hooks (`--no-verify`) sin autorización explícita.
+
+## Backlog y planes
+
+- Backlog priorizado: [`docs/pendientes.md`](docs/pendientes.md).
+- Planes por iteración: `docs/plan-v{{VERSION}}.md`.
+- Decisiones no triviales: `docs/decisiones/ADR-NNN-titulo.md` (opcional).
+
+## Usuario y atribución
+
+- Usuario principal: {{USUARIO_PRINCIPAL}} (ej: Luis Oviedo, luis.oviedo@confipetrol.com)
+- Idioma del usuario: español
+- Agente: Claude. Al commitear: `Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>`
+
+## Comunicación
+
+- Respuestas concisas, foco en acción.
+- Reportar en texto plano, no sobre-formatear.
+- Si una decisión bloquea, preguntar antes que asumir.
+- Idioma: español, neutro, directo.
+
+## {{DOMINIO}}-específico
+
+{{REGLAS_DE_NEGOCIO}}
+
+Ejemplo (helpdesk):
+- Tickets siguen el flujo `nuevo → asignado → en_progreso → resuelto → cerrado`.
+- "Pendiente cliente" pausa el SLA.
+- Un supervisor solo ve tickets de su departamento.
+
+## Archivos sensibles (no tocar sin aviso)
+
+- `.env`, `.env.*`
+- `storage/` (datos de usuarios)
+- `database/*.sqlite` (datos de prueba locales)
+- {{OTROS_SENSIBLES}}
+
+## Deploy
+
+- Entorno: {{ENTORNO_DEPLOY}} (ej: "Windows Server + IIS + wamp64").
+- URL producción: {{URL_PROD}}
+- Webhook / comando de deploy: {{COMANDO_DEPLOY}}
+
+---
+
+*Última actualización: {{FECHA}}. Mantener este archivo breve — detalles van en `docs/`.*

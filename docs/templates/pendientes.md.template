@@ -1,0 +1,80 @@
+# Pendientes — {{PROYECTO}}
+
+**Última actualización:** {{FECHA}}
+
+Lista priorizada de trabajo. Orden = prioridad sugerida. Cada ítem resuelto se marca ✅ con el hash del commit.
+
+---
+
+## 🧭 Cómo usar este documento
+
+- **Un ítem = un commit.** Al cerrarlo, marcar ✅ y referenciar el commit.
+- **Tandas** agrupan ítems que se trabajan juntos (misma iteración/release).
+- **Preguntas abiertas** van al final; se resuelven antes de empezar.
+- Este archivo se lee al abrir cualquier sesión de Claude en este repo.
+
+---
+
+## 🔴 P0 — Pre-producción / bloqueantes
+
+### 0.1 {{TITULO_P0_1}}
+
+**Estado hoy:** {{DESCRIPCION}}
+
+**Qué hace falta:**
+- [ ] {{ACCION_1}}
+- [ ] {{ACCION_2}}
+
+**Archivos involucrados:** `{{RUTA}}`
+
+**Tests:** {{DESCRIPCION_TESTS}}
+
+---
+
+## 🟡 P1 — Para el próximo ciclo
+
+### 1.1 {{TITULO_P1_1}}
+
+**Estado hoy:** {{DESCRIPCION}}
+
+**Qué hace falta:**
+- [ ] {{ACCION_1}}
+
+---
+
+## 🟢 P2 — Mejoras deseables
+
+### 2.1 {{TITULO_P2_1}}
+
+{{DESCRIPCION}}
+
+---
+
+## 🔵 P3 — Nice-to-have
+
+### 3.1 {{TITULO_P3_1}}
+
+{{DESCRIPCION}}
+
+---
+
+## ⏳ Bloqueos externos
+
+- **{{TITULO_BLOQUEO}}**: coordinar con {{RESPONSABLE}}. Pendiente de {{QUE_FALTA}}.
+
+---
+
+## ✅ Resueltos recientemente
+
+- ✅ **{{TITULO_RESUELTO}}** — commit `{{HASH}}`. {{DESCRIPCION_BREVE}}
+
+---
+
+## ❓ Preguntas abiertas
+
+1. **{{PREGUNTA_1}}** — necesaria para arrancar {{ITEM}}.
+2. **{{PREGUNTA_2}}** — definir con {{RESPONSABLE}}.
+
+---
+
+*Este documento es el estado compartido entre Luis, Claude Code local, Claude web y Claude móvil. Mantener actualizado tras cada sesión.*

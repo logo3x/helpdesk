@@ -1,0 +1,91 @@
+# Plan de trabajo — v{{VERSION}}
+
+**Fecha:** {{FECHA}}
+**Base:** HEAD `{{HASH_BASE}}` ({{DESCRIPCION_BASE}})
+**Origen:** {{ORIGEN_PEDIDO}} (ej: "Testeo en producción", "Reunión con stakeholders")
+
+Lista agrupada en **{{N_TANDAS}} tandas** por dependencia funcional y riesgo. Dentro de cada tanda se trabaja en el orden listado; cada ítem termina con un commit propio con tests.
+
+---
+
+## 🧭 Resumen ejecutivo
+
+| Tanda | Versión | Alcance | Ítems | Esfuerzo |
+|-------|---------|---------|-------|----------|
+| **1** | v{{VERSION_T1}} | {{ALCANCE_T1}} | {{N_T1}} | {{ESFUERZO_T1}} |
+| **2** | v{{VERSION_T2}} | {{ALCANCE_T2}} | {{N_T2}} | {{ESFUERZO_T2}} |
+
+Total: **{{N_TOTAL}} ítems**.
+
+---
+
+## 🟢 Tanda 1 — {{NOMBRE_T1}} (v{{VERSION_T1}})
+
+{{DESCRIPCION_T1}}
+
+### 1.1 {{TITULO_ITEM_1_1}}
+
+**Estado hoy:** {{ESTADO}}
+
+**Qué hace falta:**
+- {{ACCION_1}}
+- {{ACCION_2}}
+
+**Archivos tocados:**
+- `{{RUTA_1}}`
+- `{{RUTA_2}}`
+
+**Tests:** {{DESCRIPCION_TESTS}}
+
+**Commit sugerido:** `feat(area): {{TITULO}} (#1.1 T1, v{{VERSION_T1}})`
+
+---
+
+### 1.2 {{TITULO_ITEM_1_2}}
+
+**Estado hoy:** {{ESTADO}}
+
+**Qué hace falta:**
+- {{ACCION_1}}
+
+**Tests:** {{DESCRIPCION_TESTS}}
+
+---
+
+## 🟡 Tanda 2 — {{NOMBRE_T2}} (v{{VERSION_T2}})
+
+### 2.1 {{TITULO_ITEM_2_1}}
+
+**Estado hoy:** {{ESTADO}}
+
+**Qué hace falta:**
+- {{ACCION_1}}
+
+---
+
+## 📊 Priorización sugerida
+
+| Prioridad | Tanda | Razón |
+|-----------|-------|-------|
+| 🔴 Alta | T1 | {{RAZON_T1}} |
+| 🟡 Media | T2 | {{RAZON_T2}} |
+
+---
+
+## 🧪 Reglas de ejecución
+
+- **Un ítem = un commit**, con tests que cubran el cambio.
+- Antes de cerrar la tanda: suite completa sin regresiones.
+- Antes de push: formateador en los archivos modificados.
+- Convención de mensajes: `feat(area): descripción (#X Tanda Y, vA.B.C)`.
+
+---
+
+## 🙋 Preguntas abiertas antes de arrancar
+
+1. **{{PREGUNTA_1}}**
+2. **{{PREGUNTA_2}}**
+
+---
+
+*Documento generado {{FECHA}}. Fuente: {{ORIGEN_PEDIDO}}.*

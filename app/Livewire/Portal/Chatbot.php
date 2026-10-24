@@ -74,9 +74,16 @@ class Chatbot extends Component
 
         // Si vinimos del widget del dashboard con ?q=..., pre-rellenar
         // el input y enviar automáticamente la pregunta.
-        if ($this->initialQuery !== '') {
-            $this->message = $this->initialQuery;
-            $this->initialQuery = '';
+        //
+        // SEG: capamos a 500 chars y strip_tags para evitar que un link
+        // compartido con ?q=<10 MB de texto> queme tokens del LLM o
+        // inyecte markup. Si viene vacío tras saneamiento, no enviamos.
+        $sanitized = trim(strip_tags($this->initialQuery));
+        $sanitized = mb_substr($sanitized, 0, 500);
+        $this->initialQuery = '';
+
+        if ($sanitized !== '') {
+            $this->message = $sanitized;
             $this->send();
         }
     }

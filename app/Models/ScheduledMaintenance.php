@@ -38,7 +38,6 @@ class ScheduledMaintenance extends Model implements HasMedia
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('evidence')
-            ->useDisk('local')
             ->acceptsMimeTypes([
                 'application/pdf',
                 'image/jpeg',

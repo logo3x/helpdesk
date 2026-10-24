@@ -5,7 +5,6 @@ namespace App\Filament\Soporte\Resources\ScheduledMaintenances\Schemas;
 use App\Enums\MaintenanceFrequency;
 use App\Enums\MaintenanceStatus;
 use App\Models\Asset;
-use App\Models\Department;
 use App\Models\Project;
 use App\Models\ScheduledMaintenance;
 use App\Models\User;
@@ -153,40 +152,24 @@ class ScheduledMaintenanceForm
                             ->live()
                             ->dehydrated(false),
 
-                        Select::make('bulk_filter_location_zone')
-                            ->label('Zona')
-                            ->options(fn () => Asset::query()
-                                ->whereIn('type', self::ELIGIBLE_TYPES)
-                                ->whereNotNull('location_zone')
-                                ->distinct()
-                                ->orderBy('location_zone')
-                                ->pluck('location_zone', 'location_zone')
-                                ->all())
-                            ->searchable()
-                            ->native(false)
-                            ->live()
-                            ->dehydrated(false),
-
                         Select::make('bulk_filter_project_id')
-                            ->label('Proyecto')
-                            ->options(fn () => Project::query()
-                                ->where('is_active', true)
-                                ->orderBy('name')
-                                ->get()
-                                ->mapWithKeys(fn ($p) => [$p->id => "{$p->code} · {$p->name}"])
-                                ->all())
-                            ->searchable()
-                            ->preload()
-                            ->native(false)
-                            ->live()
-                            ->dehydrated(false),
+                            ->label('Proyecto / Contrato')
+                            ->helperText('Si eliges una gerencia arriba, el listado se filtra solo con proyectos que tienen activos de esa gerencia.')
+                            ->options(function (Get $get) {
+                                $management = $get('bulk_filter_management_area');
 
-                        Select::make('bulk_filter_department_id')
-                            ->label('Departamento')
-                            ->options(fn () => Department::query()
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->all())
+                                return Project::query()
+                                    ->where('is_active', true)
+                                    ->when($management, function ($query, $m) {
+                                        $query->whereHas('assets', fn ($q) => $q
+                                            ->whereIn('type', self::ELIGIBLE_TYPES)
+                                            ->where('management_area', $m));
+                                    })
+                                    ->orderBy('name')
+                                    ->get()
+                                    ->mapWithKeys(fn ($p) => [$p->id => "{$p->code} · {$p->name}"])
+                                    ->all();
+                            })
                             ->searchable()
                             ->preload()
                             ->native(false)
@@ -448,14 +431,8 @@ class ScheduledMaintenanceForm
         if ($v = $get('bulk_filter_field')) {
             $query->where('field', $v);
         }
-        if ($v = $get('bulk_filter_location_zone')) {
-            $query->where('location_zone', $v);
-        }
         if ($v = $get('bulk_filter_project_id')) {
             $query->where('project_id', $v);
-        }
-        if ($v = $get('bulk_filter_department_id')) {
-            $query->where('department_id', $v);
         }
 
         return $query;

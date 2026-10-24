@@ -1,0 +1,208 @@
+<?php
+
+namespace App\Filament\Soporte\Pages;
+
+use App\Models\MaintenanceSurvey;
+use App\Models\SatisfactionSurvey;
+use App\Models\Ticket;
+use BackedEnum;
+use Filament\Pages\Page;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Livewire\Attributes\Url;
+
+/**
+ * Reporte unificado de encuestas de satisfacción.
+ *
+ * Muestra en una sola tabla las encuestas de tickets (`satisfaction_surveys`)
+ * y las encuestas de mantenimientos (`maintenance_surveys`), con un badge
+ * de origen y filtro para discriminar.
+ *
+ * Antes era imposible saber de un vistazo si una calificación 2 estrellas
+ * era por un ticket mal resuelto o por un mantenimiento mal hecho; esta
+ * página lo deja claro.
+ */
+class UnifiedSurveysReport extends Page
+{
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleBottomCenterText;
+
+    protected static ?string $navigationLabel = 'Encuestas (todas)';
+
+    protected static ?string $title = 'Encuestas de satisfacción — unificadas';
+
+    protected static ?int $navigationSort = 52;
+
+    protected string $view = 'filament.soporte.pages.unified-surveys-report';
+
+    /** Filtro de origen: 'all' | 'ticket' | 'maintenance'. */
+    #[Url]
+    public string $source = 'all';
+
+    /** Filtro de rango en días. */
+    #[Url]
+    public string $window = '90';
+
+    /** Filtro de rating mínimo (1-5). Vacío = sin filtro. */
+    #[Url]
+    public string $minRating = '';
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) $user?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
+    }
+
+    public function getTitle(): string|Htmlable
+    {
+        return static::$title;
+    }
+
+    public function getViewData(): array
+    {
+        $rows = $this->buildRows();
+
+        return [
+            'rows' => $rows,
+            'stats' => $this->buildStats($rows),
+            'sourceOptions' => [
+                'all' => 'Todas las encuestas',
+                'ticket' => 'Solo tickets',
+                'maintenance' => 'Solo mantenimientos',
+            ],
+            'windowOptions' => [
+                '30' => '30 días',
+                '90' => '90 días',
+                '180' => '180 días',
+                '365' => '1 año',
+                '0' => 'Sin límite',
+            ],
+        ];
+    }
+
+    /**
+     * Construye las filas combinadas, ya ordenadas y filtradas.
+     *
+     * @return Collection<int, array{
+     *     id: int,
+     *     source: string,
+     *     related_label: string,
+     *     related_url: ?string,
+     *     user_name: ?string,
+     *     rating: ?int,
+     *     comment: ?string,
+     *     responded_at: ?Carbon,
+     *     created_at: ?Carbon,
+     * }>
+     */
+    protected function buildRows(): Collection
+    {
+        $windowDays = (int) $this->window;
+        $minRating = $this->minRating !== '' ? (int) $this->minRating : null;
+
+        $rows = collect();
+
+        if ($this->source === 'all' || $this->source === 'ticket') {
+            $rows = $rows->merge($this->ticketRows($windowDays, $minRating));
+        }
+
+        if ($this->source === 'all' || $this->source === 'maintenance') {
+            $rows = $rows->merge($this->maintenanceRows($windowDays, $minRating));
+        }
+
+        return $rows
+            ->sortByDesc(fn (array $r) => $r['responded_at']?->timestamp ?? $r['created_at']?->timestamp ?? 0)
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    protected function ticketRows(int $windowDays, ?int $minRating): Collection
+    {
+        $query = SatisfactionSurvey::query()
+            ->with(['ticket:id,number,subject', 'user:id,name'])
+            ->when($windowDays > 0, fn ($q) => $q->where('created_at', '>=', now()->subDays($windowDays)))
+            ->when($minRating !== null, fn ($q) => $q->where('rating', '>=', $minRating));
+
+        return $query->get()->map(function (SatisfactionSurvey $s): array {
+            return [
+                'id' => $s->id,
+                'source' => 'ticket',
+                'related_label' => $s->ticket?->number
+                    ? $s->ticket->number.' · '.mb_strimwidth((string) $s->ticket?->subject, 0, 60, '…')
+                    : '— ticket eliminado —',
+                'related_url' => $s->ticket
+                    ? route('filament.soporte.resources.tickets.view', ['record' => $s->ticket->id])
+                    : null,
+                'user_name' => $s->user?->name,
+                'rating' => $s->rating,
+                'comment' => $s->comment,
+                'responded_at' => $s->responded_at,
+                'created_at' => $s->created_at,
+            ];
+        });
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    protected function maintenanceRows(int $windowDays, ?int $minRating): Collection
+    {
+        $query = MaintenanceSurvey::query()
+            ->with(['asset:id,asset_tag,hostname,type', 'user:id,name'])
+            ->when($windowDays > 0, fn ($q) => $q->where('created_at', '>=', now()->subDays($windowDays)))
+            ->when($minRating !== null, fn ($q) => $q->where('rating', '>=', $minRating));
+
+        return $query->get()->map(function (MaintenanceSurvey $s): array {
+            $asset = $s->asset;
+            $label = $asset
+                ? ($asset->asset_tag ?: $asset->hostname ?: 'Activo #'.$asset->id)
+                : '— activo eliminado —';
+
+            return [
+                'id' => $s->id,
+                'source' => 'maintenance',
+                'related_label' => $label,
+                'related_url' => $asset
+                    ? route('filament.soporte.resources.assets.edit', ['record' => $asset->id])
+                    : null,
+                'user_name' => $s->user?->name,
+                'rating' => $s->rating,
+                'comment' => $s->comment,
+                'responded_at' => $s->responded_at,
+                'created_at' => $s->created_at,
+            ];
+        });
+    }
+
+    /**
+     * Resumen de la ventana filtrada.
+     *
+     * @param  Collection<int, array<string, mixed>>  $rows
+     * @return array{total: int, answered: int, pending: int, avg: ?float, byTicket: int, byMaintenance: int}
+     */
+    protected function buildStats(Collection $rows): array
+    {
+        $answered = $rows->filter(fn (array $r) => $r['rating'] !== null);
+        $total = $rows->count();
+        $byTicket = $rows->where('source', 'ticket')->count();
+        $byMaintenance = $rows->where('source', 'maintenance')->count();
+
+        return [
+            'total' => $total,
+            'answered' => $answered->count(),
+            'pending' => $total - $answered->count(),
+            'avg' => $answered->isNotEmpty() ? round($answered->avg('rating'), 2) : null,
+            'byTicket' => $byTicket,
+            'byMaintenance' => $byMaintenance,
+        ];
+    }
+}

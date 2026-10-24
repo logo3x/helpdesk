@@ -10,6 +10,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class CategoryForm
 {
@@ -47,7 +48,34 @@ class CategoryForm
                     ->disabled(fn (?Category $record) => $record !== null && ! $record->canBecomeChild())
                     ->dehydrated()
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    // SEG: valida backend que parent_id realmente pertenezca
+                    // al mismo depto y no sea una hija. Evita que un atacante
+                    // envíe un parent_id arbitrario por POST saltando la UI.
+                    ->rules([
+                        function (Get $get) {
+                            return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                if (blank($value)) {
+                                    return;
+                                }
+                                $departmentId = (int) $get('department_id');
+                                $parent = Category::query()
+                                    ->whereKey($value)
+                                    ->first();
+                                if (! $parent) {
+                                    $fail('La categoría padre no existe.');
+
+                                    return;
+                                }
+                                if ((int) $parent->department_id !== $departmentId) {
+                                    $fail('La categoría padre debe pertenecer al mismo departamento.');
+                                }
+                                if ($parent->parent_id !== null) {
+                                    $fail('No se pueden encadenar más de 2 niveles de categoría.');
+                                }
+                            };
+                        },
+                    ]),
 
                 TextInput::make('name')
                     ->label('Nombre')
@@ -82,7 +110,11 @@ class CategoryForm
                         ->filter(fn ($label, $key) => str_contains(strtolower($key.$label), strtolower($search)))
                         ->all())
                     ->getOptionLabelUsing(fn (?string $value): ?string => $value ? (self::iconOptions()[$value] ?? $value) : null)
-                    ->allowHtml(false),
+                    ->allowHtml(false)
+                    // SEG: valida backend que el icono sea de la whitelist.
+                    // El Select de Filament solo filtra en la UI; sin esto
+                    // un atacante podría guardar cualquier string.
+                    ->rules(['nullable', 'string', Rule::in(array_keys(self::iconOptions()))]),
 
                 Textarea::make('description')
                     ->label('Descripción')

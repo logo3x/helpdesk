@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Mail\MicrosoftGraphTransport;
 use App\Services\DemoLlmService;
 use App\Services\LlmService;
 use Carbon\CarbonImmutable;
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -37,6 +39,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        Mail::extend('graph', fn (array $config) => new MicrosoftGraphTransport(
+            tenantId: (string) $config['tenant_id'],
+            clientId: (string) $config['client_id'],
+            clientSecret: (string) $config['client_secret'],
+            sender: (string) $config['sender'],
+        ));
 
         // Register Socialite Microsoft provider from socialiteproviders/microsoft
         Event::listen(

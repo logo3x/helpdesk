@@ -70,6 +70,16 @@ return [
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
         ],
 
+        // Envío por Microsoft Graph (no le afecta el MFA). Por defecto
+        // reutiliza el App Registration del SSO de Azure.
+        'graph' => [
+            'transport' => 'graph',
+            'tenant_id' => env('MAIL_GRAPH_TENANT_ID', env('AZURE_TENANT_ID')),
+            'client_id' => env('MAIL_GRAPH_CLIENT_ID', env('AZURE_CLIENT_ID')),
+            'client_secret' => env('MAIL_GRAPH_CLIENT_SECRET', env('AZURE_CLIENT_SECRET')),
+            'sender' => env('MAIL_GRAPH_SENDER', env('MAIL_FROM_ADDRESS')),
+        ],
+
         'log' => [
             'transport' => 'log',
             'channel' => env('MAIL_LOG_CHANNEL'),

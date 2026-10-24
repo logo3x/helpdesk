@@ -13,6 +13,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Section;
@@ -356,6 +357,21 @@ class ScheduledMaintenanceForm
                             ->visible(fn (Get $get) => $get('status') === MaintenanceStatus::NoCumplido->value)
                             ->required(fn (Get $get) => $get('status') === MaintenanceStatus::NoCumplido->value)
                             ->helperText('Ej: "Usuario no disponible", "Repuesto pendiente", "Equipo en préstamo".')
+                            ->columnSpanFull(),
+
+                        SpatieMediaLibraryFileUpload::make('evidence')
+                            ->label('Evidencia del mantenimiento')
+                            ->collection('evidence')
+                            ->multiple()
+                            ->maxFiles(5)
+                            ->maxSize(10240) // 10 MB por archivo
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])
+                            ->downloadable()
+                            ->openable()
+                            ->preserveFilenames()
+                            ->visible(fn (Get $get) => $get('status') === MaintenanceStatus::Cumplido->value)
+                            ->required(fn (Get $get) => $get('status') === MaintenanceStatus::Cumplido->value)
+                            ->helperText('Fotos del equipo, acta firmada, PDF de pruebas. Obligatorio al marcar como cumplido. Hasta 5 archivos de 10 MB cada uno.')
                             ->columnSpanFull(),
                     ]),
 

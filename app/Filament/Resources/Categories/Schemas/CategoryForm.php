@@ -70,11 +70,19 @@ class CategoryForm
                     ->maxLength(150)
                     ->unique(Category::class, 'slug', ignoreRecord: true),
 
-                TextInput::make('icon')
-                    ->label('Icono (Heroicon)')
-                    ->placeholder('heroicon-o-computer-desktop')
-                    ->maxLength(60)
-                    ->helperText('Nombre del icono Heroicon opcional.'),
+                Select::make('icon')
+                    ->label('Icono')
+                    ->options(self::iconOptions())
+                    ->native(false)
+                    ->searchable()
+                    ->preload()
+                    ->placeholder('— sin icono —')
+                    ->helperText('Elige un icono visual. Se usa en el centro de ayuda y en el portal.')
+                    ->getSearchResultsUsing(fn (string $search) => collect(self::iconOptions())
+                        ->filter(fn ($label, $key) => str_contains(strtolower($key.$label), strtolower($search)))
+                        ->all())
+                    ->getOptionLabelUsing(fn (?string $value): ?string => $value ? (self::iconOptions()[$value] ?? $value) : null)
+                    ->allowHtml(false),
 
                 Textarea::make('description')
                     ->label('Descripción')
@@ -92,5 +100,86 @@ class CategoryForm
                     ->label('Activa')
                     ->default(true),
             ]);
+    }
+
+    /**
+     * Catálogo curado de iconos Heroicon disponibles para las categorías.
+     * Mantener alfabéticamente por categoría temática para que el search sea útil.
+     *
+     * @return array<string, string>
+     */
+    protected static function iconOptions(): array
+    {
+        return [
+            // Hardware y PCs
+            'heroicon-o-computer-desktop' => 'Computadora de escritorio',
+            'heroicon-o-cpu-chip' => 'Procesador / CPU',
+            'heroicon-o-device-phone-mobile' => 'Teléfono móvil',
+            'heroicon-o-device-tablet' => 'Tablet',
+            'heroicon-o-printer' => 'Impresora',
+            'heroicon-o-server' => 'Servidor',
+            'heroicon-o-wifi' => 'Wifi',
+            'heroicon-o-signal' => 'Red / Señal',
+
+            // Software y datos
+            'heroicon-o-cloud' => 'Nube / Cloud',
+            'heroicon-o-code-bracket' => 'Código',
+            'heroicon-o-circle-stack' => 'Base de datos',
+            'heroicon-o-cog-6-tooth' => 'Configuración',
+            'heroicon-o-wrench-screwdriver' => 'Herramientas / Mantenimiento',
+
+            // Seguridad y accesos
+            'heroicon-o-key' => 'Llave / Contraseña',
+            'heroicon-o-lock-closed' => 'Candado cerrado',
+            'heroicon-o-shield-check' => 'Seguridad',
+            'heroicon-o-user-circle' => 'Usuario / Cuenta',
+            'heroicon-o-user-group' => 'Grupo de usuarios',
+
+            // Comunicación
+            'heroicon-o-envelope' => 'Correo',
+            'heroicon-o-chat-bubble-left-right' => 'Chat',
+            'heroicon-o-phone' => 'Teléfono',
+            'heroicon-o-bell' => 'Notificación',
+            'heroicon-o-megaphone' => 'Anuncio',
+
+            // Documentos
+            'heroicon-o-document-text' => 'Documento',
+            'heroicon-o-document-duplicate' => 'Duplicar documento',
+            'heroicon-o-folder' => 'Carpeta',
+            'heroicon-o-paper-clip' => 'Adjunto',
+            'heroicon-o-book-open' => 'Libro / Manual',
+            'heroicon-o-clipboard-document' => 'Portapapeles',
+
+            // Flujos y tickets
+            'heroicon-o-ticket' => 'Ticket',
+            'heroicon-o-inbox' => 'Bandeja de entrada',
+            'heroicon-o-check-circle' => 'Resuelto',
+            'heroicon-o-exclamation-triangle' => 'Advertencia',
+            'heroicon-o-exclamation-circle' => 'Alerta',
+            'heroicon-o-clock' => 'Reloj / Tiempo',
+            'heroicon-o-calendar' => 'Calendario',
+
+            // Áreas de negocio
+            'heroicon-o-briefcase' => 'Negocio / Empresa',
+            'heroicon-o-building-office-2' => 'Edificio corporativo',
+            'heroicon-o-truck' => 'Transporte / Logística',
+            'heroicon-o-banknotes' => 'Finanzas / Pagos',
+            'heroicon-o-shopping-cart' => 'Compras',
+            'heroicon-o-academic-cap' => 'Formación',
+            'heroicon-o-heart' => 'HSEQ / Salud',
+            'heroicon-o-light-bulb' => 'Idea / Propuesta',
+
+            // Operación y campo
+            'heroicon-o-map' => 'Mapa',
+            'heroicon-o-map-pin' => 'Ubicación',
+            'heroicon-o-fire' => 'Emergencia',
+            'heroicon-o-beaker' => 'Laboratorio',
+
+            // General
+            'heroicon-o-sparkles' => 'IA / Automático',
+            'heroicon-o-tag' => 'Etiqueta',
+            'heroicon-o-question-mark-circle' => 'Ayuda / FAQ',
+            'heroicon-o-information-circle' => 'Información',
+        ];
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Assets\AssetLifecyclePdfController;
 use App\Http\Controllers\Auth\AzureAuthController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\InventoryAgentController;
+use App\Http\Controllers\MaintenanceEvidenceController;
 use App\Http\Middleware\EnsureAslAccepted;
 use App\Livewire\Portal\Chatbot;
 use App\Livewire\Portal\CreateTicket;
@@ -126,6 +127,14 @@ Route::middleware(['auth', 'verified', EnsureAslAccepted::class])->group(functio
         Route::get('kb', KbIndex::class)->name('kb.index');
         Route::get('kb/{slug}', KbShow::class)->name('kb.show');
     });
+
+    // Descarga autenticada de evidencia de mantenimientos.
+    // El disco de la coleccion "evidence" es "local" (storage/app/)
+    // que NO es publico; este endpoint aplica policy check.
+    Route::get(
+        'maintenance-evidence/{media}',
+        [MaintenanceEvidenceController::class, 'download']
+    )->name('maintenance.evidence.download');
 });
 
 require __DIR__.'/settings.php';

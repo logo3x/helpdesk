@@ -52,12 +52,33 @@
                     <flux:icon.question-mark-circle class="size-4 text-zinc-400 cursor-help" />
                 </flux:tooltip>
             </flux:label>
-            <flux:select wire:model="category_id" placeholder="Selecciona una categoría...">
-                @foreach ($categories as $cat)
-                    <flux:select.option :value="$cat->id">{{ $cat->name }}</flux:select.option>
+            <flux:select wire:model.live="category_id" placeholder="Selecciona una categoría...">
+                @foreach ($categoryRoots as $root)
+                    @if ($root->children->isNotEmpty())
+                        <flux:select.option disabled>── {{ $root->name }} ──</flux:select.option>
+                        <flux:select.option :value="$root->id">{{ $root->name }} (general)</flux:select.option>
+                        @foreach ($root->children as $child)
+                            <flux:select.option :value="$child->id">&nbsp;&nbsp;› {{ $child->name }}</flux:select.option>
+                        @endforeach
+                    @else
+                        <flux:select.option :value="$root->id">{{ $root->name }}</flux:select.option>
+                    @endif
                 @endforeach
             </flux:select>
             <flux:error name="category_id" />
+
+            @if ($category_id && isset($categoriesIndex[$category_id]))
+                @php($selectedCat = $categoriesIndex[$category_id])
+                @php($dept = $selectedCat->department)
+                @if ($dept)
+                    <flux:callout variant="secondary" icon="information-circle" class="mt-2">
+                        <flux:callout.text>
+                            Este ticket llegará al equipo de
+                            <strong>{{ $dept->name }}</strong>.
+                        </flux:callout.text>
+                    </flux:callout>
+                @endif
+            @endif
         </flux:field>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">

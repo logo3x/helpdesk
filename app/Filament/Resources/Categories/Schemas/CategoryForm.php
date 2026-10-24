@@ -7,6 +7,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
 
@@ -21,7 +22,32 @@ class CategoryForm
                     ->relationship('department', 'name')
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required()
+                    ->live(),
+
+                Select::make('parent_id')
+                    ->label('Categoría padre (opcional)')
+                    ->helperText('Si eliges una, esta queda como sub-categoría. Solo se admite un nivel de jerarquía.')
+                    ->placeholder('— ninguna (categoría raíz) —')
+                    ->options(function (Get $get, ?Category $record) {
+                        $departmentId = $get('department_id');
+
+                        if (! $departmentId) {
+                            return [];
+                        }
+
+                        return Category::query()
+                            ->where('department_id', $departmentId)
+                            ->whereNull('parent_id')
+                            ->when($record?->id, fn ($q) => $q->where('id', '!=', $record->id))
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all();
+                    })
+                    ->disabled(fn (?Category $record) => $record !== null && ! $record->canBecomeChild())
+                    ->dehydrated()
+                    ->searchable()
+                    ->preload(),
 
                 TextInput::make('name')
                     ->label('Nombre')

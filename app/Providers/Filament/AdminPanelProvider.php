@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Soporte\Resources\KbArticles\KbArticleResource;
 use App\Filament\Widgets\AdminStatsWidget;
+use App\Filament\Widgets\SlaComplianceByCategoryWidget;
 use App\Filament\Widgets\StaleAssetsWidget;
 use App\Filament\Widgets\TicketsByStatusChart;
 use App\Filament\Widgets\TicketTrendChart;
@@ -78,6 +79,7 @@ class AdminPanelProvider extends PanelProvider
                 AdminStatsWidget::class,
                 TicketsByStatusChart::class,
                 TicketTrendChart::class,
+                SlaComplianceByCategoryWidget::class,
                 StaleAssetsWidget::class,
                 AccountWidget::class,
             ])

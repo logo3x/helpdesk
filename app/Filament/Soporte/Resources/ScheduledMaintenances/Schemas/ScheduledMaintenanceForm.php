@@ -5,7 +5,6 @@ namespace App\Filament\Soporte\Resources\ScheduledMaintenances\Schemas;
 use App\Enums\MaintenanceFrequency;
 use App\Enums\MaintenanceStatus;
 use App\Models\Asset;
-use App\Models\Department;
 use App\Models\Project;
 use App\Models\ScheduledMaintenance;
 use App\Models\User;
@@ -13,6 +12,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Section;
@@ -152,40 +152,24 @@ class ScheduledMaintenanceForm
                             ->live()
                             ->dehydrated(false),
 
-                        Select::make('bulk_filter_location_zone')
-                            ->label('Zona')
-                            ->options(fn () => Asset::query()
-                                ->whereIn('type', self::ELIGIBLE_TYPES)
-                                ->whereNotNull('location_zone')
-                                ->distinct()
-                                ->orderBy('location_zone')
-                                ->pluck('location_zone', 'location_zone')
-                                ->all())
-                            ->searchable()
-                            ->native(false)
-                            ->live()
-                            ->dehydrated(false),
-
                         Select::make('bulk_filter_project_id')
-                            ->label('Proyecto')
-                            ->options(fn () => Project::query()
-                                ->where('is_active', true)
-                                ->orderBy('name')
-                                ->get()
-                                ->mapWithKeys(fn ($p) => [$p->id => "{$p->code} · {$p->name}"])
-                                ->all())
-                            ->searchable()
-                            ->preload()
-                            ->native(false)
-                            ->live()
-                            ->dehydrated(false),
+                            ->label('Proyecto / Contrato')
+                            ->helperText('Si eliges una gerencia arriba, el listado se filtra solo con proyectos que tienen activos de esa gerencia.')
+                            ->options(function (Get $get) {
+                                $management = $get('bulk_filter_management_area');
 
-                        Select::make('bulk_filter_department_id')
-                            ->label('Departamento')
-                            ->options(fn () => Department::query()
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->all())
+                                return Project::query()
+                                    ->where('is_active', true)
+                                    ->when($management, function ($query, $m) {
+                                        $query->whereHas('assets', fn ($q) => $q
+                                            ->whereIn('type', self::ELIGIBLE_TYPES)
+                                            ->where('management_area', $m));
+                                    })
+                                    ->orderBy('name')
+                                    ->get()
+                                    ->mapWithKeys(fn ($p) => [$p->id => "{$p->code} · {$p->name}"])
+                                    ->all();
+                            })
                             ->searchable()
                             ->preload()
                             ->native(false)
@@ -357,6 +341,21 @@ class ScheduledMaintenanceForm
                             ->required(fn (Get $get) => $get('status') === MaintenanceStatus::NoCumplido->value)
                             ->helperText('Ej: "Usuario no disponible", "Repuesto pendiente", "Equipo en préstamo".')
                             ->columnSpanFull(),
+
+                        SpatieMediaLibraryFileUpload::make('evidence')
+                            ->label('Evidencia del mantenimiento')
+                            ->collection('evidence')
+                            ->multiple()
+                            ->maxFiles(5)
+                            ->maxSize(10240) // 10 MB por archivo
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])
+                            ->downloadable()
+                            ->openable()
+                            ->preserveFilenames()
+                            ->visible(fn (Get $get) => $get('status') === MaintenanceStatus::Cumplido->value)
+                            ->required(fn (Get $get) => $get('status') === MaintenanceStatus::Cumplido->value)
+                            ->helperText('Fotos del equipo, acta firmada, PDF de pruebas. Obligatorio al marcar como cumplido. Hasta 5 archivos de 10 MB cada uno.')
+                            ->columnSpanFull(),
                     ]),
 
                 Section::make('Trazabilidad')
@@ -432,14 +431,8 @@ class ScheduledMaintenanceForm
         if ($v = $get('bulk_filter_field')) {
             $query->where('field', $v);
         }
-        if ($v = $get('bulk_filter_location_zone')) {
-            $query->where('location_zone', $v);
-        }
         if ($v = $get('bulk_filter_project_id')) {
             $query->where('project_id', $v);
-        }
-        if ($v = $get('bulk_filter_department_id')) {
-            $query->where('department_id', $v);
         }
 
         return $query;

@@ -23,10 +23,17 @@ class CategoriesTable
                     ->badge()
                     ->color('primary')
                     ->sortable(),
+                TextColumn::make('parent.name')
+                    ->label('Padre')
+                    ->placeholder('— raíz —')
+                    ->badge()
+                    ->color('gray')
+                    ->sortable(),
                 TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(fn ($state, $record) => $record->parent_id ? '  › '.$state : $state),
                 TextColumn::make('slug')
                     ->color('gray')
                     ->toggleable(isToggledHiddenByDefault: true),

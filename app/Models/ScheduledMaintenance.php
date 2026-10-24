@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * Programación individual de un mantenimiento sobre un activo.
@@ -22,12 +24,28 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Al cerrar (cumplido/no_cumplido), el observer auto-genera la siguiente
  * ocurrencia según la frecuencia (cuatrimestral=120d, anual=365d) para
  * mantener el ciclo activo sin intervención manual.
+ *
+ * Cuando el agente marca el mantenimiento como "cumplido" puede (y debe)
+ * adjuntar evidencia: fotos del equipo, acta firmada, PDF de pruebas.
+ * Los adjuntos viven en la colección `evidence` de Spatie MediaLibrary.
  */
 #[ObservedBy(ScheduledMaintenanceObserver::class)]
-class ScheduledMaintenance extends Model
+class ScheduledMaintenance extends Model implements HasMedia
 {
     /** @use HasFactory<ScheduledMaintenanceFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, InteractsWithMedia, SoftDeletes;
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('evidence')
+            ->acceptsMimeTypes([
+                'application/pdf',
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+                'image/heic',
+            ]);
+    }
 
     protected $fillable = [
         'asset_id',

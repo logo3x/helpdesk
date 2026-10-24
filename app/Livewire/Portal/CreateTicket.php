@@ -96,11 +96,20 @@ class CreateTicket extends Component
 
     public function render(): View
     {
+        // Agrupadas por categoría padre: las raíces se listan como grupos
+        // y debajo aparecen sus hijas. Las categorías sin padre que no son
+        // raíz de nada se listan sin agrupar.
+        $all = Category::query()
+            ->where('is_active', true)
+            ->with(['department:id,name', 'children' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('name')])
+            ->orderBy('name')
+            ->get(['id', 'department_id', 'parent_id', 'name']);
+
+        $roots = $all->whereNull('parent_id')->values();
+
         return view('livewire.portal.create-ticket', [
-            'categories' => Category::query()
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name']),
+            'categoryRoots' => $roots,
+            'categoriesIndex' => $all->keyBy('id'),
         ]);
     }
 }

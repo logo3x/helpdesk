@@ -3,6 +3,8 @@
 namespace App\Filament\Soporte\Pages;
 
 use App\Enums\MaintenanceStatus;
+use App\Models\Asset;
+use App\Models\Project;
 use App\Models\ScheduledMaintenance;
 use App\Models\User;
 use BackedEnum;
@@ -11,6 +13,7 @@ use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use Livewire\Attributes\Url;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -39,7 +42,24 @@ class MaintenancesReport extends Page
     protected static ?int $navigationSort = 46;
 
     /** Ventana en días — bindeada al select del blade. */
+    #[Url]
     public int $window = 90;
+
+    /** Filtros avanzados — todos opcionales y combinables. */
+    #[Url]
+    public ?string $managementArea = null;
+
+    #[Url]
+    public ?int $projectId = null;
+
+    #[Url]
+    public ?string $locationZone = null;
+
+    #[Url]
+    public ?string $fieldName = null;
+
+    #[Url]
+    public ?int $agentId = null;
 
     public static function canAccess(): bool
     {
@@ -95,8 +115,28 @@ class MaintenancesReport extends Page
         $baseQuery = $this->scopedQuery()
             ->whereBetween('scheduled_at', [$from->toDateString(), $to->toDateString()]);
 
+        // Filtros derivados del asset (gerencia, proyecto, zona, campo).
+        $assetFilters = array_filter([
+            'management_area' => $this->managementArea,
+            'project_id' => $this->projectId,
+            'location_zone' => $this->locationZone,
+            'field' => $this->fieldName,
+        ], fn ($v) => $v !== null && $v !== '');
+
+        if (! empty($assetFilters)) {
+            $baseQuery->whereHas('asset', function ($q) use ($assetFilters): void {
+                foreach ($assetFilters as $col => $val) {
+                    $q->where($col, $val);
+                }
+            });
+        }
+
+        if ($this->agentId) {
+            $baseQuery->where('agent_id', $this->agentId);
+        }
+
         $items = (clone $baseQuery)
-            ->with(['asset:id,asset_tag,type,hostname', 'agent:id,name'])
+            ->with(['asset:id,asset_tag,type,hostname,management_area', 'agent:id,name'])
             ->get();
 
         // KPIs
@@ -175,6 +215,22 @@ class MaintenancesReport extends Page
             ->values()
             ->all();
 
+        // Distribución por gerencia (torta nueva)
+        $byManagementArea = $items
+            ->filter(fn (ScheduledMaintenance $m) => $m->asset?->management_area)
+            ->groupBy(fn (ScheduledMaintenance $m) => $m->asset->management_area)
+            ->map(fn ($group, $area) => [
+                'label' => $area,
+                'total' => $group->count(),
+                'cumplidos' => $group->where('status', MaintenanceStatus::Cumplido)->count(),
+                'compliance_pct' => $group->count() > 0
+                    ? (int) round(($group->where('status', MaintenanceStatus::Cumplido)->count() / $group->count()) * 100)
+                    : 0,
+            ])
+            ->sortByDesc('total')
+            ->values()
+            ->all();
+
         return [
             'window' => $this->window,
             'from' => $from,
@@ -191,7 +247,61 @@ class MaintenancesReport extends Page
             'monthly' => $monthly,
             'notCompletedReasons' => $notCompletedReasons,
             'byAgent' => $byAgent,
+            'byManagementArea' => $byManagementArea,
             'notCompletedList' => $notCompletedList,
+            'filterOptions' => $this->filterOptions(),
+            'activeFilters' => array_filter([
+                'Gerencia' => $this->managementArea,
+                'Proyecto / Contrato' => $this->projectId
+                    ? (string) Project::query()->whereKey($this->projectId)->value('code')
+                    : null,
+                'Zona' => $this->locationZone,
+                'Campo' => $this->fieldName,
+                'Agente' => $this->agentId
+                    ? (string) User::query()->whereKey($this->agentId)->value('name')
+                    : null,
+            ]),
+        ];
+    }
+
+    /**
+     * Catálogos para poblar los selects de filtros. Derivados en vivo de
+     * los activos existentes para no mostrar opciones vacías.
+     *
+     * @return array<string, array<int|string, string>>
+     */
+    protected function filterOptions(): array
+    {
+        return [
+            'managementAreas' => Asset::query()
+                ->whereNotNull('management_area')
+                ->distinct()
+                ->orderBy('management_area')
+                ->pluck('management_area', 'management_area')
+                ->all(),
+            'projects' => Project::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get()
+                ->mapWithKeys(fn ($p) => [$p->id => "{$p->code} · {$p->name}"])
+                ->all(),
+            'zones' => Asset::query()
+                ->whereNotNull('location_zone')
+                ->distinct()
+                ->orderBy('location_zone')
+                ->pluck('location_zone', 'location_zone')
+                ->all(),
+            'fields' => Asset::query()
+                ->whereNotNull('field')
+                ->distinct()
+                ->orderBy('field')
+                ->pluck('field', 'field')
+                ->all(),
+            'agents' => User::query()
+                ->whereHas('roles', fn ($q) => $q->whereIn('name', ['agente_soporte', 'tecnico_campo']))
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all(),
         ];
     }
 

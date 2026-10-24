@@ -7,7 +7,10 @@
     @php($monthly = $data['monthly'])
     @php($reasons = $data['notCompletedReasons'])
     @php($byAgent = $data['byAgent'])
+    @php($byManagementArea = $data['byManagementArea'] ?? [])
     @php($notCompleted = $data['notCompletedList'])
+    @php($filterOptions = $data['filterOptions'] ?? [])
+    @php($activeFilters = $data['activeFilters'] ?? [])
 
     <style>
         .mr-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, 1fr); }
@@ -58,18 +61,82 @@
         .dark .mr-status-pendiente  { background: rgb(63 63 70); color: rgb(212 212 216); }
     </style>
 
-    {{-- Filtro de ventana --}}
-    <div class="flex items-center gap-3 mb-4">
-        <label class="text-sm font-medium">Ventana:</label>
-        <select wire:model.live="window" class="fi-select-input rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm">
-            <option value="30">Últimos 30 días</option>
-            <option value="90">Últimos 90 días</option>
-            <option value="180">Últimos 180 días</option>
-            <option value="365">Último año</option>
-        </select>
-        <span class="text-xs text-gray-500 ml-auto">
-            Desde {{ $data['from']->translatedFormat('d M Y') }} hasta {{ $data['to']->translatedFormat('d M Y') }}
-        </span>
+    {{-- Filtros --}}
+    <div class="mr-card mb-4" style="padding: 1rem;">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ventana</label>
+                <select wire:model.live="window" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
+                    <option value="30">30 días</option>
+                    <option value="90">90 días</option>
+                    <option value="180">180 días</option>
+                    <option value="365">1 año</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Gerencia</label>
+                <select wire:model.live="managementArea" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
+                    <option value="">Todas</option>
+                    @foreach ($filterOptions['managementAreas'] ?? [] as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Proyecto / Contrato</label>
+                <select wire:model.live="projectId" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
+                    <option value="">Todos</option>
+                    @foreach ($filterOptions['projects'] ?? [] as $id => $label)
+                        <option value="{{ $id }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Zona</label>
+                <select wire:model.live="locationZone" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
+                    <option value="">Todas</option>
+                    @foreach ($filterOptions['zones'] ?? [] as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Campo</label>
+                <select wire:model.live="fieldName" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
+                    <option value="">Todos</option>
+                    @foreach ($filterOptions['fields'] ?? [] as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Agente</label>
+                <select wire:model.live="agentId" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
+                    <option value="">Todos</option>
+                    @foreach ($filterOptions['agents'] ?? [] as $id => $name)
+                        <option value="{{ $id }}">{{ $name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between text-xs text-gray-500">
+            <span>Desde {{ $data['from']->translatedFormat('d M Y') }} hasta {{ $data['to']->translatedFormat('d M Y') }}</span>
+            @if (! empty($activeFilters))
+                <span>
+                    @foreach ($activeFilters as $label => $value)
+                        <span class="inline-flex items-center gap-1 rounded-full bg-primary-100 dark:bg-primary-900/40 px-2 py-0.5 text-xs font-medium text-primary-700 dark:text-primary-300 ml-1">
+                            {{ $label }}: <strong>{{ $value }}</strong>
+                        </span>
+                    @endforeach
+                </span>
+            @endif
+        </div>
     </div>
 
     {{-- KPIs --}}
@@ -146,6 +213,38 @@
             @endif
         </div>
     </div>
+
+    {{-- Nueva: cumplimiento por gerencia --}}
+    @if (! empty($byManagementArea))
+        <div class="mr-card" style="margin-top: 1.5rem;">
+            <h3 class="mr-section-title">Cumplimiento por gerencia</h3>
+            <table class="mr-table">
+                <thead>
+                    <tr>
+                        <th>Gerencia</th>
+                        <th style="text-align:right;">Programados</th>
+                        <th style="text-align:right;">Cumplidos</th>
+                        <th style="text-align:right;">Cumplimiento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($byManagementArea as $area)
+                        <tr>
+                            <td><strong>{{ $area['label'] }}</strong></td>
+                            <td style="text-align:right;">{{ $area['total'] }}</td>
+                            <td style="text-align:right;">{{ $area['cumplidos'] }}</td>
+                            <td style="text-align:right;">
+                                @php($p = $area['compliance_pct'])
+                                <span style="font-weight: 600; color: {{ $p >= 90 ? 'rgb(22 163 74)' : ($p >= 70 ? 'rgb(217 119 6)' : 'rgb(220 38 38)') }};">
+                                    {{ $p }}%
+                                </span>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
 
     {{-- Ranking por agente --}}
     <div class="mr-card" style="margin-top: 1.5rem;">

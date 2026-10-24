@@ -11,12 +11,37 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Contracts\Pagination\CursorPaginator;
+use Illuminate\Contracts\Pagination\Paginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ListAssets extends ListRecords
 {
     protected static string $resource = AssetResource::class;
+
+    /**
+     * Guarda los IDs filtrados en la sesión para que EditAsset pueda
+     * ofrecer los botones "Anterior" y "Siguiente" respetando los
+     * filtros aplicados en la lista. Capamos a 500 para no inflar la
+     * sesión en inventarios grandes.
+     */
+    public function getTableRecords(): Paginator|CursorPaginator|Collection
+    {
+        $records = parent::getTableRecords();
+
+        $ids = $this->getFilteredSortedTableQuery()
+            ->reorder()
+            ->orderBy('assets.id')
+            ->limit(500)
+            ->pluck('assets.id')
+            ->all();
+
+        session(['assets.navigator' => $ids]);
+
+        return $records;
+    }
 
     protected function getHeaderActions(): array
     {

@@ -26,7 +26,28 @@ class EditAsset extends EditRecord
 
     protected function getHeaderActions(): array
     {
+        [$prevId, $nextId, $position, $total] = $this->getNavigatorPosition();
+
         return [
+            // ── Navegación por lista filtrada ────────────────────────
+            Action::make('prevAsset')
+                ->label('← Anterior')
+                ->color('gray')
+                ->visible(fn () => $prevId !== null)
+                ->tooltip(fn () => $position && $total
+                    ? "Activo {$position}/{$total} de la lista filtrada"
+                    : 'Volver al anterior de la lista filtrada')
+                ->url(fn () => AssetResource::getUrl('edit', ['record' => $prevId])),
+
+            Action::make('nextAsset')
+                ->label('Siguiente →')
+                ->color('gray')
+                ->visible(fn () => $nextId !== null)
+                ->tooltip(fn () => $position && $total
+                    ? "Activo {$position}/{$total} de la lista filtrada"
+                    : 'Ir al siguiente de la lista filtrada')
+                ->url(fn () => AssetResource::getUrl('edit', ['record' => $nextId])),
+
             // ── Ver hoja de vida (timeline del activo) ──────────────
             Action::make('viewLifecycle')
                 ->label('Hoja de vida')
@@ -275,5 +296,35 @@ class EditAsset extends EditRecord
         );
 
         return Storage::disk('local')->download($handover->pdf_path, $filename);
+    }
+
+    /**
+     * Lee la lista navegable guardada por ListAssets en la sesión y
+     * calcula el ID anterior / siguiente respecto al activo actual.
+     *
+     * @return array{0: int|null, 1: int|null, 2: int|null, 3: int|null}
+     *                                                                   [prevId, nextId, position (1-based), total]
+     */
+    protected function getNavigatorPosition(): array
+    {
+        $ids = session('assets.navigator', []);
+
+        if (! is_array($ids) || empty($ids)) {
+            return [null, null, null, null];
+        }
+
+        $currentId = (int) $this->record->getKey();
+        $pos = array_search($currentId, $ids, true);
+
+        if ($pos === false) {
+            return [null, null, null, null];
+        }
+
+        return [
+            $ids[$pos - 1] ?? null,
+            $ids[$pos + 1] ?? null,
+            $pos + 1,
+            count($ids),
+        ];
     }
 }

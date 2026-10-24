@@ -102,6 +102,23 @@ class UnifiedSurveysReport extends Page
      *     created_at: ?Carbon,
      * }>
      */
+    /**
+     * Scope por departamento según rol:
+     *   - super_admin / admin → null (ve TODO).
+     *   - supervisor_soporte  → su propio department_id (ve solo lo suyo).
+     *   - cualquier otro con canAccess()=false ya está bloqueado arriba.
+     */
+    protected function departmentScope(): ?int
+    {
+        $user = auth()->user();
+
+        if (! $user || $user->hasAnyRole(['super_admin', 'admin'])) {
+            return null;
+        }
+
+        return $user->department_id ?: -1; // -1 fuerza que no vea nada si no tiene depto
+    }
+
     protected function buildRows(): Collection
     {
         $windowDays = (int) $this->window;
@@ -127,10 +144,13 @@ class UnifiedSurveysReport extends Page
      */
     protected function ticketRows(int $windowDays, ?int $minRating): Collection
     {
+        $scope = $this->departmentScope();
+
         $query = SatisfactionSurvey::query()
-            ->with(['ticket:id,number,subject', 'user:id,name'])
+            ->with(['ticket:id,number,subject,department_id', 'user:id,name'])
             ->when($windowDays > 0, fn ($q) => $q->where('created_at', '>=', now()->subDays($windowDays)))
-            ->when($minRating !== null, fn ($q) => $q->where('rating', '>=', $minRating));
+            ->when($minRating !== null, fn ($q) => $q->where('rating', '>=', $minRating))
+            ->when($scope !== null, fn ($q) => $q->whereHas('ticket', fn ($t) => $t->where('department_id', $scope)));
 
         return $query->get()->map(function (SatisfactionSurvey $s): array {
             return [
@@ -156,10 +176,13 @@ class UnifiedSurveysReport extends Page
      */
     protected function maintenanceRows(int $windowDays, ?int $minRating): Collection
     {
+        $scope = $this->departmentScope();
+
         $query = MaintenanceSurvey::query()
-            ->with(['asset:id,asset_tag,hostname,type', 'user:id,name'])
+            ->with(['asset:id,asset_tag,hostname,type,department_id', 'user:id,name'])
             ->when($windowDays > 0, fn ($q) => $q->where('created_at', '>=', now()->subDays($windowDays)))
-            ->when($minRating !== null, fn ($q) => $q->where('rating', '>=', $minRating));
+            ->when($minRating !== null, fn ($q) => $q->where('rating', '>=', $minRating))
+            ->when($scope !== null, fn ($q) => $q->whereHas('asset', fn ($a) => $a->where('department_id', $scope)));
 
         return $query->get()->map(function (MaintenanceSurvey $s): array {
             $asset = $s->asset;

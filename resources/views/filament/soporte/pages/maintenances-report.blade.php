@@ -12,6 +12,10 @@
     @php($filterOptions = $data['filterOptions'] ?? [])
     @php($activeFilters = $data['activeFilters'] ?? [])
 
+    {{-- Wrapper único para evitar MultipleRootElementsDetectedException
+         en Livewire: todo el markup de la página queda dentro de este div. --}}
+    <div class="mr-report-root space-y-6">
+
     <style>
         .mr-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, 1fr); }
         @media (min-width: 900px) { .mr-grid { grid-template-columns: repeat(4, 1fr); } }
@@ -213,7 +217,6 @@
             </div>
         @endif
     </x-filament::section>
-    </div>
 
     {{-- KPIs --}}
     <div class="mr-grid">
@@ -451,4 +454,5 @@
         </script>
     @endif
 
+    </div>{{-- /.mr-report-root --}}
 </x-filament-panels::page>

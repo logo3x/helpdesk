@@ -53,37 +53,50 @@
                 </flux:tooltip>
             </flux:label>
             <flux:select wire:model.live="category_id" placeholder="Selecciona una categoría...">
-                @foreach ($categoryRoots as $root)
-                    @if ($root->children->isNotEmpty())
-                        {{-- Grupo nativo: el navegador lo pinta en negrita y
-                             separa visualmente a padre e hijas. --}}
-                        <optgroup label="{{ $root->name }}">
-                            <option value="{{ $root->id }}" @selected((int) $category_id === (int) $root->id)>
-                                {{ $root->name }} (general)
-                            </option>
-                            @foreach ($root->children as $child)
-                                <option value="{{ $child->id }}" @selected((int) $category_id === (int) $child->id)>
-                                    — {{ $child->name }}
+                {{-- Nivel 1: departamento (optgroup) --}}
+                @foreach ($categoryRootsByDept as $deptName => $roots)
+                    <optgroup label="{{ $deptName }}">
+                        {{-- Nivel 2: categoría padre; si tiene hijas, también
+                             aparece como "general" para poder elegir al padre. --}}
+                        @foreach ($roots as $root)
+                            @if ($root->children->isNotEmpty())
+                                <option value="{{ $root->id }}" @selected((int) $category_id === (int) $root->id)>
+                                    &nbsp;&nbsp;{{ $root->name }}
                                 </option>
-                            @endforeach
-                        </optgroup>
-                    @else
-                        <option value="{{ $root->id }}" @selected((int) $category_id === (int) $root->id)>
-                            {{ $root->name }}
-                        </option>
-                    @endif
+                                {{-- Nivel 3: categorías hijas, con indent extra. --}}
+                                @foreach ($root->children as $child)
+                                    <option value="{{ $child->id }}" @selected((int) $category_id === (int) $child->id)>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;└─ {{ $child->name }}
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="{{ $root->id }}" @selected((int) $category_id === (int) $root->id)>
+                                    &nbsp;&nbsp;{{ $root->name }}
+                                </option>
+                            @endif
+                        @endforeach
+                    </optgroup>
                 @endforeach
             </flux:select>
             <flux:error name="category_id" />
 
             @php($selectedCat = $category_id ? ($categoriesIndex[(int) $category_id] ?? null) : null)
             @if ($selectedCat && $selectedCat->department)
-                <flux:callout variant="secondary" icon="information-circle" class="mt-2">
-                    <flux:callout.text>
-                        Este ticket llegará al equipo de
-                        <strong>{{ $selectedCat->department->name }}</strong>.
-                    </flux:callout.text>
-                </flux:callout>
+                <div class="mt-2 flex items-center gap-3 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-200">
+                    @if (! empty($selectedCat->icon))
+                        {{-- Icono visual grande de la categoría seleccionada --}}
+                        <span class="shrink-0" style="width:1.75rem;height:1.75rem;color:rgb(2 132 199);">
+                            @svg($selectedCat->icon, 'w-7 h-7')
+                        </span>
+                    @else
+                        <flux:icon.information-circle class="shrink-0 size-6 text-sky-600" />
+                    @endif
+                    <div>
+                        <span class="font-semibold">{{ $selectedCat->name }}</span>
+                        <span class="text-sky-700/80 dark:text-sky-300/80"> · llega al equipo de </span>
+                        <strong>{{ $selectedCat->department->name }}</strong>
+                    </div>
+                </div>
             @endif
         </flux:field>
 

@@ -161,11 +161,11 @@ class CategoryForm
         $out = [];
         foreach (self::iconOptions() as $key => $label) {
             try {
-                $svg = (string) svg($key, 'inline-block h-5 w-5 me-2 align-middle');
+                $svg = svg($key, 'inline-block me-2 align-middle', ['style' => 'width:1.1rem;height:1.1rem;vertical-align:-3px;'])->toHtml();
             } catch (\Throwable $e) {
                 $svg = '';
             }
-            $out[$key] = '<span class="inline-flex items-center gap-2">'.$svg.'<span>'.e($label).'</span></span>';
+            $out[$key] = $svg.'<span>'.e($label).'</span>';
         }
 
         return $out;

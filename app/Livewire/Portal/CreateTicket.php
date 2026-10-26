@@ -96,19 +96,31 @@ class CreateTicket extends Component
 
     public function render(): View
     {
-        // Agrupadas por categoría padre: las raíces se listan como grupos
-        // y debajo aparecen sus hijas. Las categorías sin padre que no son
-        // raíz de nada se listan sin agrupar.
+        // Jerarquía final:
+        //   Departamento (optgroup)
+        //     └── Categoría padre
+        //           └── Categoría hija
+        //     └── Categoría suelta (sin hijas)
         $all = Category::query()
             ->where('is_active', true)
-            ->with(['department:id,name', 'children' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('name')])
+            ->with([
+                'department:id,name',
+                'children' => fn ($q) => $q->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name'),
+            ])
             ->orderBy('name')
-            ->get(['id', 'department_id', 'parent_id', 'name']);
+            ->get(['id', 'department_id', 'parent_id', 'name', 'icon']);
 
-        $roots = $all->whereNull('parent_id')->values();
+        // Agrupadas por departamento, cada grupo con sus categorías RAÍZ.
+        // Las hijas van anidadas dentro de su padre vía children.
+        $rootsByDept = $all
+            ->whereNull('parent_id')
+            ->sortBy('department.name')
+            ->groupBy(fn ($cat) => $cat->department?->name ?? 'Sin departamento');
 
         return view('livewire.portal.create-ticket', [
-            'categoryRoots' => $roots,
+            'categoryRootsByDept' => $rootsByDept,
             'categoriesIndex' => $all->keyBy('id'),
         ]);
     }

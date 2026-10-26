@@ -13,10 +13,15 @@
     @php($activeFilters = $data['activeFilters'] ?? [])
 
     {{-- Wrapper único para evitar MultipleRootElementsDetectedException
-         en Livewire: todo el markup de la página queda dentro de este div. --}}
-    <div class="mr-report-root space-y-6">
+         en Livewire: todo el markup de la página queda dentro de este div.
+         Los estilos .mr-report-root > * dan separación consistente entre
+         secciones sin depender del build de Tailwind. --}}
+    <div class="mr-report-root">
 
     <style>
+        .mr-report-root > * { margin-bottom: 1.5rem; }
+        .mr-report-root > *:last-child { margin-bottom: 0; }
+        .mr-report-root > style { display: none; margin-bottom: 0; }
         .mr-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, 1fr); }
         @media (min-width: 900px) { .mr-grid { grid-template-columns: repeat(4, 1fr); } }
 
@@ -40,7 +45,8 @@
 
         .mr-section-title { font-size: 1rem; font-weight: 600; margin: 0 0 0.75rem 0; }
 
-        .mr-charts { display: grid; gap: 1rem; grid-template-columns: 1fr; margin-top: 1.5rem; }
+        /* mr-charts tiene margin-top aplicado por el flujo del root wrapper */
+        .mr-charts { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
         @media (min-width: 1000px) { .mr-charts { grid-template-columns: 1.4fr 1fr; } }
 
         .mr-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }

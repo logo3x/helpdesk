@@ -356,3 +356,22 @@ it('envía input_type a NVIDIA al generar embeddings', function () {
     expect(app(LlmService::class)->embed('texto', 'passage'))->toBe([0.1, 0.2]);
     Http::assertSent(fn ($request) => $request['input_type'] === 'passage');
 });
+
+it('no da la conexión por correcta si el modelo responde vacío', function () {
+    config([
+        'services.llm.api_key' => 'nvapi-valida',
+        'services.llm.provider' => 'nvidia',
+        'services.llm.model' => 'openai/gpt-oss-20b',
+    ]);
+
+    Http::fake([
+        'integrate.api.nvidia.com/v1/chat/*' => Http::response([
+            'choices' => [['message' => ['content' => null, 'reasoning_content' => 'pensando...']]],
+        ], 200),
+    ]);
+
+    $result = app(LlmService::class)->healthCheck();
+
+    expect($result['ok'])->toBeFalse();
+    expect($result['title'])->toBe('El modelo respondió vacío');
+});

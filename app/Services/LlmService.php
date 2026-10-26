@@ -90,7 +90,10 @@ class LlmService
                         'role' => 'user',
                         'content' => 'Responde únicamente con la palabra: OK',
                     ]],
-                    'max_tokens' => 50,
+                    // Margen para modelos que razonan antes de responder
+                    // (gpt-oss, nemotron): con 50 tokens gastaban todo
+                    // pensando y devolvían contenido vacío.
+                    'max_tokens' => 512,
                 ]);
         } catch (\Throwable $e) {
             return $base + [
@@ -108,6 +111,17 @@ class LlmService
             $reply = $this->provider === 'anthropic'
                 ? $response->json('content.0.text')
                 : $response->json('choices.0.message.content');
+
+            if (blank($reply)) {
+                return $base + [
+                    'ok' => false,
+                    'title' => 'El modelo respondió vacío',
+                    'detail' => "El proveedor aceptó la petición ({$ms} ms) pero el modelo no devolvió texto. "
+                        .'Suele pasar con modelos que razonan antes de responder. '
+                        .'Si se repite, cambia LLM_MODEL por otro modelo; el chatbot usará '
+                        .'LLM_FALLBACK_MODEL mientras tanto si está configurado.',
+                ];
+            }
 
             return $base + [
                 'ok' => true,

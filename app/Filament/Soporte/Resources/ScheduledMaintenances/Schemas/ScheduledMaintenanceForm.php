@@ -221,9 +221,13 @@ class ScheduledMaintenanceForm
                             ->dehydrated(false)
                             ->live()
                             ->allowHtml()
+                            // Opciones precargadas al abrir el select: trae los activos
+                            // que matchean los filtros SIN que el usuario tenga que
+                            // teclear nada. Si quiere, igual puede filtrar escribiendo.
+                            ->options(fn (Get $get) => self::bulkAssetSearchResults('', $get))
                             ->getSearchResultsUsing(fn (string $search, Get $get) => self::bulkAssetSearchResults($search, $get))
                             ->getOptionLabelsUsing(fn (array $values) => self::bulkAssetLabelsFor($values))
-                            ->helperText('Escribí para filtrar (TAG, hostname, custodio, etc.) o hacé click y aparecerán los activos que matchean los filtros. Podés seleccionar varios.'),
+                            ->helperText('Al abrir aparecen los activos que matchean los filtros. También podés escribir para buscar por TAG, hostname o custodio. Podés seleccionar varios.'),
                     ]),
 
                 // ── PROGRAMACIÓN (fecha, agente, frecuencia) ──────────

@@ -100,20 +100,28 @@ class CategoryForm
 
                 Select::make('icon')
                     ->label('Icono')
-                    ->options(self::iconOptions())
+                    ->options(fn () => self::iconOptionsHtml())
+                    ->allowHtml()
                     ->native(false)
                     ->searchable()
                     ->preload()
                     ->placeholder('— sin icono —')
                     ->helperText('Elige un icono visual. Se usa en el centro de ayuda y en el portal.')
-                    ->getSearchResultsUsing(fn (string $search) => collect(self::iconOptions())
-                        ->filter(fn ($label, $key) => str_contains(strtolower($key.$label), strtolower($search)))
-                        ->all())
-                    ->getOptionLabelUsing(fn (?string $value): ?string => $value ? (self::iconOptions()[$value] ?? $value) : null)
-                    ->allowHtml(false)
+                    ->getSearchResultsUsing(function (string $search) {
+                        $labels = self::iconOptions();
+                        $html = self::iconOptionsHtml();
+
+                        return collect($html)
+                            ->filter(fn ($_, $key) => str_contains(
+                                strtolower($key.($labels[$key] ?? '')),
+                                strtolower($search)
+                            ))
+                            ->all();
+                    })
+                    ->getOptionLabelUsing(fn (?string $value): ?string => $value
+                        ? (self::iconOptionsHtml()[$value] ?? $value)
+                        : null)
                     // SEG: valida backend que el icono sea de la whitelist.
-                    // El Select de Filament solo filtra en la UI; sin esto
-                    // un atacante podría guardar cualquier string.
                     ->rules(['nullable', 'string', Rule::in(array_keys(self::iconOptions()))]),
 
                 Textarea::make('description')
@@ -138,6 +146,32 @@ class CategoryForm
      * Catálogo curado de iconos Heroicon disponibles para las categorías.
      * Mantener alfabéticamente por categoría temática para que el search sea útil.
      *
+     * @return array<string, string>
+     */
+    /**
+     * Igual que iconOptions() pero cada valor es HTML con el SVG inline del
+     * heroicon + el label. Filament lo renderiza en el Select cuando se
+     * marca ->allowHtml(). La whitelist de claves es exactamente la misma,
+     * así que la validación backend (Rule::in iconOptions) sigue funcionando.
+     *
+     * @return array<string, string>
+     */
+    protected static function iconOptionsHtml(): array
+    {
+        $out = [];
+        foreach (self::iconOptions() as $key => $label) {
+            try {
+                $svg = (string) svg($key, 'inline-block h-5 w-5 me-2 align-middle');
+            } catch (\Throwable $e) {
+                $svg = '';
+            }
+            $out[$key] = '<span class="inline-flex items-center gap-2">'.$svg.'<span>'.e($label).'</span></span>';
+        }
+
+        return $out;
+    }
+
+    /**
      * @return array<string, string>
      */
     protected static function iconOptions(): array

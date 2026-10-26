@@ -44,7 +44,7 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
 15. **Definir "tiempo pausado"** ⏳ — ¿cuándo se pausa el SLA? ¿estado pendiente_cliente? ¿manual?
 16. **Definir "tiempo Resuelto → Cerrado"** ⏳ — métrica + dónde mostrarla.
 17. **Definir "tiempo de solución"** ⏳ — `resolved_at - created_at` menos pausas. Dónde se visualiza.
-18. **Integración Kactus API** 🟡 PARCIAL — commit `3fa9495`. Toda la estructura (Service + DTOs + Command + Webhook HMAC + Job + UI Filament + 20 tests + doc) está lista detrás de toggle `KACTUS_ENABLED=false`. Falta: credenciales reales (URL, API key, webhook secret), confirmar shape exacto del payload con Hermes, y mapear catálogo de departamentos Kactus → IDs locales.
+18. ~~**Integración Kactus API**~~ ❌ **DESCARTADO 2026-10-26**. La estructura queda en el código detrás del toggle `KACTUS_ENABLED=false` (commit `3fa9495`). Si se retoma a futuro, basta con setear las credenciales.
 
 ### Operación (no es código)
 

@@ -6,12 +6,15 @@ use App\Models\MaintenanceSurvey;
 use App\Models\SatisfactionSurvey;
 use App\Models\Ticket;
 use BackedEnum;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Url;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Reporte unificado de encuestas de satisfacción.
@@ -63,6 +66,35 @@ class UnifiedSurveysReport extends Page
     public function getTitle(): string|Htmlable
     {
         return static::$title;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('exportPdf')
+                ->label('Exportar a PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('gray')
+                ->action(fn () => $this->exportPdf()),
+        ];
+    }
+
+    public function exportPdf(): StreamedResponse
+    {
+        $data = $this->getViewData();
+        $data['generatedAt'] = now();
+        $data['sourceLabel'] = $data['sourceOptions'][$this->source] ?? 'Todas';
+        $data['windowLabel'] = $data['windowOptions'][$this->window] ?? ($this->window.' días');
+        $data['minRatingLabel'] = $this->minRating !== '' ? ($this->minRating.'★ o más') : 'Cualquiera';
+
+        $pdf = Pdf::loadView('pdfs.unified-surveys-report', $data)
+            ->setPaper('letter', 'landscape');
+
+        return response()->streamDownload(
+            fn () => print ($pdf->output()),
+            'encuestas-'.now()->format('Y-m-d').'.pdf',
+            ['Content-Type' => 'application/pdf'],
+        );
     }
 
     public function getViewData(): array

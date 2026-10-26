@@ -1,7 +1,7 @@
 <x-filament-panels::page>
     {{-- Filtros --}}
     <x-filament::section>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div>
                 <label for="source" class="mb-1 block text-sm font-medium">Origen</label>
                 <select
@@ -10,6 +10,23 @@
                     class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-900"
                 >
                     @foreach ($sourceOptions as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="departmentId" class="mb-1 block text-sm font-medium">Departamento</label>
+                <select
+                    id="departmentId"
+                    wire:model.live="departmentId"
+                    @disabled(! $canChooseDepartment)
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-900"
+                >
+                    @if ($canChooseDepartment)
+                        <option value="">Todos los departamentos</option>
+                    @endif
+                    @foreach ($departmentOptions as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -98,6 +115,7 @@
                         <tr>
                             <th class="py-2 pr-4 text-left font-semibold">Origen</th>
                             <th class="py-2 pr-4 text-left font-semibold">Relacionado con</th>
+                            <th class="py-2 pr-4 text-left font-semibold">Departamento</th>
                             <th class="py-2 pr-4 text-left font-semibold">Usuario</th>
                             <th class="py-2 pr-4 text-right font-semibold">Calificación</th>
                             <th class="py-2 pr-4 text-left font-semibold">Comentario</th>
@@ -127,6 +145,7 @@
                                         <span class="text-gray-500">{{ $row['related_label'] }}</span>
                                     @endif
                                 </td>
+                                <td class="py-2 pr-4">{{ $row['department'] ?? '—' }}</td>
                                 <td class="py-2 pr-4">{{ $row['user_name'] ?? '—' }}</td>
                                 <td class="py-2 pr-4 text-right">
                                     @if ($row['rating'])

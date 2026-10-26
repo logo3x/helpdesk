@@ -2,6 +2,7 @@
 
 namespace App\Filament\Soporte\Pages;
 
+use App\Models\Department;
 use App\Models\MaintenanceSurvey;
 use App\Models\SatisfactionSurvey;
 use App\Models\Ticket;
@@ -51,6 +52,10 @@ class UnifiedSurveysReport extends Page
     #[Url]
     public string $minRating = '';
 
+    /** Filtro de departamento (solo admin; el supervisor queda fijo en el suyo). */
+    #[Url]
+    public string $departmentId = '';
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -86,6 +91,7 @@ class UnifiedSurveysReport extends Page
         $data['sourceLabel'] = $data['sourceOptions'][$this->source] ?? 'Todas';
         $data['windowLabel'] = $data['windowOptions'][$this->window] ?? ($this->window.' días');
         $data['minRatingLabel'] = $this->minRating !== '' ? ($this->minRating.'★ o más') : 'Cualquiera';
+        $data['departmentLabel'] = $data['departmentOptions'][$this->effectiveDepartmentId() ?? ''] ?? 'Todos';
 
         $pdf = Pdf::loadView('pdfs.unified-surveys-report', $data)
             ->setPaper('letter', 'landscape');
@@ -109,6 +115,8 @@ class UnifiedSurveysReport extends Page
                 'ticket' => 'Solo tickets',
                 'maintenance' => 'Solo mantenimientos',
             ],
+            'departmentOptions' => $this->departmentOptions(),
+            'canChooseDepartment' => $this->departmentScope() === null,
             'windowOptions' => [
                 '30' => '30 días',
                 '90' => '90 días',
@@ -140,6 +148,29 @@ class UnifiedSurveysReport extends Page
      *   - supervisor_soporte  → su propio department_id (ve solo lo suyo).
      *   - cualquier otro con canAccess()=false ya está bloqueado arriba.
      */
+    /**
+     * Departamento a filtrar: el del supervisor (fijo) o el elegido por
+     * un admin en el filtro. Null = todos.
+     */
+    protected function effectiveDepartmentId(): ?int
+    {
+        return $this->departmentScope() ?? ($this->departmentId !== '' ? (int) $this->departmentId : null);
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    protected function departmentOptions(): array
+    {
+        $scope = $this->departmentScope();
+
+        return Department::query()
+            ->when($scope !== null, fn ($q) => $q->whereKey($scope))
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
     protected function departmentScope(): ?int
     {
         $user = auth()->user();
@@ -176,10 +207,10 @@ class UnifiedSurveysReport extends Page
      */
     protected function ticketRows(int $windowDays, ?int $minRating): Collection
     {
-        $scope = $this->departmentScope();
+        $scope = $this->effectiveDepartmentId();
 
         $query = SatisfactionSurvey::query()
-            ->with(['ticket:id,number,subject,department_id', 'user:id,name'])
+            ->with(['ticket:id,number,subject,department_id', 'ticket.department:id,name', 'user:id,name'])
             ->when($windowDays > 0, fn ($q) => $q->where('created_at', '>=', now()->subDays($windowDays)))
             ->when($minRating !== null, fn ($q) => $q->where('rating', '>=', $minRating))
             ->when($scope !== null, fn ($q) => $q->whereHas('ticket', fn ($t) => $t->where('department_id', $scope)));
@@ -194,6 +225,7 @@ class UnifiedSurveysReport extends Page
                 'related_url' => $s->ticket
                     ? route('filament.soporte.resources.tickets.view', ['record' => $s->ticket->id])
                     : null,
+                'department' => $s->ticket?->department?->name,
                 'user_name' => $s->user?->name,
                 'rating' => $s->rating,
                 'comment' => $s->comment,
@@ -208,10 +240,10 @@ class UnifiedSurveysReport extends Page
      */
     protected function maintenanceRows(int $windowDays, ?int $minRating): Collection
     {
-        $scope = $this->departmentScope();
+        $scope = $this->effectiveDepartmentId();
 
         $query = MaintenanceSurvey::query()
-            ->with(['asset:id,asset_tag,hostname,type,department_id', 'user:id,name'])
+            ->with(['asset:id,asset_tag,hostname,type,department_id', 'asset.department:id,name', 'user:id,name'])
             ->when($windowDays > 0, fn ($q) => $q->where('created_at', '>=', now()->subDays($windowDays)))
             ->when($minRating !== null, fn ($q) => $q->where('rating', '>=', $minRating))
             ->when($scope !== null, fn ($q) => $q->whereHas('asset', fn ($a) => $a->where('department_id', $scope)));
@@ -229,6 +261,7 @@ class UnifiedSurveysReport extends Page
                 'related_url' => $asset
                     ? route('filament.soporte.resources.assets.edit', ['record' => $asset->id])
                     : null,
+                'department' => $asset?->department?->name,
                 'user_name' => $s->user?->name,
                 'rating' => $s->rating,
                 'comment' => $s->comment,

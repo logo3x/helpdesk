@@ -113,3 +113,44 @@ it('supervisor sin department_id no ve nada', function () {
 
     expect(pageBuildRows(new UnifiedSurveysReport))->toHaveCount(0);
 });
+
+it('admin filtra por departamento y cada fila muestra su departamento', function () {
+    $deptA = Department::factory()->create(['name' => 'Operaciones']);
+    $deptB = Department::factory()->create(['name' => 'Compras']);
+
+    $tA = Ticket::factory()->create(['department_id' => $deptA->id]);
+    $tB = Ticket::factory()->create(['department_id' => $deptB->id]);
+    $aA = Asset::factory()->create(['department_id' => $deptA->id, 'asset_tag' => 'A-OPS']);
+
+    SatisfactionSurvey::create(['ticket_id' => $tA->id, 'user_id' => $tA->requester_id, 'rating' => 5, 'responded_at' => now()->subDay()]);
+    SatisfactionSurvey::create(['ticket_id' => $tB->id, 'user_id' => $tB->requester_id, 'rating' => 3, 'responded_at' => now()->subDay()]);
+    MaintenanceSurvey::create(['asset_id' => $aA->id, 'user_id' => $tA->requester_id, 'rating' => 4, 'responded_at' => now()->subDay()]);
+
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $this->actingAs($admin);
+
+    $page = new UnifiedSurveysReport;
+    $page->departmentId = (string) $deptA->id;
+    $rows = pageBuildRows($page);
+
+    expect($rows)->toHaveCount(2)
+        ->and($rows->pluck('department')->unique()->all())->toBe(['Operaciones'])
+        ->and($rows->pluck('source')->sort()->values()->all())->toBe(['maintenance', 'ticket']);
+});
+
+it('el supervisor no puede salirse de su departamento con el filtro', function () {
+    $deptA = Department::factory()->create();
+    $deptB = Department::factory()->create();
+    $tB = Ticket::factory()->create(['department_id' => $deptB->id]);
+    SatisfactionSurvey::create(['ticket_id' => $tB->id, 'user_id' => $tB->requester_id, 'rating' => 3, 'responded_at' => now()->subDay()]);
+
+    $supervisor = User::factory()->create(['department_id' => $deptA->id]);
+    $supervisor->assignRole('supervisor_soporte');
+    $this->actingAs($supervisor);
+
+    $page = new UnifiedSurveysReport;
+    $page->departmentId = (string) $deptB->id;
+
+    expect(pageBuildRows($page))->toHaveCount(0);
+});

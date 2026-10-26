@@ -48,6 +48,7 @@
 
     <div class="filters">
         <span class="filter-tag"><b>Origen:</b> {{ $sourceLabel }}</span>
+        <span class="filter-tag"><b>Departamento:</b> {{ $departmentLabel }}</span>
         <span class="filter-tag"><b>Ventana:</b> {{ $windowLabel }}</span>
         <span class="filter-tag"><b>Calificación mínima:</b> {{ $minRatingLabel }}</span>
     </div>
@@ -69,7 +70,8 @@
             <thead>
                 <tr>
                     <th style="width: 8%;">Origen</th>
-                    <th style="width: 25%;">Relacionado con</th>
+                    <th style="width: 20%;">Relacionado con</th>
+                    <th style="width: 13%;">Departamento</th>
                     <th style="width: 15%;">Usuario</th>
                     <th style="width: 7%;">Calif.</th>
                     <th>Comentario</th>
@@ -87,6 +89,7 @@
                             @endif
                         </td>
                         <td>{{ $row['related_label'] }}</td>
+                        <td>{{ $row['department'] ?? '—' }}</td>
                         <td>{{ $row['user_name'] ?? '—' }}</td>
                         <td>
                             @if ($row['rating'])

@@ -53,25 +53,29 @@
                 </flux:tooltip>
             </flux:label>
             <flux:select wire:model.live="category_id" placeholder="Selecciona una categoría...">
-                @foreach ($categoryRoots as $root)
-                    @if ($root->children->isNotEmpty())
-                        {{-- Grupo nativo: el navegador lo pinta en negrita y
-                             separa visualmente a padre e hijas. --}}
-                        <optgroup label="{{ $root->name }}">
-                            <option value="{{ $root->id }}" @selected((int) $category_id === (int) $root->id)>
-                                {{ $root->name }} (general)
-                            </option>
-                            @foreach ($root->children as $child)
-                                <option value="{{ $child->id }}" @selected((int) $category_id === (int) $child->id)>
-                                    — {{ $child->name }}
+                {{-- Nivel 1: departamento (optgroup) --}}
+                @foreach ($categoryRootsByDept as $deptName => $roots)
+                    <optgroup label="{{ $deptName }}">
+                        {{-- Nivel 2: categoría padre; si tiene hijas, también
+                             aparece como "general" para poder elegir al padre. --}}
+                        @foreach ($roots as $root)
+                            @if ($root->children->isNotEmpty())
+                                <option value="{{ $root->id }}" @selected((int) $category_id === (int) $root->id)>
+                                    &nbsp;&nbsp;{{ $root->name }}
                                 </option>
-                            @endforeach
-                        </optgroup>
-                    @else
-                        <option value="{{ $root->id }}" @selected((int) $category_id === (int) $root->id)>
-                            {{ $root->name }}
-                        </option>
-                    @endif
+                                {{-- Nivel 3: categorías hijas, con indent extra. --}}
+                                @foreach ($root->children as $child)
+                                    <option value="{{ $child->id }}" @selected((int) $category_id === (int) $child->id)>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;└─ {{ $child->name }}
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="{{ $root->id }}" @selected((int) $category_id === (int) $root->id)>
+                                    &nbsp;&nbsp;{{ $root->name }}
+                                </option>
+                            @endif
+                        @endforeach
+                    </optgroup>
                 @endforeach
             </flux:select>
             <flux:error name="category_id" />

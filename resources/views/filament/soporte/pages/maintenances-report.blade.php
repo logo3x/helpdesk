@@ -61,63 +61,138 @@
         .dark .mr-status-pendiente  { background: rgb(63 63 70); color: rgb(212 212 216); }
     </style>
 
-    {{-- Filtros --}}
-    <div class="mr-card mb-4" style="padding: 1rem;">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+    {{-- ── FILTROS ─────────────────────────────────────────────── --}}
+    <x-filament::section
+        icon="heroicon-o-funnel"
+        icon-color="primary"
+        collapsible
+    >
+        <x-slot name="heading">Filtros del informe</x-slot>
+        <x-slot name="description">
+            Ajustá uno o varios. El informe y el PDF se recalculan automáticamente con lo que elijas.
+        </x-slot>
+
+        <style>
+            .mr-filters { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr 1fr; }
+            @media (max-width: 900px) { .mr-filters { grid-template-columns: 1fr 1fr; } }
+            @media (max-width: 600px) { .mr-filters { grid-template-columns: 1fr; } }
+            .mr-f-label {
+                display: block;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: rgb(82 82 91);
+                margin-bottom: 0.35rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            .dark .mr-f-label { color: rgb(161 161 170); }
+            .mr-f-select {
+                width: 100%;
+                padding: 0.5rem 2rem 0.5rem 0.75rem;
+                border: 1px solid rgb(212 212 216);
+                border-radius: 0.5rem;
+                background: white;
+                font-size: 0.875rem;
+                color: rgb(24 24 27);
+                box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
+                background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 0.6rem center;
+                background-size: 1rem;
+            }
+            .mr-f-select:focus {
+                outline: 2px solid rgb(14 165 233);
+                outline-offset: -1px;
+                border-color: rgb(14 165 233);
+            }
+            .dark .mr-f-select {
+                background-color: rgb(39 39 42);
+                border-color: rgb(63 63 70);
+                color: rgb(228 228 231);
+            }
+            .mr-f-chips {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.4rem;
+                margin-top: 1rem;
+                padding-top: 0.75rem;
+                border-top: 1px dashed rgb(228 228 231);
+                font-size: 0.75rem;
+            }
+            .dark .mr-f-chips { border-top-color: rgb(63 63 70); }
+            .mr-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.25rem;
+                padding: 0.15rem 0.6rem;
+                background: rgb(239 246 255);
+                color: rgb(29 78 216);
+                border-radius: 9999px;
+                font-weight: 500;
+            }
+            .dark .mr-chip { background: rgba(59, 130, 246, 0.15); color: rgb(147 197 253); }
+            .mr-chip b { font-weight: 700; }
+            .mr-range {
+                color: rgb(113 113 122);
+                font-size: 0.75rem;
+                margin-top: 0.5rem;
+                font-style: italic;
+            }
+        </style>
+
+        <div class="mr-filters">
             <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ventana</label>
-                <select wire:model.live="window" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
-                    <option value="30">30 días</option>
-                    <option value="90">90 días</option>
-                    <option value="180">180 días</option>
-                    <option value="365">1 año</option>
+                <label class="mr-f-label">Ventana</label>
+                <select wire:model.live="window" class="mr-f-select">
+                    <option value="30">Últimos 30 días</option>
+                    <option value="90">Últimos 90 días</option>
+                    <option value="180">Últimos 180 días</option>
+                    <option value="365">Último año</option>
                 </select>
             </div>
-
             <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Gerencia</label>
-                <select wire:model.live="managementArea" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
-                    <option value="">Todas</option>
+                <label class="mr-f-label">Gerencia</label>
+                <select wire:model.live="managementArea" class="mr-f-select">
+                    <option value="">Todas las gerencias</option>
                     @foreach ($filterOptions['managementAreas'] ?? [] as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
-
             <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Proyecto / Contrato</label>
-                <select wire:model.live="projectId" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
-                    <option value="">Todos</option>
+                <label class="mr-f-label">Proyecto / Contrato</label>
+                <select wire:model.live="projectId" class="mr-f-select">
+                    <option value="">Todos los proyectos</option>
                     @foreach ($filterOptions['projects'] ?? [] as $id => $label)
                         <option value="{{ $id }}">{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
-
             <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Zona</label>
-                <select wire:model.live="locationZone" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
-                    <option value="">Todas</option>
+                <label class="mr-f-label">Zona</label>
+                <select wire:model.live="locationZone" class="mr-f-select">
+                    <option value="">Todas las zonas</option>
                     @foreach ($filterOptions['zones'] ?? [] as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
-
             <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Campo</label>
-                <select wire:model.live="fieldName" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
-                    <option value="">Todos</option>
+                <label class="mr-f-label">Campo</label>
+                <select wire:model.live="fieldName" class="mr-f-select">
+                    <option value="">Todos los campos</option>
                     @foreach ($filterOptions['fields'] ?? [] as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
-
             <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Agente</label>
-                <select wire:model.live="agentId" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
-                    <option value="">Todos</option>
+                <label class="mr-f-label">Agente</label>
+                <select wire:model.live="agentId" class="mr-f-select">
+                    <option value="">Todos los agentes</option>
                     @foreach ($filterOptions['agents'] ?? [] as $id => $name)
                         <option value="{{ $id }}">{{ $name }}</option>
                     @endforeach
@@ -125,18 +200,19 @@
             </div>
         </div>
 
-        <div class="mt-3 flex items-center justify-between text-xs text-gray-500">
-            <span>Desde {{ $data['from']->translatedFormat('d M Y') }} hasta {{ $data['to']->translatedFormat('d M Y') }}</span>
-            @if (! empty($activeFilters))
-                <span>
-                    @foreach ($activeFilters as $label => $value)
-                        <span class="inline-flex items-center gap-1 rounded-full bg-primary-100 dark:bg-primary-900/40 px-2 py-0.5 text-xs font-medium text-primary-700 dark:text-primary-300 ml-1">
-                            {{ $label }}: <strong>{{ $value }}</strong>
-                        </span>
-                    @endforeach
-                </span>
-            @endif
+        <div class="mr-range">
+            Periodo analizado: {{ $data['from']->translatedFormat('d M Y') }} — {{ $data['to']->translatedFormat('d M Y') }}
         </div>
+
+        @if (! empty($activeFilters))
+            <div class="mr-f-chips">
+                <span style="color: rgb(113 113 122); font-weight: 500;">Filtros activos:</span>
+                @foreach ($activeFilters as $label => $value)
+                    <span class="mr-chip">{{ $label }}: <b>{{ $value }}</b></span>
+                @endforeach
+            </div>
+        @endif
+    </x-filament::section>
     </div>
 
     {{-- KPIs --}}

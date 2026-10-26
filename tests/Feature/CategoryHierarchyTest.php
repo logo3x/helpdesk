@@ -62,6 +62,28 @@ it('canBecomeChild rechaza categorías que ya tienen hijas', function () {
     expect($orphan->canBecomeChild())->toBeTrue();
 });
 
+it('portal: agrupa las categorías por departamento (optgroup) con padre y luego hijas', function () {
+    $deptTI = Department::factory()->create(['name' => 'TI']);
+    $deptRRHH = Department::factory()->create(['name' => 'RRHH']);
+
+    $hw = Category::create(['department_id' => $deptTI->id, 'name' => 'Hardware', 'slug' => 'hw-'.uniqid(), 'is_active' => true]);
+    Category::create(['department_id' => $deptTI->id, 'parent_id' => $hw->id, 'name' => 'Impresoras', 'slug' => 'imp-'.uniqid(), 'is_active' => true]);
+    Category::create(['department_id' => $deptRRHH->id, 'name' => 'Nómina', 'slug' => 'nom-'.uniqid(), 'is_active' => true]);
+
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $view = Livewire::test(CreateTicket::class);
+
+    // 1. Las categorías de distintos deptos aparecen (y como optgroup).
+    $view->assertSee('<optgroup label="TI"', escape: false);
+    $view->assertSee('<optgroup label="RRHH"', escape: false);
+    // 2. La hija aparece como opción con el marcador └─.
+    $view->assertSee('└─ Impresoras');
+    // 3. El padre aparece como opción propia.
+    $view->assertSee('Hardware');
+});
+
 it('portal: muestra el departamento al seleccionar una categoría', function () {
     $dept = Department::factory()->create(['name' => 'Tecnología de la Información']);
     $category = Category::create([

@@ -56,6 +56,7 @@ return [
     | LLM Provider (Chatbot / RAG)
     |--------------------------------------------------------------------------
     |
+    | "nvidia"     — NVIDIA NIM API (free key at build.nvidia.com)
     | "openrouter" — uses OpenRouter API (free tier available)
     | "anthropic"  — direct Anthropic Claude API
     |
@@ -63,7 +64,7 @@ return [
     |
     */
     'llm' => [
-        'provider' => env('LLM_PROVIDER', 'openrouter'),
+        'provider' => env('LLM_PROVIDER', 'nvidia'),
         // El modelo SIEMPRE se define en el .env — aquí no hay default
         // útil a propósito.
         //
@@ -85,8 +86,10 @@ return [
         //   2026-09-16  meta-llama/llama-3.1-8b-instruct:free
         //   2026-09-16  google/gemini-2.0-flash-exp:free
         'model' => env('LLM_MODEL', ''),
+        // Modelo de respaldo: se usa si el principal no responde.
+        'fallback_model' => env('LLM_FALLBACK_MODEL', ''),
         'api_key' => env('LLM_API_KEY', ''),
-        'embedding_model' => env('LLM_EMBEDDING_MODEL', 'nomic-ai/nomic-embed-text-v1.5'),
+        'embedding_model' => env('LLM_EMBEDDING_MODEL', 'nvidia/nemotron-3.5-embed-1b'),
         // Feature flag: habilita el botón "Redactar con IA" en el form
         // de creación de KB. Se desactiva si no hay API key.
         'kb_drafting_enabled' => env('ENABLE_AI_KB_DRAFT', true) && filled(env('LLM_API_KEY')),

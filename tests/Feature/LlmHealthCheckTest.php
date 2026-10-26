@@ -292,3 +292,67 @@ it('no sugiere modelos de pago', function () {
     expect($detail)->toContain('gratis/chat:free');
     expect($detail)->not->toContain('premium/modelo-pago');
 });
+
+it('usa el endpoint de NVIDIA y reporta 410 (modelo dado de baja) como modelo inexistente', function () {
+    config([
+        'services.llm.api_key' => 'nvapi-valida',
+        'services.llm.provider' => 'nvidia',
+        'services.llm.model' => 'meta/llama-3.3-70b-instruct',
+    ]);
+
+    Http::fake([
+        'integrate.api.nvidia.com/v1/chat/*' => Http::response([
+            'title' => 'Gone',
+            'status' => 410,
+            'detail' => "The model 'meta/llama-3.3-70b-instruct' has reached its end of life",
+        ], 410),
+        'integrate.api.nvidia.com/v1/models' => Http::response([
+            'data' => [['id' => 'openai/gpt-oss-20b'], ['id' => 'nvidia/nemotron-3.5-embed-1b']],
+        ], 200),
+    ]);
+
+    $result = app(LlmService::class)->healthCheck();
+
+    expect($result['ok'])->toBeFalse();
+    expect($result['title'])->toBe('El modelo no existe');
+    expect($result['detail'])->toContain('openai/gpt-oss-20b');
+    expect($result['detail'])->not->toContain('nemotron-3.5-embed');
+    expect($result['detail'])->toContain('end of life');
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), 'openrouter.ai'));
+});
+
+it('usa el modelo de respaldo cuando el principal falla', function () {
+    config([
+        'services.llm.api_key' => 'nvapi-valida',
+        'services.llm.provider' => 'nvidia',
+        'services.llm.model' => 'principal/caido',
+        'services.llm.fallback_model' => 'respaldo/ok',
+    ]);
+
+    Http::fake(function ($request) {
+        return $request['model'] === 'respaldo/ok'
+            ? Http::response(['choices' => [['message' => ['content' => 'Hola desde el respaldo']]]], 200)
+            : Http::response(['detail' => 'Not found'], 404);
+    });
+
+    $reply = app(LlmService::class)->chat([['role' => 'user', 'content' => 'Hola']]);
+
+    expect($reply)->toBe('Hola desde el respaldo');
+    Http::assertSent(fn ($request) => $request->url() === 'https://integrate.api.nvidia.com/v1/chat/completions'
+        && $request['model'] === 'principal/caido');
+});
+
+it('envía input_type a NVIDIA al generar embeddings', function () {
+    config([
+        'services.llm.api_key' => 'nvapi-valida',
+        'services.llm.provider' => 'nvidia',
+        'services.llm.embedding_model' => 'nvidia/nemotron-3.5-embed-1b',
+    ]);
+
+    Http::fake([
+        'integrate.api.nvidia.com/v1/embeddings' => Http::response(['data' => [['embedding' => [0.1, 0.2]]]], 200),
+    ]);
+
+    expect(app(LlmService::class)->embed('texto', 'passage'))->toBe([0.1, 0.2]);
+    Http::assertSent(fn ($request) => $request['input_type'] === 'passage');
+});

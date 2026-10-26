@@ -55,29 +55,35 @@
             <flux:select wire:model.live="category_id" placeholder="Selecciona una categoría...">
                 @foreach ($categoryRoots as $root)
                     @if ($root->children->isNotEmpty())
-                        <flux:select.option disabled>── {{ $root->name }} ──</flux:select.option>
-                        <flux:select.option :value="$root->id">{{ $root->name }} (general)</flux:select.option>
-                        @foreach ($root->children as $child)
-                            <flux:select.option :value="$child->id">&nbsp;&nbsp;› {{ $child->name }}</flux:select.option>
-                        @endforeach
+                        {{-- Grupo nativo: el navegador lo pinta en negrita y
+                             separa visualmente a padre e hijas. --}}
+                        <optgroup label="{{ $root->name }}">
+                            <option value="{{ $root->id }}" @selected((int) $category_id === (int) $root->id)>
+                                {{ $root->name }} (general)
+                            </option>
+                            @foreach ($root->children as $child)
+                                <option value="{{ $child->id }}" @selected((int) $category_id === (int) $child->id)>
+                                    — {{ $child->name }}
+                                </option>
+                            @endforeach
+                        </optgroup>
                     @else
-                        <flux:select.option :value="$root->id">{{ $root->name }}</flux:select.option>
+                        <option value="{{ $root->id }}" @selected((int) $category_id === (int) $root->id)>
+                            {{ $root->name }}
+                        </option>
                     @endif
                 @endforeach
             </flux:select>
             <flux:error name="category_id" />
 
-            @if ($category_id && isset($categoriesIndex[$category_id]))
-                @php($selectedCat = $categoriesIndex[$category_id])
-                @php($dept = $selectedCat->department)
-                @if ($dept)
-                    <flux:callout variant="secondary" icon="information-circle" class="mt-2">
-                        <flux:callout.text>
-                            Este ticket llegará al equipo de
-                            <strong>{{ $dept->name }}</strong>.
-                        </flux:callout.text>
-                    </flux:callout>
-                @endif
+            @php($selectedCat = $category_id ? ($categoriesIndex[(int) $category_id] ?? null) : null)
+            @if ($selectedCat && $selectedCat->department)
+                <flux:callout variant="secondary" icon="information-circle" class="mt-2">
+                    <flux:callout.text>
+                        Este ticket llegará al equipo de
+                        <strong>{{ $selectedCat->department->name }}</strong>.
+                    </flux:callout.text>
+                </flux:callout>
             @endif
         </flux:field>
 

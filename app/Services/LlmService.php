@@ -7,9 +7,10 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Unified LLM interface. Supports two providers via LLM_PROVIDER env:
+ * Unified LLM interface. Supports three providers via LLM_PROVIDER env:
  *
- * - "openrouter" (default) — routes to any model via OpenRouter API
+ * - "nvidia" — NVIDIA NIM (build.nvidia.com), OpenAI-compatible API
+ * - "openrouter" — routes to any model via OpenRouter API
  * - "anthropic" — direct Anthropic Claude API
  *
  * Switch provider by changing LLM_PROVIDER and the corresponding API key.
@@ -22,13 +23,16 @@ class LlmService
 
     protected string $apiKey;
 
+    protected string $fallbackModel;
+
     public function __construct()
     {
-        $this->provider = config('services.llm.provider', 'openrouter');
+        $this->provider = config('services.llm.provider', 'nvidia');
         // Sin default: el modelo se define en el .env. Ver la nota en
         // config/services.php sobre por qué no hay valor hardcodeado.
         $this->model = config('services.llm.model', '');
         $this->apiKey = config('services.llm.api_key', '');
+        $this->fallbackModel = (string) config('services.llm.fallback_model', '');
     }
 
     /**
@@ -127,8 +131,9 @@ class LlmService
     protected function explainFailure(int $status, string $body): array
     {
         $decoded = json_decode($body, true) ?: [];
-        $error = $decoded['error'] ?? [];
-        $apiMessage = $error['message'] ?? null;
+        $error = is_array($decoded['error'] ?? null) ? $decoded['error'] : [];
+        // NVIDIA responde con formato RFC 7807: {"title", "detail", "status"}.
+        $apiMessage = $error['message'] ?? $decoded['detail'] ?? null;
 
         // OpenRouter envuelve los errores del proveedor upstream en un
         // mensaje genérico ("Provider returned error") y pone el detalle
@@ -153,7 +158,7 @@ class LlmService
                 'title' => 'La API key no es válida',
                 'detail' => 'El proveedor rechazó las credenciales. La clave en LLM_API_KEY '
                     .'fue revocada, está mal copiada o pertenece a otra cuenta.'
-                    ."\n\nGenera una nueva en openrouter.ai/keys y actualiza LLM_API_KEY "
+                    ."\n\nGenera una nueva en {$this->keysUrl()} y actualiza LLM_API_KEY "
                     .'en el .env del servidor.'
                     .$suffix,
             ],
@@ -164,10 +169,11 @@ class LlmService
                     .'gratuito o recarga créditos en openrouter.ai.'.$suffix,
             ],
 
-            $status === 404 => [
+            // NVIDIA devuelve 410 cuando un modelo llegó a su fin de vida.
+            $status === 404, $status === 410 => [
                 'title' => 'El modelo no existe',
-                'detail' => "El proveedor no reconoce «{$this->model}». Verifica que el id esté "
-                    .'escrito exactamente como aparece en la URL de openrouter.ai/<id> — '
+                'detail' => "El proveedor no reconoce «{$this->model}» o lo dio de baja. Verifica que el id esté "
+                    .'escrito exactamente como aparece en el catálogo del proveedor — '
                     .'los sufijos importan.'
                     .$this->formatSuggestions()
                     .$suffix,
@@ -176,9 +182,9 @@ class LlmService
             $status === 429 => [
                 'title' => 'Límite de peticiones alcanzado',
                 'detail' => "El modelo «{$this->model}» rechazó la petición por límite de uso."
-                    ."\n\nEn los modelos gratuitos esto suele venir del proveedor upstream "
-                    .'(Google, NVIDIA...), cuya cuota es compartida entre todos los usuarios '
-                    .'de OpenRouter y se satura en horas pico — no de tu cuenta.'
+                    ."\n\nEn los planes gratuitos la cuota es limitada (en NVIDIA ~40 peticiones "
+                    .'por minuto; en OpenRouter se comparte entre todos los usuarios y se '
+                    .'satura en horas pico).'
                     ."\n\nQué hacer: probar otro modelo gratuito de la lista, reintentar en "
                     .'unos minutos, o migrar a un modelo de pago para tener capacidad propia.'
                     .$this->formatSuggestions()
@@ -222,7 +228,29 @@ class LlmService
     {
         return $this->provider === 'anthropic'
             ? 'https://api.anthropic.com/v1/messages'
-            : 'https://openrouter.ai/api/v1/chat/completions';
+            : $this->openAiBaseUrl().'/chat/completions';
+    }
+
+    /**
+     * Base URL de los proveedores con API compatible con OpenAI.
+     */
+    protected function openAiBaseUrl(): string
+    {
+        return $this->provider === 'nvidia'
+            ? 'https://integrate.api.nvidia.com/v1'
+            : 'https://openrouter.ai/api/v1';
+    }
+
+    /**
+     * Dónde se generan las API keys del proveedor actual.
+     */
+    protected function keysUrl(): string
+    {
+        return match ($this->provider) {
+            'nvidia' => 'build.nvidia.com (Get API Key)',
+            'anthropic' => 'console.anthropic.com',
+            default => 'openrouter.ai/keys',
+        };
     }
 
     /**
@@ -236,7 +264,7 @@ class LlmService
      */
     protected function suggestAvailableModels(): array
     {
-        if ($this->provider !== 'openrouter') {
+        if (! in_array($this->provider, ['openrouter', 'nvidia'], true)) {
             return [];
         }
 
@@ -245,10 +273,21 @@ class LlmService
                 'Authorization' => "Bearer {$this->apiKey}",
             ])
                 ->timeout(15)
-                ->get('https://openrouter.ai/api/v1/models');
+                ->get($this->openAiBaseUrl().'/models');
 
             if (! $response->successful()) {
                 return [];
+            }
+
+            // NVIDIA no publica precios ni modalidades: con la key gratuita
+            // todo el catálogo es usable, así que solo filtramos por nombre.
+            if ($this->provider === 'nvidia') {
+                return collect($response->json('data', []))
+                    ->pluck('id')
+                    ->filter(fn ($id): bool => is_string($id) && ! $this->isNonChatModelId($id))
+                    ->take(12)
+                    ->values()
+                    ->all();
             }
 
             return collect($response->json('data', []))
@@ -290,17 +329,7 @@ class LlmService
                 // sirven para conversar. Los "thinking" gastan tokens
                 // razonando antes de responder, lo que añade latencia
                 // sin valor para un chatbot de KB.
-                ->reject(function (array $m): bool {
-                    $id = mb_strtolower((string) ($m['id'] ?? ''));
-
-                    foreach (['thinking', 'embed', 'rerank', 'tts', 'whisper', 'guard', 'safety'] as $needle) {
-                        if (str_contains($id, $needle)) {
-                            return true;
-                        }
-                    }
-
-                    return false;
-                })
+                ->reject(fn (array $m): bool => $this->isNonChatModelId((string) ($m['id'] ?? '')))
                 ->sortByDesc(fn (array $m): int => (int) ($m['context_length'] ?? 0))
                 ->take(12)
                 ->pluck('id')
@@ -316,6 +345,23 @@ class LlmService
     }
 
     /**
+     * Modelos que no sirven para conversar (embeddings, rerankers,
+     * guardrails, voz, visión) o que razonan antes de responder.
+     */
+    protected function isNonChatModelId(string $id): bool
+    {
+        $id = mb_strtolower($id);
+
+        foreach (['thinking', 'reasoning', 'embed', 'rerank', 'tts', 'whisper', 'guard', 'safety', 'reward', 'parse', 'vision', 'vlm', 'clip', 'code', 'translate', 'detector'] as $needle) {
+            if (str_contains($id, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Generate a chat completion.
      *
      * @param  array<int, array{role: string, content: string}>  $messages
@@ -328,24 +374,40 @@ class LlmService
             return null;
         }
 
-        return match ($this->provider) {
-            'anthropic' => $this->chatAnthropic($messages, $systemPrompt),
-            default => $this->chatOpenRouter($messages, $systemPrompt),
-        };
+        if ($this->provider === 'anthropic') {
+            return $this->chatAnthropic($messages, $systemPrompt);
+        }
+
+        $reply = $this->chatOpenRouter($messages, $systemPrompt, $this->model);
+
+        // Si el modelo principal falla (caído, saturado o dado de baja),
+        // reintentamos con el de respaldo antes de rendirnos.
+        if (blank($reply) && filled($this->fallbackModel) && $this->fallbackModel !== $this->model) {
+            Log::warning('LlmService: modelo principal sin respuesta, usando respaldo', [
+                'model' => $this->model,
+                'fallback' => $this->fallbackModel,
+            ]);
+
+            $reply = $this->chatOpenRouter($messages, $systemPrompt, $this->fallbackModel);
+        }
+
+        return $reply;
     }
 
     /**
      * Generate embeddings for a text string.
      *
+     * @param  string  $inputType  "passage" al indexar artículos, "query" al buscar.
+     *                             Solo lo usa NVIDIA (embeddings asimétricos).
      * @return array<int, float>|null
      */
-    public function embed(string $text): ?array
+    public function embed(string $text, string $inputType = 'query'): ?array
     {
         if (blank($this->apiKey)) {
             return null;
         }
 
-        $embeddingModel = config('services.llm.embedding_model', 'nomic-ai/nomic-embed-text-v1.5');
+        $embeddingModel = config('services.llm.embedding_model', 'nvidia/nemotron-3.5-embed-1b');
 
         try {
             $response = Http::withHeaders([
@@ -353,10 +415,11 @@ class LlmService
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(30)
-                ->post('https://openrouter.ai/api/v1/embeddings', [
+                ->post($this->openAiBaseUrl().'/embeddings', array_filter([
                     'model' => $embeddingModel,
                     'input' => $text,
-                ]);
+                    'input_type' => $this->provider === 'nvidia' ? $inputType : null,
+                ]));
 
             if ($response->successful()) {
                 return $response->json('data.0.embedding');
@@ -371,11 +434,11 @@ class LlmService
     }
 
     /**
-     * OpenRouter — OpenAI-compatible API.
+     * OpenRouter / NVIDIA — OpenAI-compatible API.
      *
      * @param  array<int, array{role: string, content: string}>  $messages
      */
-    protected function chatOpenRouter(array $messages, ?string $systemPrompt): ?string
+    protected function chatOpenRouter(array $messages, ?string $systemPrompt, string $model): ?string
     {
         // 2048 tokens da margen para modelos "reasoning" (que gastan tokens
         // en <thinking>...</thinking> antes del response real). Para
@@ -383,7 +446,7 @@ class LlmService
         // que un usuario que elija un modelo reasoning por error reciba
         // null porque el modelo agotó el budget pensando.
         $payload = [
-            'model' => $this->model,
+            'model' => $model,
             'messages' => $this->prependSystem($messages, $systemPrompt),
             'max_tokens' => 2048,
             'temperature' => 0.3,
@@ -407,7 +470,7 @@ class LlmService
 
                     return true;
                 })
-                ->post('https://openrouter.ai/api/v1/chat/completions', $payload);
+                ->post($this->chatEndpoint(), $payload);
 
             if ($response->successful()) {
                 return $response->json('choices.0.message.content');
@@ -435,9 +498,9 @@ class LlmService
                 ? $e->response->status()
                 : null;
 
-            if ($status === 404) {
+            if ($status === 404 || $status === 410) {
                 Log::error('LlmService: el modelo configurado ya no existe en el proveedor', [
-                    'model' => $this->model,
+                    'model' => $model,
                     'provider' => $this->provider,
                     'hint' => 'Los modelos ":free" de OpenRouter se descontinúan sin aviso. '
                         .'Actualizá LLM_MODEL en el .env con un modelo vigente.',
@@ -447,7 +510,7 @@ class LlmService
                     'error' => $e->getMessage(),
                     'class' => $e::class,
                     'status' => $status,
-                    'model' => $this->model,
+                    'model' => $model,
                 ]);
             }
         }

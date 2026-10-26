@@ -34,7 +34,7 @@ class IndexKbArticleJob implements ShouldQueue
         $chunks = $this->splitIntoChunks($this->article->body);
 
         foreach ($chunks as $index => $chunk) {
-            $vector = $llm->embed("{$this->article->title}\n\n{$chunk}");
+            $vector = $llm->embed("{$this->article->title}\n\n{$chunk}", 'passage');
 
             if ($vector === null) {
                 Log::warning("IndexKbArticleJob: Failed to embed chunk {$index} for article {$this->article->id}");

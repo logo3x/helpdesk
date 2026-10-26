@@ -3,9 +3,11 @@
 namespace App\Providers;
 
 use App\Mail\MicrosoftGraphTransport;
+use App\Notifications\Channels\FailSafeMailChannel;
 use App\Services\DemoLlmService;
 use App\Services\LlmService;
 use Carbon\CarbonImmutable;
+use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -31,6 +33,10 @@ class AppServiceProvider extends ServiceProvider
         if (env('DEMO_LLM_MOCK') === true || env('DEMO_LLM_MOCK') === 'true') {
             $this->app->singleton(LlmService::class, DemoLlmService::class);
         }
+
+        // TEMPORAL: un fallo de correo no interrumpe la acción del usuario.
+        // Ver App\Notifications\Channels\FailSafeMailChannel.
+        $this->app->bind(MailChannel::class, FailSafeMailChannel::class);
     }
 
     /**

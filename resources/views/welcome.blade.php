@@ -320,7 +320,7 @@
 
             <div class="mb-12 max-w-2xl">
                 <span class="eyebrow" style="color: #7cb3d9;">Por qué usarlo</span>
-                <h2 class="mt-4 section-title text-white">
+                <h2 class="mt-4 section-title" style="color: #fff;">
                     Más rápido que un correo. Más claro que una llamada.
                 </h2>
             </div>

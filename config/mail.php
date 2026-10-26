@@ -35,6 +35,12 @@ return [
     |
     */
 
+    /*
+    | TEMPORAL: si un correo de notificación falla, se registra en el log y
+    | la acción del usuario continúa. Ver FailSafeMailChannel.
+    */
+    'fail_safe' => (bool) env('MAIL_FAIL_SAFE', true),
+
     'mailers' => [
 
         'smtp' => [

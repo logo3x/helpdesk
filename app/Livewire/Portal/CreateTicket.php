@@ -110,7 +110,7 @@ class CreateTicket extends Component
                     ->orderBy('name'),
             ])
             ->orderBy('name')
-            ->get(['id', 'department_id', 'parent_id', 'name']);
+            ->get(['id', 'department_id', 'parent_id', 'name', 'icon']);
 
         // Agrupadas por departamento, cada grupo con sus categorías RAÍZ.
         // Las hijas van anidadas dentro de su padre vía children.

@@ -18,6 +18,11 @@ class CategoriesTable
     {
         return $table
             ->columns([
+                IconColumn::make('icon')
+                    ->label('Icono')
+                    ->icon(fn (?string $state): ?string => $state ?: null)
+                    ->placeholder('—')
+                    ->color('gray'),
                 TextColumn::make('department.name')
                     ->label('Departamento')
                     ->badge()

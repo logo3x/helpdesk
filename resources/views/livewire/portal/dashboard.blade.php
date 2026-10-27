@@ -1,4 +1,4 @@
-﻿<div class="space-y-6"
+<div class="space-y-6"
      x-data="{}"
      x-init="
         document.querySelectorAll('.dash-stat').forEach((el, i) => {
@@ -24,7 +24,7 @@
         .dash-panel { animation: dashFadeUp  .4s ease .15s both; }
     </style>
 
-    {{-- Asistente IA â€” primera cosa visible en el home del portal --}}
+    {{-- Asistente IA — primera cosa visible en el home del portal --}}
     <form method="GET" action="{{ route('portal.chatbot') }}"
           class="dash-hero overflow-hidden rounded-xl border border-purple-200/80 bg-gradient-to-br from-purple-50 via-white to-sky-50 p-6 shadow-sm dark:border-purple-800/60 dark:from-purple-950/40 dark:via-zinc-900 dark:to-sky-950/30">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -42,7 +42,7 @@
                 @php
                     $hour = now()->hour;
                     $greeting = match (true) {
-                        $hour < 12 => 'Buenos dÃ­as',
+                        $hour < 12 => 'Buenos días',
                         $hour < 19 => 'Buenas tardes',
                         default => 'Buenas noches',
                     };
@@ -50,10 +50,10 @@
                 @endphp
                 <flux:heading size="xl">{{ $greeting }}, {{ $firstName }}</flux:heading>
                 <flux:text class="mt-1 text-zinc-500">
-                    Soy tu asistente del Helpdesk Confipetrol. PregÃºntame sobre reset de contraseÃ±a, VPN, impresoras, software y mÃ¡s. Si no encuentro respuesta, te ayudo a crear un ticket.
+                    Soy tu asistente del Helpdesk Confipetrol. Pregúntame sobre reset de contraseña, VPN, impresoras, software y más. Si no encuentro respuesta, te ayudo a crear un ticket.
                 </flux:text>
                 <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-                    <input type="text" name="q" placeholder="Escribe tu pregunta aquÃ­..." autofocus
+                    <input type="text" name="q" placeholder="Escribe tu pregunta aquí..." autofocus
                            class="flex-1 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm transition-shadow focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-200 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-purple-900/50" />
                     <flux:button type="submit" variant="primary" icon="sparkles">Preguntar</flux:button>
                 </div>
@@ -61,7 +61,7 @@
         </div>
     </form>
 
-    {{-- Resumen rÃ¡pido / saludo compacto --}}
+    {{-- Resumen rápido / saludo compacto --}}
     <div class="dash-hero overflow-hidden rounded-xl border border-sky-200/60 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-6 shadow-sm dark:border-sky-900/40 dark:from-sky-950/30 dark:via-zinc-900 dark:to-indigo-950/20">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-4">
@@ -74,7 +74,7 @@
                         @php
                             $hour = now()->hour;
                             $greeting = match (true) {
-                                $hour < 12 => 'Buenos dÃ­as',
+                                $hour < 12 => 'Buenos días',
                                 $hour < 19 => 'Buenas tardes',
                                 default => 'Buenas noches',
                             };
@@ -82,7 +82,7 @@
                         {{ $greeting }}, {{ explode(' ', (string) $user?->name)[0] ?? '' }}
                     </flux:heading>
                     <flux:text class="mt-0.5 text-zinc-500">
-                        Bienvenido al Helpdesk Confipetrol. Â¿En quÃ© te ayudamos hoy?
+                        Bienvenido al Helpdesk Confipetrol. ¿En qué te ayudamos hoy?
                     </flux:text>
                 </div>
             </div>
@@ -135,7 +135,7 @@
         </a>
     </div>
 
-    {{-- Accesos rÃ¡pidos --}}
+    {{-- Accesos rápidos --}}
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <a href="{{ route('portal.tickets.create') }}" wire:navigate.hover
            class="dash-quick group overflow-hidden rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md dark:border-zinc-700/80 dark:bg-zinc-900/80">
@@ -143,7 +143,7 @@
                 <flux:icon name="plus-circle" class="size-5 text-sky-600" />
             </div>
             <flux:heading size="sm">Crear ticket</flux:heading>
-            <flux:text size="sm" class="mt-1 text-zinc-500">Â¿Tienes un problema o necesitas ayuda? Crea una solicitud y un agente te atenderÃ¡.</flux:text>
+            <flux:text size="sm" class="mt-1 text-zinc-500">¿Tienes un problema o necesitas ayuda? Crea una solicitud y un agente te atenderá.</flux:text>
         </a>
 
         <a href="{{ route('portal.assets.index') }}" wire:navigate.hover
@@ -152,7 +152,7 @@
                 <flux:icon name="computer-desktop" class="size-5 text-amber-600" />
             </div>
             <flux:heading size="sm">Mis activos</flux:heading>
-            <flux:text size="sm" class="mt-1 text-zinc-500">Consulta los equipos asignados a tu custodia y confirma la recepciÃ³n de actas pendientes.</flux:text>
+            <flux:text size="sm" class="mt-1 text-zinc-500">Consulta los equipos asignados a tu custodia y confirma la recepción de actas pendientes.</flux:text>
         </a>
 
         <a href="{{ route('portal.kb.index') }}" wire:navigate.hover
@@ -161,18 +161,18 @@
                 <flux:icon name="book-open" class="size-5 text-emerald-600" />
             </div>
             <flux:heading size="sm">Centro de ayuda</flux:heading>
-            <flux:text size="sm" class="mt-1 text-zinc-500">Navega artÃ­culos publicados con guÃ­as, procedimientos y respuestas a las preguntas mÃ¡s comunes.</flux:text>
+            <flux:text size="sm" class="mt-1 text-zinc-500">Navega artículos publicados con guías, procedimientos y respuestas a las preguntas más comunes.</flux:text>
         </a>
     </div>
 
-    {{-- Ãšltimos tickets + KB destacados --}}
+    {{-- Últimos tickets + KB destacados --}}
     <div class="dash-panel grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {{-- Mis Ãºltimos tickets (2/3) --}}
+        {{-- Mis últimos tickets (2/3) --}}
         <div class="lg:col-span-2 overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/80">
             <div class="flex items-center justify-between border-b border-zinc-100 px-5 py-3.5 dark:border-zinc-800">
                 <div class="flex items-center gap-2">
                     <flux:icon name="clock" class="size-4 text-zinc-400" />
-                    <flux:heading size="sm">Mis Ãºltimos tickets</flux:heading>
+                    <flux:heading size="sm">Mis últimos tickets</flux:heading>
                 </div>
                 @if ($recent->count() > 0)
                     <flux:link :href="route('portal.tickets.index')" wire:navigate.hover class="text-xs text-zinc-400 hover:text-sky-500">Ver todos</flux:link>
@@ -197,7 +197,7 @@
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5 text-xs text-zinc-400">
                                 <span class="font-mono">{{ $ticket->number }}</span>
-                                <span>Â·</span>
+                                <span>·</span>
                                 <span>{{ $ticket->created_at->diffForHumans() }}</span>
                             </div>
                             <div class="mt-0.5 truncate text-sm font-medium text-zinc-800 transition-colors group-hover:text-sky-600 dark:text-zinc-100 dark:group-hover:text-sky-400">
@@ -209,7 +209,7 @@
                 @empty
                     <div class="rounded-lg border border-dashed border-zinc-200 py-8 text-center dark:border-zinc-700">
                         <flux:icon name="ticket" class="mx-auto mb-2 size-8 text-zinc-300" />
-                        <flux:text size="sm" class="text-zinc-400">AÃºn no has creado ningÃºn ticket.</flux:text>
+                        <flux:text size="sm" class="text-zinc-400">Aún no has creado ningún ticket.</flux:text>
                         <flux:button :href="route('portal.tickets.create')" wire:navigate.hover variant="primary" size="sm" icon="plus" class="mt-3">
                             Crear el primero
                         </flux:button>
@@ -223,7 +223,7 @@
             <div class="flex items-center justify-between border-b border-zinc-100 px-5 py-3.5 dark:border-zinc-800">
                 <div class="flex items-center gap-2">
                     <flux:icon name="fire" class="size-4 text-orange-400" />
-                    <flux:heading size="sm">Lo mÃ¡s leÃ­do</flux:heading>
+                    <flux:heading size="sm">Lo más leído</flux:heading>
                 </div>
                 @if ($featuredKb->count() > 0)
                     <flux:link :href="route('portal.kb.index')" wire:navigate.hover class="text-xs text-zinc-400 hover:text-emerald-500">Ver todos</flux:link>
@@ -245,7 +245,7 @@
                                     <span>{{ $article->category->name }}</span>
                                 @endif
                                 @if ($article->views_count > 0)
-                                    <span>Â·</span>
+                                    <span>·</span>
                                     <span>{{ $article->views_count }} vistas</span>
                                 @endif
                             </div>
@@ -253,7 +253,7 @@
                     </a>
                 @empty
                     <div class="py-6 text-center">
-                        <flux:text size="sm" class="text-zinc-400">AÃºn no hay artÃ­culos publicados.</flux:text>
+                        <flux:text size="sm" class="text-zinc-400">Aún no hay artículos publicados.</flux:text>
                     </div>
                 @endforelse
             </div>

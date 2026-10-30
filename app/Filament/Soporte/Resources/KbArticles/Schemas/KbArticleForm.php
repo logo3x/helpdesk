@@ -47,13 +47,6 @@ class KbArticleForm
                             ->helperText('Identificador único en la URL. Se auto-genera desde el título.')
                             ->columnSpanFull(),
 
-                        MarkdownEditor::make('body')
-                            ->label('Cuerpo del artículo')
-                            ->required()
-                            ->toolbarButtons(['bold', 'italic', 'link', 'bulletList', 'orderedList', 'codeBlock', 'blockquote', 'heading', 'undo', 'redo'])
-                            ->live(debounce: 1000)
-                            ->columnSpanFull(),
-
                         Placeholder::make('body_preview')
                             ->label('Vista previa (así lo verá el usuario)')
                             ->content(fn (Get $get): HtmlString => new HtmlString(
@@ -63,6 +56,24 @@ class KbArticleForm
                                     : '<p class="text-gray-500">Escribe o genera el contenido para ver cómo queda.</p>')
                                 .'</div>'
                             ))
+                            ->columnSpanFull(),
+
+                        Section::make('Editar el texto (Markdown)')
+                            ->description('Ábrelo para cambiar el contenido. La vista previa de arriba se actualiza sola.')
+                            ->icon('heroicon-o-pencil-square')
+                            ->collapsible()
+                            // Al editar empieza cerrado para que se vea primero el resultado;
+                            // al crear empieza abierto porque aún no hay contenido.
+                            ->collapsed(fn (?KbArticle $record): bool => $record !== null)
+                            ->compact()
+                            ->schema([
+                                MarkdownEditor::make('body')
+                                    ->label('Cuerpo del artículo')
+                                    ->required()
+                                    ->toolbarButtons(['bold', 'italic', 'link', 'bulletList', 'orderedList', 'codeBlock', 'blockquote', 'heading', 'undo', 'redo'])
+                                    ->live(debounce: 1000)
+                                    ->columnSpanFull(),
+                            ])
                             ->columnSpanFull(),
                     ]),
 

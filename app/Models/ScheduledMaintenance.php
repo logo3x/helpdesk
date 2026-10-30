@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\MaintenanceFrequency;
 use App\Enums\MaintenanceStatus;
+use App\Models\Concerns\AuditsActivity;
 use App\Observers\ScheduledMaintenanceObserver;
 use Database\Factories\ScheduledMaintenanceFactory;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -33,7 +34,10 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 class ScheduledMaintenance extends Model implements HasMedia
 {
     /** @use HasFactory<ScheduledMaintenanceFactory> */
-    use HasFactory, InteractsWithMedia, SoftDeletes;
+    use AuditsActivity, HasFactory, InteractsWithMedia, SoftDeletes;
+
+    /** Módulo con el que aparece en la bitácora. */
+    protected string $auditLogName = 'mantenimientos';
 
     public function registerMediaCollections(): void
     {

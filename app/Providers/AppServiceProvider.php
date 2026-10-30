@@ -18,6 +18,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use SocialiteProviders\Microsoft\MicrosoftExtendSocialite;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -52,6 +53,16 @@ class AppServiceProvider extends ServiceProvider
             clientSecret: (string) $config['client_secret'],
             sender: (string) $config['sender'],
         ));
+
+        // Bitácora: cada registro guarda la IP desde donde se hizo la acción.
+        Activity::creating(function (Activity $activity): void {
+            if (app()->runningInConsole() && ! app()->runningUnitTests()) {
+                return;
+            }
+
+            $activity->properties = collect($activity->properties ?? [])
+                ->put('ip', $activity->properties?->get('ip') ?? request()->ip());
+        });
 
         // Register Socialite Microsoft provider from socialiteproviders/microsoft
         Event::listen(

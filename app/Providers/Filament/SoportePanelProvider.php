@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Resources\ActivityLogs\ActivityLogResource;
 use App\Filament\Soporte\Widgets\AgentRankingWidget;
 use App\Filament\Soporte\Widgets\AgentTrendChart;
 use App\Filament\Soporte\Widgets\TicketResolutionMetricsWidget;
@@ -52,6 +53,10 @@ class SoportePanelProvider extends PanelProvider
                 'primary' => Color::Sky,
             ])
             ->discoverResources(in: app_path('Filament/Soporte/Resources'), for: 'App\Filament\Soporte\Resources')
+            // Bitácora compartida con el panel admin (la ve el coordinador).
+            ->resources([
+                ActivityLogResource::class,
+            ])
             ->discoverPages(in: app_path('Filament/Soporte/Pages'), for: 'App\Filament\Soporte\Pages')
             ->pages([
                 Dashboard::class,

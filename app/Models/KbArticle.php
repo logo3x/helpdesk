@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditsActivity;
 use Database\Factories\KbArticleFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +15,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class KbArticle extends Model
 {
     /** @use HasFactory<KbArticleFactory> */
-    use HasFactory, SoftDeletes;
+    use AuditsActivity, HasFactory, SoftDeletes;
+
+    /** Módulo con el que aparece en la bitácora. */
+    protected string $auditLogName = 'base_conocimiento';
 
     // Campos controlados por el backend (author_id en Create page, counters
     // por triggers/feedback, published_at auto en publish) se excluyen del

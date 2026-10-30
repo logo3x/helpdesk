@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditsActivity;
 use App\Notifications\AssetMaintenanceAssignedNotification;
 use Database\Factories\AssetFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,7 +16,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Asset extends Model
 {
     /** @use HasFactory<AssetFactory> */
-    use HasFactory, SoftDeletes;
+    use AuditsActivity, HasFactory, SoftDeletes;
+
+    /** Módulo con el que aparece en la bitácora. */
+    protected string $auditLogName = 'inventario';
+
+    /** El agente de inventario actualiza equipos sin sesión: no se audita. */
+    protected bool $auditOnlyUserActions = true;
 
     /**
      * Campos cuyos cambios se registran automáticamente en la hoja de

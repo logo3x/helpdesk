@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditsActivity;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -24,7 +25,10 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser, HasName
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
+    use AuditsActivity, HasApiTokens, HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
+
+    /** Módulo con el que aparece en la bitácora. */
+    protected string $auditLogName = 'usuarios';
 
     public function canAccessPanel(Panel $panel): bool
     {

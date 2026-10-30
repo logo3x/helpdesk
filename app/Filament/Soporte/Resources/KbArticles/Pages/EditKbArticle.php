@@ -3,7 +3,6 @@
 namespace App\Filament\Soporte\Resources\KbArticles\Pages;
 
 use App\Filament\Concerns\HasAiContentActions;
-use App\Filament\Concerns\HasKbAiDraftAction;
 use App\Filament\Soporte\Resources\KbArticles\KbArticleResource;
 use App\Models\KbArticle;
 use App\Models\User;
@@ -21,7 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class EditKbArticle extends EditRecord
 {
-    use HasAiContentActions, HasKbAiDraftAction;
+    use HasAiContentActions;
 
     protected static string $resource = KbArticleResource::class;
 
@@ -39,7 +38,6 @@ class EditKbArticle extends EditRecord
         $article = $this->getRecord();
 
         return [
-            $this->draftKbWithAiAction(),
             $this->refineWithAiAction(),
 
             // ── Solicitar publicación (agente sobre su propio borrador) ──

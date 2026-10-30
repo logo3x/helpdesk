@@ -52,20 +52,10 @@ it('al editar se puede refinar el cuerpo con IA', function () {
         ->assertSchemaStateSet(['body' => "## Paso 1\nAbre la **Microsoft Store** desde Inicio."]);
 });
 
-it('al editar se puede redactar de nuevo con IA sin cambiar el slug', function () {
-    $this->mock(LlmService::class, fn ($mock) => $mock->shouldReceive('draftKbArticle')->andReturn([
-        'title' => 'Cómo instalar Windows App para SAP',
-        'body' => "## Requisitos\n- Usuario SAP",
-    ]));
-
+it('al editar solo aparece Refinar con IA, no Redactar con IA', function () {
     Livewire::test(EditKbArticle::class, ['record' => $this->article->getRouteKey()])
-        ->callAction('draftWithAi', ['natural_language' => 'explica cómo instalar windows app para entrar a SAP', 'tone' => 'formal'])
-        ->assertHasNoActionErrors()
-        ->assertSchemaStateSet([
-            'title' => 'Cómo instalar Windows App para SAP',
-            'slug' => 'instalar-windows-app',
-            'body' => "## Requisitos\n- Usuario SAP",
-        ]);
+        ->assertActionVisible('aiRefine')
+        ->assertActionDoesNotExist('draftWithAi');
 });
 
 it('al crear se sigue pudiendo redactar con IA', function () {

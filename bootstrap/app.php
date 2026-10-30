@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\ForcePasswordChange;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // está en SANCTUM_STATEFUL_DOMAINS. Sin esto, el web-scan del
         // portal (auth:sanctum) no encuentra al usuario logueado.
         $middleware->statefulApi();
+
+        // Encabezados de seguridad (HSTS, anti-clickjacking, etc.) en
+        // todas las respuestas, web y API.
+        $middleware->append(SecurityHeaders::class);
 
         // Fuerza cambio de password en el primer login de cuentas
         // locales precargadas (password_must_change=1). Se aplica al

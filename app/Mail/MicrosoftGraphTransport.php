@@ -33,6 +33,19 @@ class MicrosoftGraphTransport extends AbstractTransport
 
     protected function doSend(SentMessage $message): void
     {
+        // Candado de seguridad: el permiso Mail.Send de Azure permitiría
+        // enviar como cualquier buzón de la empresa; aquí solo se acepta
+        // el remitente configurado.
+        $from = strtolower($message->getEnvelope()->getSender()->getAddress());
+
+        if ($from !== strtolower($this->sender)) {
+            throw new TransportException(sprintf(
+                'Remitente no autorizado para Microsoft Graph: %s (solo se permite %s).',
+                $from,
+                $this->sender,
+            ));
+        }
+
         $response = Http::withToken($this->accessToken())
             ->withBody(base64_encode($message->toString()), 'text/plain')
             ->timeout(30)

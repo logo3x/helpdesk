@@ -79,3 +79,9 @@ it('el comando mail:test informa si el envío falla', function () {
         ->expectsOutputToContain('Invalid client secret')
         ->assertFailed();
 });
+
+it('se niega a enviar desde un remitente distinto al configurado', function () {
+    Http::fake();
+
+    Mail::raw('Hola', fn ($m) => $m->from('gerencia@confipetrol.com')->to('a@confipetrol.com')->subject('x'));
+})->throws(TransportException::class, 'Remitente no autorizado');

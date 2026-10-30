@@ -50,7 +50,11 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
 
 - **Configurar CA bundle de SSL en PHP** ✅ resuelto 2026-06-03 (descargar cacert.pem + setear `curl.cainfo` y `openssl.cafile` en php.ini del server).
 - **Configurar `LLM_API_KEY` en .env de prod** ✅ resuelto 2026-06-03 (OpenRouter free tier).
-- **7 sitios IIS con handler PHP83 huérfano** — pendiente decidir si dejarlos en PHP 8.5 o reinstalar PHP 8.3 para legacy.
+- **7 sitios IIS con handler PHP83 huérfano** ✅ resuelto 2026-10-30: la mayoría de sitios quedó en PHP 8.5.12 (backup IIS: `appcmd restore backup "antes-php-8.5.12"`). Inspecciones sigue en 8.3.29 y EstimaWeb en 8.5.6 por decisión.
+- **Borrar carpetas de PHP en desuso** — pendiente, después del 2026-11-06 si ningún sitio falla. En `C:\Program Files\PHP`: `v8.0_borrar`, `v8.3.24_borrar`, `v8.4.11_borrar` y `v8.2.10 viejo`. Comando: `Remove-Item "v8.0_borrar","v8.3.24_borrar","v8.4.11_borrar","v8.2.10 viejo" -Recurse -Force`. **No borrar:** `v8.5.12`, `v8.5.6` (EstimaWeb), `php-8.3.29-Win32-vs16-x64` (Inspecciones), `v8.1.12` (COC-Confipetrol).
+- **Renovar el secreto de Azure del Helpdesk** antes de que venza (creado 2026-10-30, 24 meses). Lo usan el SSO **y** el envío de correo por Graph: si vence, caen ambos.
+- **Restringir la app de Azure a su buzón** (ApplicationAccessPolicy en Exchange) — pendiente, requiere al administrador de Microsoft 365.
+- **Instalar el worker de la cola (NSSM) y pasar a `QUEUE_CONNECTION=database`**; después desactivar `MAIL_FAIL_SAFE` y quitar `FailSafeMailChannel` (temporal).
 
 ---
 

@@ -2,6 +2,8 @@
 
 namespace App\Filament\Soporte\Resources\KbArticles\Pages;
 
+use App\Filament\Concerns\HasAiContentActions;
+use App\Filament\Concerns\HasKbAiDraftAction;
 use App\Filament\Soporte\Resources\KbArticles\KbArticleResource;
 use App\Models\KbArticle;
 use App\Models\User;
@@ -19,6 +21,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class EditKbArticle extends EditRecord
 {
+    use HasAiContentActions, HasKbAiDraftAction;
+
     protected static string $resource = KbArticleResource::class;
 
     /**
@@ -35,6 +39,9 @@ class EditKbArticle extends EditRecord
         $article = $this->getRecord();
 
         return [
+            $this->draftKbWithAiAction(),
+            $this->refineWithAiAction(),
+
             // ── Solicitar publicación (agente sobre su propio borrador) ──
             // Marca el artículo como "listo para revisar" y notifica a
             // los supervisores del depto. Se oculta cuando ya está
@@ -188,6 +195,24 @@ class EditKbArticle extends EditRecord
             ForceDeleteAction::make()->visible(fn () => $isSupervisor),
             RestoreAction::make()->visible(fn () => $isSupervisor),
         ];
+    }
+
+    protected function aiAssistantKind(): string
+    {
+        return 'kb_article';
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function applyAiResult(array $data): void
+    {
+        $this->form->fill([...$this->form->getRawState(), ...array_filter($data)]);
+    }
+
+    protected function currentAiSourceText(): ?string
+    {
+        return $this->form->getRawState()['body'] ?? null;
     }
 
     protected function mutateFormDataBeforeSave(array $data): array

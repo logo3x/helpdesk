@@ -102,6 +102,8 @@ trait HasAiContentActions
                         'friendly' => 'Tono más cercano',
                         'fix_grammar' => 'Corregir ortografía y gramática',
                         'add_steps' => 'Estructurar como pasos numerados',
+                        'markdown' => 'Ordenar el formato (títulos, listas, negritas)',
+                        'end_user' => 'Más fácil de entender para el usuario final',
                     ])
                     ->native(false)
                     ->placeholder('— Opcional —')
@@ -170,6 +172,8 @@ trait HasAiContentActions
             'friendly' => 'Reescríbelo con un tono más cercano y empático.',
             'fix_grammar' => 'Corrige errores de ortografía, gramática y puntuación sin cambiar el sentido.',
             'add_steps' => 'Reestructúralo como una lista numerada de pasos cuando aplique.',
+            'markdown' => 'Ordena el formato Markdown: títulos con ##, listas, negritas solo en lo importante y párrafos cortos. No cambies el contenido.',
+            'end_user' => 'Reescríbelo para un usuario final sin conocimientos técnicos: frases cortas, sin jerga y pasos claros.',
         ];
 
         $parts = [];
@@ -195,7 +199,7 @@ trait HasAiContentActions
     {
         return match ($this->aiAssistantKind()) {
             'ticket_template' => ['description' => $refinedText],
-            'canned_response' => ['body' => $refinedText],
+            'canned_response', 'kb_article' => ['body' => $refinedText],
             default => [],
         };
     }

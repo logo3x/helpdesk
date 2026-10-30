@@ -9,6 +9,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -50,6 +51,18 @@ class KbArticleForm
                             ->label('Cuerpo del artículo')
                             ->required()
                             ->toolbarButtons(['bold', 'italic', 'link', 'bulletList', 'orderedList', 'codeBlock', 'blockquote', 'heading', 'undo', 'redo'])
+                            ->live(debounce: 1000)
+                            ->columnSpanFull(),
+
+                        Placeholder::make('body_preview')
+                            ->label('Vista previa (así lo verá el usuario)')
+                            ->content(fn (Get $get): HtmlString => new HtmlString(
+                                '<div class="fi-prose max-w-none rounded-lg border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">'
+                                .(filled($get('body'))
+                                    ? Str::markdown((string) $get('body'), ['html_input' => 'escape', 'allow_unsafe_links' => false])
+                                    : '<p class="text-gray-500">Escribe o genera el contenido para ver cómo queda.</p>')
+                                .'</div>'
+                            ))
                             ->columnSpanFull(),
                     ]),
 

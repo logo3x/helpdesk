@@ -75,7 +75,7 @@ if errorlevel 1 (
 
 echo.
 echo === [Paso 3/5] composer install --no-dev --optimize-autoloader ===
-%COMPOSER_BIN% install --no-dev --optimize-autoloader --no-interaction
+call %COMPOSER_BIN% install --no-dev --optimize-autoloader --no-interaction
 if errorlevel 1 (
     echo.
     echo ERROR: composer install fallo.

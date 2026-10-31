@@ -27,7 +27,8 @@ class KbArticlesTable
                     ->sortable()
                     ->weight('bold')
                     ->limit(60)
-                    ->tooltip(fn ($record) => $record->title),
+                    ->tooltip(fn ($record) => $record->title)
+                    ->description(fn ($record): ?string => $record->is_ai_suggestion ? '💡 Sugerido por la IA' : null),
 
                 TextColumn::make('department.name')
                     ->label('Departamento')
@@ -123,6 +124,11 @@ class KbArticlesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Filter::make('ai_suggestion')
+                    ->label('Sugeridos por la IA')
+                    ->query(fn (Builder $query) => $query->where('is_ai_suggestion', true))
+                    ->toggle(),
+
                 Filter::make('pending_review')
                     ->label('Pendientes de revisión')
                     ->query(fn (Builder $query) => $query->whereNotNull('pending_review_at')->where('status', 'draft'))

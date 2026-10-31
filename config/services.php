@@ -96,6 +96,9 @@ return [
         // (tono cercano, solo los pasos que aplican). Con false vuelve
         // a enviar el artículo tal cual.
         'personalize_kb_answers' => (bool) env('CHATBOT_PERSONALIZE_KB', true),
+        // Revisión horaria de consultas sin respuesta: la IA propone
+        // borradores KB y avisa a supervisores y administradores.
+        'kb_suggestions_enabled' => (bool) env('ENABLE_AI_KB_SUGGESTIONS', true) && filled(env('LLM_API_KEY')),
         'kb_drafting_enabled' => env('ENABLE_AI_KB_DRAFT', true) && filled(env('LLM_API_KEY')),
     ],
 

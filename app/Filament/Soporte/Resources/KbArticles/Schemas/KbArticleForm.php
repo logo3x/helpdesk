@@ -20,6 +20,28 @@ class KbArticleForm
     {
         return $schema
             ->components([
+                // ── Aviso: borrador propuesto por la IA ──
+                Section::make('💡 Sugerencia generada por la IA')
+                    ->description('Se creó a partir de preguntas del chatbot que la base de conocimiento no respondía. Verifica el contenido: la IA no conoce los procedimientos internos exactos.')
+                    ->schema([
+                        Placeholder::make('suggestion_context_info')
+                            ->hiddenLabel()
+                            ->content(function (?KbArticle $record): HtmlString {
+                                $context = $record?->suggestion_context ?? [];
+                                $queries = collect($context['queries'] ?? [])
+                                    ->map(fn ($q): string => '<li>«'.e($q).'»</li>')
+                                    ->implode('');
+
+                                return new HtmlString(
+                                    (filled($context['reason'] ?? null) ? '<p><strong>Motivo:</strong> '.e($context['reason']).'</p>' : '')
+                                    .($queries !== '' ? '<p class="mt-2"><strong>Preguntas de los empleados:</strong></p><ul class="ml-5 list-disc">'.$queries.'</ul>' : '')
+                                );
+                            }),
+                    ])
+                    ->collapsible()
+                    ->visible(fn (?KbArticle $record): bool => (bool) $record?->is_ai_suggestion)
+                    ->columnSpanFull(),
+
                 // ── 1. Datos generales: título, slug y clasificación ──
                 Section::make('Datos generales')
                     ->description('Título, enlace, departamento y estado del artículo.')

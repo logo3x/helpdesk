@@ -36,6 +36,8 @@ class KbArticle extends Model
             'not_helpful_count' => 'integer',
             'published_at' => 'datetime',
             'pending_review_at' => 'datetime',
+            'is_ai_suggestion' => 'boolean',
+            'suggestion_context' => 'array',
         ];
     }
 

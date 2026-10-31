@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\AuditsActivity;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\KbSuggestionService;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
@@ -37,6 +38,15 @@ class User extends Authenticatable implements FilamentUser, HasName
             'soporte' => $this->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte', 'agente_soporte', 'tecnico_campo', 'editor_kb']),
             default => false,
         };
+    }
+
+    /**
+     * El usuario de sistema (autor de las sugerencias KB) no tiene buzón:
+     * sin dirección, el canal de correo lo omite.
+     */
+    public function routeNotificationForMail(): ?string
+    {
+        return $this->email === KbSuggestionService::SYSTEM_USER_EMAIL ? null : $this->email;
     }
 
     /** @return BelongsTo<Department, $this> */

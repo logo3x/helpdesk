@@ -4,8 +4,11 @@ use App\Jobs\AutoCloseTicketsJob;
 use App\Jobs\AutoMarkMaintenanceSurveysPositiveJob;
 use App\Jobs\AutoMarkSurveysPositiveJob;
 use App\Jobs\CheckSlaBreachesJob;
+use App\Jobs\GenerateKbSuggestionsJob;
 use App\Jobs\MaintenanceAlertJob;
 use App\Jobs\NotifyDueMaintenancesJob;
+use App\Services\KbSuggestionService;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
 // SLA breach detection — every 5 minutes during business hours
@@ -51,3 +54,19 @@ Schedule::command('kactus:sync')
     ->between('06:00', '20:00')
     ->withoutOverlapping()
     ->when(fn () => (bool) config('kactus.enabled'));
+
+// Sugerencias de artículos KB a partir de consultas del chatbot sin
+// respuesta. También se puede correr a mano: php artisan kb:suggest
+Schedule::job(new GenerateKbSuggestionsJob)
+    ->hourlyAt(20)
+    ->weekdays()
+    ->between('07:00', '19:00')
+    ->withoutOverlapping();
+
+Artisan::command('kb:suggest', function (KbSuggestionService $service) {
+    $created = $service->run();
+
+    $this->info($created->isEmpty()
+        ? 'No hay temas nuevos que ameriten un artículo.'
+        : 'Borradores sugeridos: '.$created->pluck('title')->implode(' · '));
+})->purpose('Analiza consultas del chatbot sin respuesta y propone artículos KB');

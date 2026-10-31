@@ -92,6 +92,10 @@ return [
         'embedding_model' => env('LLM_EMBEDDING_MODEL', 'nvidia/nemotron-3.5-embed-1b'),
         // Feature flag: habilita el botón "Redactar con IA" en el form
         // de creación de KB. Se desactiva si no hay API key.
+        // El chatbot redacta con IA las respuestas basadas en la KB
+        // (tono cercano, solo los pasos que aplican). Con false vuelve
+        // a enviar el artículo tal cual.
+        'personalize_kb_answers' => (bool) env('CHATBOT_PERSONALIZE_KB', true),
         'kb_drafting_enabled' => env('ENABLE_AI_KB_DRAFT', true) && filled(env('LLM_API_KEY')),
     ],
 

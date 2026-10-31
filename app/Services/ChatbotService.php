@@ -6,6 +6,7 @@ use App\Models\ChatFlowStat;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
 use App\Models\Department;
+use App\Models\KbArticle;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -220,7 +221,7 @@ class ChatbotService
             $this->abandonActiveFlow($session);
 
             return [
-                $this->formatKbResponse($topKb),
+                $this->answerFromKb($session, $topKb),
                 $this->meta('kb_high', $topKb['article_id'] ?? null, $topSimilarity),
             ];
         }
@@ -240,7 +241,7 @@ class ChatbotService
         // 5. KB con confianza media.
         if ($topKb !== null && $topSimilarity >= 0.42) {
             return [
-                $this->formatKbResponse($topKb),
+                $this->answerFromKb($session, $topKb),
                 $this->meta('kb_medium', $topKb['article_id'] ?? null, $topSimilarity),
             ];
         }
@@ -266,18 +267,9 @@ class ChatbotService
         }
 
         $context = "[Artículo: {$topKb['article_title']}]\n{$topKb['content']}";
-        $chatHistory = $session->messages()
-            ->orderByDesc('created_at')
-            ->limit(10)
-            ->get(['role', 'content'])
-            ->reverse()
-            ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])
-            ->values()
-            ->all();
-
         $systemPrompt = $this->buildSystemPrompt($context);
 
-        $llmResponse = $this->llm->chat($chatHistory, $systemPrompt);
+        $llmResponse = $this->llm->chat($this->recentHistory($session), $systemPrompt);
 
         if (filled($llmResponse)) {
             return [
@@ -330,6 +322,101 @@ class ChatbotService
             'kb_article_id' => $kbArticleId,
             'similarity' => $similarity,
         ];
+    }
+
+    /**
+     * Responde usando el artículo KB encontrado, pero redactado por la IA
+     * para la pregunta concreta del usuario: tono cercano, solo los pasos
+     * que necesita y en lenguaje sencillo. El artículo es la única fuente.
+     *
+     * Si la IA no responde (o está apagada con CHATBOT_PERSONALIZE_KB=false)
+     * se devuelve el artículo tal cual, como antes.
+     *
+     * @param  array{content: string, similarity: float, article_id: int, article_title: string|null}  $kb
+     */
+    protected function answerFromKb(ChatSession $session, array $kb): string
+    {
+        if (! config('services.llm.personalize_kb_answers')) {
+            return $this->formatKbResponse($kb);
+        }
+
+        $article = KbArticle::find($kb['article_id'] ?? null);
+        $title = $kb['article_title'] ?? $article?->title ?? 'Artículo de la base de conocimiento';
+        $source = mb_substr((string) ($article?->body ?: $kb['content']), 0, 6000);
+
+        $response = $this->llm->chat(
+            $this->recentHistory($session),
+            $this->buildPersonalizedKbPrompt("[Artículo: {$title}]\n{$source}"),
+        );
+
+        if (! filled($response)) {
+            Log::info('[CHATBOT] Sin respuesta de la IA al personalizar KB; se envía el artículo tal cual', [
+                'session_id' => $session->id,
+                'kb_article_id' => $kb['article_id'] ?? null,
+            ]);
+
+            return $this->formatKbResponse($kb);
+        }
+
+        $link = $article?->slug ? route('portal.kb.show', $article->slug, false) : null;
+
+        return trim($response)
+            .($link ? "\n\n📄 Guía completa: [{$title}]({$link})" : '');
+    }
+
+    /**
+     * Últimos mensajes de la conversación en formato chat del LLM.
+     *
+     * @return array<int, array{role: string, content: string}>
+     */
+    protected function recentHistory(ChatSession $session): array
+    {
+        return $session->messages()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get(['role', 'content'])
+            ->reverse()
+            ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])
+            ->values()
+            ->all();
+    }
+
+    protected function buildPersonalizedKbPrompt(string $kbContext): string
+    {
+        return <<<PROMPT
+Eres el asistente de soporte de Confipetrol. Hablas en español neutro, tuteando
+(nunca uses voseo), con un tono cálido y cercano, como un compañero de TI paciente.
+
+QUIÉN TE ESCRIBE
+Un empleado que NO sabe de tecnología ni de procesos internos. No quiere leer un
+manual: quiere resolver su problema rápido. Puede escribir con errores o de forma vaga.
+
+CÓMO RESPONDER
+1. Primero muestra que entendiste: una frase corta que conecte con lo que pidió
+   (ej: "Entiendo, necesitas entrar a SAP desde tu equipo y no sabes por dónde empezar.").
+2. Da la solución adaptada a SU caso. Del artículo usa SOLO lo que necesita para lo que
+   preguntó; omite secciones que no aplican. Si pregunta algo puntual, responde eso.
+3. Pasos numerados, cortos y en lenguaje sencillo, una acción por paso. Pon en **negritas**
+   botones, apps y datos importantes. Explica términos técnicos en pocas palabras.
+4. Si falta un dato para ayudarle mejor (ej: qué equipo usa o qué error ve), da los pasos
+   generales y pregúntale ese dato al final.
+5. Cierra con una pregunta breve ("¿Te funcionó?" / "¿Dónde te quedaste?") y recuerda que
+   puede escribir **"crear ticket"** si prefiere que lo atienda una persona.
+
+REGLAS
+- La ÚNICA fuente es el artículo de abajo. No inventes pasos, enlaces, correos, teléfonos
+  ni políticas que no estén ahí. Si el artículo no cubre lo que pregunta, dilo y sugiere
+  crear un ticket.
+- No copies el artículo completo ni repitas su título como encabezado.
+- Máximo 180 palabras salvo que los pasos realmente lo requieran.
+- Markdown simple (listas, negritas, párrafos cortos). Sin tablas ni HTML.
+
+ARTÍCULO DE LA BASE DE CONOCIMIENTO
+---
+{$kbContext}
+---
+PROMPT;
     }
 
     /**

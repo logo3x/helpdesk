@@ -20,7 +20,11 @@ class KbArticleForm
     {
         return $schema
             ->components([
-                Section::make('Contenido')
+                // ── 1. Datos generales: título, slug y clasificación ──
+                Section::make('Datos generales')
+                    ->description('Título, enlace, departamento y estado del artículo.')
+                    ->icon('heroicon-o-identification')
+                    ->collapsible()
                     ->schema([
                         TextInput::make('title')
                             ->label('Título')
@@ -37,7 +41,7 @@ class KbArticleForm
                                     ->getComponent(fn ($c) => $c instanceof TextInput && $c->getName() === 'slug')
                                     ?->state(Str::slug((string) $state));
                             })
-                            ->columnSpanFull(),
+                            ->columnSpan(1),
 
                         TextInput::make('slug')
                             ->label('Slug')
@@ -45,40 +49,8 @@ class KbArticleForm
                             ->maxLength(255)
                             ->unique(KbArticle::class, 'slug', ignoreRecord: true)
                             ->helperText('Identificador único en la URL. Se auto-genera desde el título.')
-                            ->columnSpanFull(),
+                            ->columnSpan(1),
 
-                        Placeholder::make('body_preview')
-                            ->label('Vista previa (así lo verá el usuario)')
-                            ->content(fn (Get $get): HtmlString => new HtmlString(
-                                '<div class="fi-prose max-w-none rounded-lg border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">'
-                                .(filled($get('body'))
-                                    ? Str::markdown((string) $get('body'), ['html_input' => 'escape', 'allow_unsafe_links' => false])
-                                    : '<p class="text-gray-500">Escribe o genera el contenido para ver cómo queda.</p>')
-                                .'</div>'
-                            ))
-                            ->columnSpanFull(),
-
-                        Section::make('Editar el texto (Markdown)')
-                            ->description('Ábrelo para cambiar el contenido. La vista previa de arriba se actualiza sola.')
-                            ->icon('heroicon-o-pencil-square')
-                            ->collapsible()
-                            // Al editar empieza cerrado para que se vea primero el resultado;
-                            // al crear empieza abierto porque aún no hay contenido.
-                            ->collapsed(fn (?KbArticle $record): bool => $record !== null)
-                            ->compact()
-                            ->schema([
-                                MarkdownEditor::make('body')
-                                    ->label('Cuerpo del artículo')
-                                    ->required()
-                                    ->toolbarButtons(['bold', 'italic', 'link', 'bulletList', 'orderedList', 'codeBlock', 'blockquote', 'heading', 'undo', 'redo'])
-                                    ->live(debounce: 1000)
-                                    ->columnSpanFull(),
-                            ])
-                            ->columnSpanFull(),
-                    ]),
-
-                Section::make('Clasificación')
-                    ->schema([
                         Select::make('department_id')
                             ->label('Departamento')
                             ->relationship(
@@ -135,7 +107,42 @@ class KbArticleForm
                             ->visible(fn () => static::isSupervisor())
                             ->helperText('Se asigna automáticamente al publicar.'),
                     ])
-                    ->columns(2),
+                    ->columns(2)
+                    ->columnSpanFull(),
+
+                // ── 2. Vista previa: cómo lo verá el usuario ──
+                Section::make('Vista previa (así lo verá el usuario)')
+                    ->icon('heroicon-o-eye')
+                    ->collapsible()
+                    ->schema([
+                        Placeholder::make('body_preview')
+                            ->hiddenLabel()
+                            ->content(fn (Get $get): HtmlString => new HtmlString(
+                                '<div class="fi-prose max-w-none rounded-lg border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-white/5" style="max-height: 32rem; overflow-y: auto;">'
+                                .(filled($get('body'))
+                                    ? Str::markdown((string) $get('body'), ['html_input' => 'escape', 'allow_unsafe_links' => false])
+                                    : '<p class="text-gray-500">Escribe o genera el contenido para ver cómo queda.</p>')
+                                .'</div>'
+                            ))
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
+
+                // ── 3. Editor Markdown: cerrado al editar, abierto al crear ──
+                Section::make('Editar el texto (Markdown)')
+                    ->description('Ábrelo para cambiar el contenido. La vista previa se actualiza sola.')
+                    ->icon('heroicon-o-pencil-square')
+                    ->collapsible()
+                    ->collapsed(fn (?KbArticle $record): bool => $record !== null)
+                    ->schema([
+                        MarkdownEditor::make('body')
+                            ->label('Cuerpo del artículo')
+                            ->required()
+                            ->toolbarButtons(['bold', 'italic', 'link', 'bulletList', 'orderedList', 'codeBlock', 'blockquote', 'heading', 'undo', 'redo'])
+                            ->live(debounce: 1000)
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
 
                 // ── Banner informativo para agentes ─────────────────────
                 Section::make()
@@ -151,7 +158,8 @@ class KbArticleForm
                                 .'</div>'
                             )),
                     ])
-                    ->visible(fn () => ! static::isSupervisor()),
+                    ->visible(fn () => ! static::isSupervisor())
+                    ->columnSpanFull(),
             ]);
     }
 

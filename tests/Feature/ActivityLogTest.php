@@ -86,12 +86,13 @@ it('el coordinador y el admin ven la bitácora; el agente no', function (string 
 it('filtra la bitácora por usuario, acción y módulo', function () {
     Filament::setCurrentPanel(Filament::getPanel('soporte'));
 
-    $coordinator = User::factory()->create();
+    $department = Department::factory()->create();
+    $coordinator = User::factory()->create(['department_id' => $department->id]);
     $coordinator->assignRole('supervisor_soporte');
 
-    $agent = User::factory()->create(['name' => 'Agente Revisado']);
+    $agent = User::factory()->create(['name' => 'Agente Revisado', 'department_id' => $department->id]);
     $agent->assignRole('agente_soporte');
-    $other = User::factory()->create();
+    $other = User::factory()->create(['department_id' => $department->id]);
 
     Auth::login($agent);
     Auth::login($other);
@@ -138,4 +139,35 @@ it('muestra el detalle de cambios de un registro', function () {
     $html = view('filament.activity-logs.details', ['activity' => $activity, 'subject' => 'Departamento Después'])->render();
 
     expect($html)->toContain('Antes')->toContain('Después')->toContain($admin->name);
+});
+
+it('el coordinador solo ve la actividad de su departamento; el admin ve todo', function () {
+    Filament::setCurrentPanel(Filament::getPanel('soporte'));
+
+    $ti = Department::factory()->create();
+    $rrhh = Department::factory()->create();
+
+    $coordinator = User::factory()->create(['department_id' => $ti->id]);
+    $coordinator->assignRole('supervisor_soporte');
+    $agentTi = User::factory()->create(['department_id' => $ti->id]);
+    $agentRrhh = User::factory()->create(['department_id' => $rrhh->id]);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    foreach ([$agentTi, $agentRrhh, $admin] as $user) {
+        Auth::login($user);
+    }
+
+    $loginOf = fn (User $user) => Activity::where('event', 'login')->where('causer_id', $user->id)->first();
+
+    $this->actingAs($coordinator);
+
+    Livewire::test(ListActivityLogs::class)
+        ->assertCanSeeTableRecords([$loginOf($agentTi)])
+        ->assertCanNotSeeTableRecords([$loginOf($agentRrhh), $loginOf($admin)]);
+
+    $this->actingAs($admin);
+
+    Livewire::test(ListActivityLogs::class)
+        ->assertCanSeeTableRecords([$loginOf($agentTi), $loginOf($agentRrhh), $loginOf($admin)]);
 });

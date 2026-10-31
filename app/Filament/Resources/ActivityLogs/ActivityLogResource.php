@@ -4,10 +4,12 @@ namespace App\Filament\Resources\ActivityLogs;
 
 use App\Filament\Resources\ActivityLogs\Pages\ListActivityLogs;
 use App\Filament\Resources\ActivityLogs\Tables\ActivityLogsTable;
+use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Models\Activity;
 
@@ -71,6 +73,24 @@ class ActivityLogResource extends Resource
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']) ?? false;
+    }
+
+    /**
+     * Admin y super_admin ven todo. El coordinador (supervisor_soporte)
+     * solo ve la actividad de los usuarios de su propio departamento.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user?->hasAnyRole(['super_admin', 'admin'])) {
+            return $query;
+        }
+
+        return $query->whereHasMorph('causer', [User::class], fn (Builder $causer) => $causer
+            ->whereNotNull('department_id')
+            ->where('department_id', $user?->department_id));
     }
 
     public static function canCreate(): bool

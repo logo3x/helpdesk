@@ -75,7 +75,11 @@ class RagService
         // miles de embeddings sin sobrecargar la RAM.
         $heap = collect();
 
+        // Solo artículos publicados: un borrador, una sugerencia de la IA
+        // o un artículo archivado nunca debe llegar al usuario final,
+        // aunque conserve embeddings de cuando estuvo publicado.
         KbEmbedding::with('article:id,title,slug')
+            ->whereHas('article', fn ($q) => $q->published())
             ->chunk(500, function ($embeddings) use (&$heap, $queryVector, $threshold, $topN): void {
                 foreach ($embeddings as $emb) {
                     $sim = $emb->cosineSimilarity($queryVector);

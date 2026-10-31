@@ -122,3 +122,36 @@ it('ignora opciones que no se ofrecieron', function () {
         ->call('chooseOption', 'texto inventado')
         ->assertDontSee('texto inventado');
 });
+
+it('no sigue guiando con un artículo que dejó de estar publicado', function () {
+    $this->mock(LlmService::class, function ($mock) {
+        $mock->shouldReceive('embed')->andReturn(null);
+        $mock->shouldReceive('chat')->andReturn("Entiendo. ¿Qué te pasa?\nOPCIONES: No sé mi usuario | Otra cosa");
+    });
+
+    $service = app(ChatbotService::class);
+    $service->handleMessageWithMeta($this->session, 'no me abre sap windows app');
+
+    $this->article->update(['status' => 'draft']);
+
+    [, $meta] = $service->handleMessageWithMeta($this->session, 'No sé mi usuario');
+
+    expect($meta['kb_article_id'])->toBeNull();
+});
+
+it('limita la cantidad de mensajes por minuto en el portal', function () {
+    $this->mock(LlmService::class, function ($mock) {
+        $mock->shouldReceive('embed')->andReturn(null);
+        $mock->shouldReceive('chat')->andReturn('Respuesta');
+    });
+
+    $this->actingAs($this->user);
+    $component = Livewire::test(Chatbot::class);
+
+    foreach (range(1, 13) as $i) {
+        $component->set('message', "hola {$i}")->call('send');
+    }
+
+    $component->assertSee('Estás enviando mensajes muy rápido');
+    expect(ChatMessage::where('role', 'user')->count())->toBe(12);
+});

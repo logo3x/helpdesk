@@ -9,6 +9,7 @@ use App\Models\Department;
 use App\Models\Ticket;
 use App\Services\ChatbotService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -142,13 +143,33 @@ class Chatbot extends Component
 
     public function send(): void
     {
-        $message = trim($this->message);
+        // Mensajes muy largos queman cuota de la IA sin aportar.
+        $message = mb_substr(trim(strip_tags($this->message)), 0, 1000);
 
         if (blank($message)) {
             return;
         }
 
         $this->message = '';
+
+        // Cada mensaje puede llamar a la IA: máximo 12 por minuto por usuario.
+        $rateKey = 'portal-chatbot:'.auth()->id();
+
+        if (RateLimiter::tooManyAttempts($rateKey, 12)) {
+            $this->history[] = [
+                'id' => null,
+                'role' => 'assistant',
+                'content' => 'Estás enviando mensajes muy rápido. Espera unos segundos e inténtalo de nuevo. ⏳',
+                'helpful' => null,
+                'source_kind' => null,
+                'options' => [],
+            ];
+            $this->dispatch('chat-updated');
+
+            return;
+        }
+
+        RateLimiter::hit($rateKey, 60);
 
         $session = $this->resolveSession();
 

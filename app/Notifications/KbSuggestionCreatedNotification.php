@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\KbArticle;
 use App\Notifications\Concerns\BuildsFilamentDatabasePayload;
+use App\Services\KbSuggestionService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -30,7 +31,7 @@ class KbSuggestionCreatedNotification extends Notification implements ShouldQueu
 
     public function toMail(object $notifiable): MailMessage
     {
-        $sanitize = fn (?string $s): string => trim(strip_tags((string) $s));
+        $sanitize = fn (?string $s): string => KbSuggestionService::plainText($s);
         $context = $this->article->suggestion_context ?? [];
 
         $mail = (new MailMessage)
@@ -57,7 +58,7 @@ class KbSuggestionCreatedNotification extends Notification implements ShouldQueu
     public function toDatabase(object $notifiable): array
     {
         return FilamentNotification::make()
-            ->title("Sugerencia KB: {$this->article->title}")
+            ->title('Sugerencia KB: '.KbSuggestionService::plainText($this->article->title, 120))
             ->body('La IA redactó este borrador a partir de preguntas sin respuesta del chatbot. Revísalo antes de publicar.')
             ->icon('heroicon-o-light-bulb')
             ->iconColor('info')

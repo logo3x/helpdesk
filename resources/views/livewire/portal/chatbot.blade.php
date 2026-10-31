@@ -112,7 +112,7 @@
          x-data
          x-on:chat-updated.window="$nextTick(() => { $el.scrollTo({ top: $el.scrollHeight, behavior: 'smooth' }) })">
         <div class="space-y-3">
-            @foreach ($history as $msg)
+            @foreach ($history as $index => $msg)
                 <div class="flex {{ $msg['role'] === 'user' ? 'justify-end' : 'justify-start' }}">
                     @if ($msg['role'] === 'user')
                         {{-- Mensaje usuario --}}
@@ -142,7 +142,29 @@
                                 $canRate = ($msg['id'] ?? null) !== null
                                     && in_array($sourceKind, ['kb_high', 'kb_medium', 'llm'], true);
                             @endphp
-                            @if ($canRate)
+                            {{-- Respuestas sugeridas: solo bajo el último mensaje. --}}
+                            @if ($loop->last && filled($msg['options'] ?? []))
+                                <div class="ml-8 mt-1 flex flex-wrap gap-2">
+                                    @foreach ($msg['options'] as $option)
+                                        <button
+                                            type="button"
+                                            wire:click="chooseOption(@js($option))"
+                                            wire:loading.attr="disabled"
+                                            class="rounded-full border border-sky-300 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm transition hover:border-sky-500 hover:bg-sky-50 disabled:opacity-50 dark:border-sky-500/40 dark:bg-zinc-800 dark:text-sky-300 dark:hover:bg-sky-500/10">
+                                            {{ $option }}
+                                        </button>
+                                    @endforeach
+                                    <button
+                                        type="button"
+                                        wire:click="chooseOption(@js(\App\Livewire\Portal\Chatbot::AGENT_OPTION))"
+                                        wire:loading.attr="disabled"
+                                        class="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                                        🙋 {{ \App\Livewire\Portal\Chatbot::AGENT_OPTION }}
+                                    </button>
+                                </div>
+                            @endif
+
+                            @if ($canRate && blank($msg['options'] ?? []))
                                 <div class="ml-8 mt-1 text-xs">
                                     @if ($msg['helpful'] === null)
                                         <div class="inline-flex flex-wrap items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 py-1 pl-3 pr-1 text-indigo-900 shadow-sm dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-200">

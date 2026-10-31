@@ -44,6 +44,9 @@ class Chatbot extends Component
 
     public string $escalationSubject = '';
 
+    /** Botón siempre disponible junto a las respuestas sugeridas. */
+    public const AGENT_OPTION = 'Hablar con un agente';
+
     public function mount(): void
     {
         $service = app(ChatbotService::class);
@@ -52,13 +55,14 @@ class Chatbot extends Component
 
         $this->history = $session->messages()
             ->orderBy('created_at')
-            ->get(['id', 'role', 'content', 'helpful', 'source_kind'])
+            ->get(['id', 'role', 'content', 'helpful', 'source_kind', 'metadata'])
             ->map(fn ($m) => [
                 'id' => $m->id,
                 'role' => $m->role,
                 'content' => $m->content,
                 'helpful' => $m->helpful,
                 'source_kind' => $m->source_kind,
+                'options' => $m->metadata['options'] ?? [],
             ])
             ->all();
 
@@ -116,6 +120,24 @@ class Chatbot extends Component
                 break;
             }
         }
+    }
+
+    /**
+     * El usuario tocó una respuesta sugerida (o "Hablar con un agente")
+     * bajo el último mensaje del asistente: se envía como si la hubiera
+     * escrito. Solo se aceptan opciones que realmente se ofrecieron.
+     */
+    public function chooseOption(string $option): void
+    {
+        $last = end($this->history) ?: [];
+        $allowed = [...($last['options'] ?? []), self::AGENT_OPTION];
+
+        if (($last['role'] ?? null) !== 'assistant' || ! in_array($option, $allowed, true)) {
+            return;
+        }
+
+        $this->message = $option;
+        $this->send();
     }
 
     public function send(): void
@@ -179,7 +201,7 @@ class Chatbot extends Component
             ->orderBy('created_at')
             ->skip(max(0, $session->messages()->count() - 2))
             ->take(2)
-            ->get(['id', 'role', 'content', 'helpful', 'source_kind']);
+            ->get(['id', 'role', 'content', 'helpful', 'source_kind', 'metadata']);
 
         foreach ($latest as $row) {
             $this->history[] = [
@@ -188,6 +210,7 @@ class Chatbot extends Component
                 'content' => $row->content,
                 'helpful' => $row->helpful,
                 'source_kind' => $row->source_kind,
+                'options' => $row->metadata['options'] ?? [],
             ];
         }
 
@@ -275,6 +298,7 @@ class Chatbot extends Component
             'content' => $content,
             'helpful' => null,
             'source_kind' => null,
+            'options' => [],
         ];
     }
 
@@ -293,6 +317,7 @@ class Chatbot extends Component
             'content' => $content,
             'helpful' => null,
             'source_kind' => $sourceKind,
+            'options' => [],
         ];
     }
 

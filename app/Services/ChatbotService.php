@@ -53,6 +53,7 @@ class ChatbotService
             'source_kind' => $meta['source_kind'] ?? null,
             'kb_article_id' => $meta['kb_article_id'] ?? null,
             'similarity' => $meta['similarity'] ?? null,
+            'metadata' => filled($meta['options'] ?? null) ? ['options' => $meta['options'], 'guided' => true] : (($meta['guided'] ?? false) ? ['guided' => true] : null),
         ]);
 
         return $response;
@@ -80,6 +81,7 @@ class ChatbotService
             'source_kind' => $meta['source_kind'],
             'kb_article_id' => $meta['kb_article_id'],
             'similarity' => $meta['similarity'],
+            'metadata' => filled($meta['options'] ?? null) ? ['options' => $meta['options'], 'guided' => true] : (($meta['guided'] ?? false) ? ['guided' => true] : null),
         ]);
 
         return [$response, $meta];
@@ -217,13 +219,28 @@ class ChatbotService
         $topKb = $ragResults->first();
         $topSimilarity = $topKb['similarity'] ?? 0;
 
-        if ($topKb !== null && $topSimilarity >= 0.55) {
+        // Conversación guiada en curso: si el último mensaje del asistente
+        // salió de un artículo KB y el usuario está respondiendo (o tocó
+        // una opción), seguimos con ese mismo artículo salvo que la nueva
+        // consulta apunte con mucha confianza a OTRO artículo.
+        $guidedArticle = $this->guidedConversationArticle($session);
+
+        if ($topKb !== null && $topSimilarity >= 0.55
+            && ($guidedArticle === null
+                || $guidedArticle->id === ($topKb['article_id'] ?? null)
+                || ! $this->isSuggestedOption($session, $userMessage))) {
             $this->abandonActiveFlow($session);
 
-            return [
-                $this->answerFromKb($session, $topKb),
-                $this->meta('kb_high', $topKb['article_id'] ?? null, $topSimilarity),
-            ];
+            return $this->kbAnswer($session, $topKb, 'kb_high', $topSimilarity);
+        }
+
+        if ($guidedArticle !== null) {
+            return $this->kbAnswer($session, [
+                'content' => (string) $guidedArticle->body,
+                'similarity' => 0.0,
+                'article_id' => $guidedArticle->id,
+                'article_title' => $guidedArticle->title,
+            ], 'kb_medium', null);
         }
 
         // 4. Continuar flujo activo si lo hay.
@@ -240,10 +257,7 @@ class ChatbotService
 
         // 5. KB con confianza media.
         if ($topKb !== null && $topSimilarity >= 0.42) {
-            return [
-                $this->answerFromKb($session, $topKb),
-                $this->meta('kb_medium', $topKb['article_id'] ?? null, $topSimilarity),
-            ];
+            return $this->kbAnswer($session, $topKb, 'kb_medium', $topSimilarity);
         }
 
         // 6. Clasificar intent y lanzar flujo si aplica.
@@ -313,15 +327,95 @@ class ChatbotService
     }
 
     /**
-     * @return array{source_kind: string, kb_article_id: ?int, similarity: ?float}
+     * @param  array<int, string>  $options
+     * @return array{source_kind: string, kb_article_id: ?int, similarity: ?float, options: array<int, string>, guided: bool}
      */
-    protected function meta(string $sourceKind, ?int $kbArticleId = null, ?float $similarity = null): array
+    protected function meta(string $sourceKind, ?int $kbArticleId = null, ?float $similarity = null, array $options = [], bool $guided = false): array
     {
         return [
             'source_kind' => $sourceKind,
             'kb_article_id' => $kbArticleId,
             'similarity' => $similarity,
+            'options' => $options,
+            'guided' => $guided,
         ];
+    }
+
+    /**
+     * @param  array{content: string, similarity: float, article_id: int, article_title: string|null}  $kb
+     * @return array{0: string, 1: array{source_kind: string, kb_article_id: ?int, similarity: ?float, options: array<int, string>, guided: bool}}
+     */
+    protected function kbAnswer(ChatSession $session, array $kb, string $sourceKind, ?float $similarity): array
+    {
+        [$text, $options, $guided] = $this->answerFromKb($session, $kb);
+
+        return [$text, $this->meta($sourceKind, $kb['article_id'] ?? null, $similarity, $options, $guided)];
+    }
+
+    /**
+     * Artículo de la conversación guiada en curso: el del último mensaje
+     * del asistente, si lo redactó la IA desde la KB hace menos de 30 min.
+     */
+    protected function guidedConversationArticle(ChatSession $session): ?KbArticle
+    {
+        if (! config('services.llm.personalize_kb_answers')) {
+            return null;
+        }
+
+        $last = $session->messages()
+            ->where('role', 'assistant')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($last === null
+            || $last->kb_article_id === null
+            || ! ($last->metadata['guided'] ?? false)
+            || $last->created_at->lt(now()->subMinutes(30))) {
+            return null;
+        }
+
+        return KbArticle::find($last->kb_article_id);
+    }
+
+    /**
+     * El usuario respondió con una de las opciones que le sugerimos en el
+     * último mensaje (botón o escrita igual).
+     */
+    protected function isSuggestedOption(ChatSession $session, string $userMessage): bool
+    {
+        $options = $session->messages()
+            ->where('role', 'assistant')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->value('metadata')['options'] ?? [];
+
+        $normalized = mb_strtolower(trim($userMessage));
+
+        return collect($options)->contains(fn (string $option): bool => mb_strtolower($option) === $normalized);
+    }
+
+    /**
+     * Separa la línea "OPCIONES: a | b | c" que agrega la IA y devuelve
+     * el texto limpio + la lista de respuestas sugeridas (máx. 4).
+     *
+     * @return array{0: string, 1: array<int, string>}
+     */
+    public static function extractOptions(string $text): array
+    {
+        if (! preg_match('/^[ \t>*_-]*OPCIONES\s*:\s*(.+)$/mi', $text, $match)) {
+            return [trim($text), []];
+        }
+
+        $options = collect(explode('|', $match[1]))
+            ->map(fn (string $option): string => trim(strip_tags($option), " \t*_\"'`[]"))
+            ->filter(fn (string $option): bool => $option !== '' && mb_strlen($option) <= 80)
+            ->unique()
+            ->take(4)
+            ->values()
+            ->all();
+
+        return [trim(str_replace($match[0], '', $text)), $options];
     }
 
     /**
@@ -333,11 +427,12 @@ class ChatbotService
      * se devuelve el artículo tal cual, como antes.
      *
      * @param  array{content: string, similarity: float, article_id: int, article_title: string|null}  $kb
+     * @return array{0: string, 1: array<int, string>, 2: bool} texto, respuestas sugeridas y si lo redactó la IA
      */
-    protected function answerFromKb(ChatSession $session, array $kb): string
+    protected function answerFromKb(ChatSession $session, array $kb): array
     {
         if (! config('services.llm.personalize_kb_answers')) {
-            return $this->formatKbResponse($kb);
+            return [$this->formatKbResponse($kb), [], false];
         }
 
         $article = KbArticle::find($kb['article_id'] ?? null);
@@ -346,7 +441,7 @@ class ChatbotService
 
         $response = $this->llm->chat(
             $this->recentHistory($session),
-            $this->buildPersonalizedKbPrompt("[Artículo: {$title}]\n{$source}"),
+            $this->buildPersonalizedKbPrompt("[Artículo: {$title}]\n{$source}", $this->recentQuestionsAsked($session)),
         );
 
         if (! filled($response)) {
@@ -355,13 +450,34 @@ class ChatbotService
                 'kb_article_id' => $kb['article_id'] ?? null,
             ]);
 
-            return $this->formatKbResponse($kb);
+            return [$this->formatKbResponse($kb), [], false];
         }
+
+        [$response, $options] = self::extractOptions($response);
 
         $link = $article?->slug ? route('portal.kb.show', $article->slug, false) : null;
 
-        return trim($response)
-            .($link ? "\n\n📄 Guía completa: [{$title}]({$link})" : '');
+        return [
+            $response.($link ? "\n\n📄 Guía completa: [{$title}]({$link})" : ''),
+            $options,
+            true,
+        ];
+    }
+
+    /**
+     * Cuántos de los últimos mensajes del asistente fueron preguntas con
+     * opciones, para que la IA no interrogue de más al usuario.
+     */
+    protected function recentQuestionsAsked(ChatSession $session): int
+    {
+        return $session->messages()
+            ->where('role', 'assistant')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(4)
+            ->get(['metadata'])
+            ->takeWhile(fn ($m) => filled($m->metadata['options'] ?? null))
+            ->count();
     }
 
     /**
@@ -382,8 +498,12 @@ class ChatbotService
             ->all();
     }
 
-    protected function buildPersonalizedKbPrompt(string $kbContext): string
+    protected function buildPersonalizedKbPrompt(string $kbContext, int $questionsAsked = 0): string
     {
+        $questionRule = $questionsAsked >= 2
+            ? 'Ya le hiciste varias preguntas seguidas: NO preguntes más, da ya la solución completa con lo que sabes.'
+            : 'Haz como máximo UNA pregunta por mensaje, y solo si de verdad la necesitas.';
+
         return <<<PROMPT
 Eres el asistente de soporte de Confipetrol. Hablas en español neutro, tuteando
 (nunca uses voseo), con un tono cálido y cercano, como un compañero de TI paciente.
@@ -401,8 +521,23 @@ CÓMO RESPONDER
    botones, apps y datos importantes. Explica términos técnicos en pocas palabras.
 4. Si falta un dato para ayudarle mejor (ej: qué equipo usa o qué error ve), da los pasos
    generales y pregúntale ese dato al final.
-5. Cierra con una pregunta breve ("¿Te funcionó?" / "¿Dónde te quedaste?") y recuerda que
-   puede escribir **"crear ticket"** si prefiere que lo atienda una persona.
+5. Cierra con una pregunta breve ("¿Te funcionó?" / "¿Dónde te quedaste?").
+
+GUÍA PASO A PASO (como un técnico que acompaña)
+- Si la consulta es vaga y el artículo tiene caminos distintos (no lo tiene instalado / no
+  recuerda su usuario / le sale un error...), NO sueltes todo: pregunta primero cuál es su caso.
+- Si el procedimiento es largo, da un bloque de máximo 4 pasos y pregunta cómo le fue
+  antes de seguir con el siguiente.
+- Si el usuario ya respondió una pregunta tuya, continúa desde ahí sin repetir lo anterior.
+- {$questionRule}
+
+RESPUESTAS SUGERIDAS
+Cuando termines con una pregunta, agrega como ÚLTIMA línea, exactamente con este formato:
+OPCIONES: respuesta 1 | respuesta 2 | respuesta 3
+- De 2 a 4 respuestas, de máximo 6 palabras cada una, escritas como las diría el usuario
+  ("Ya lo instalé", "Me sale un error", "No sé mi usuario").
+- No incluyas "hablar con un agente" ni "crear ticket": el sistema ya muestra ese botón.
+- Si no terminas con una pregunta, no agregues la línea OPCIONES.
 
 REGLAS
 - La ÚNICA fuente es el artículo de abajo. No inventes pasos, enlaces, correos, teléfonos

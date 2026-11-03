@@ -88,6 +88,9 @@ return [
         'model' => env('LLM_MODEL', ''),
         // Modelo de respaldo: se usa si el principal no responde.
         'fallback_model' => env('LLM_FALLBACK_MODEL', ''),
+        // Apaga el "razonamiento" previo de los modelos NVIDIA que lo
+        // soportan (respuestas mucho más rápidas). Ver LlmService.
+        'disable_thinking' => (bool) env('LLM_DISABLE_THINKING', false),
         'api_key' => env('LLM_API_KEY', ''),
         'embedding_model' => env('LLM_EMBEDDING_MODEL', 'nvidia/nemotron-3.5-embed-1b'),
         // Feature flag: habilita el botón "Redactar con IA" en el form

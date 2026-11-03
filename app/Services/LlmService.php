@@ -83,8 +83,8 @@ class LlmService
                 'HTTP-Referer' => config('app.url'),
                 'X-Title' => config('app.name'),
             ])
-                ->timeout(30)
-                ->post($this->chatEndpoint(), [
+                ->timeout(45)
+                ->post($this->chatEndpoint(), $this->withThinkingOption([
                     'model' => $this->model,
                     'messages' => [[
                         'role' => 'user',
@@ -93,8 +93,8 @@ class LlmService
                     // Margen para modelos que razonan antes de responder
                     // (gpt-oss, nemotron): con 50 tokens gastaban todo
                     // pensando y devolvían contenido vacío.
-                    'max_tokens' => 512,
-                ]);
+                    'max_tokens' => 1024,
+                ]));
         } catch (\Throwable $e) {
             return $base + [
                 'ok' => false,
@@ -459,12 +459,15 @@ class LlmService
         // modelos normales 1024 era suficiente, pero subir el techo evita
         // que un usuario que elija un modelo reasoning por error reciba
         // null porque el modelo agotó el budget pensando.
-        $payload = [
+        // 4096 porque los modelos que razonan (nemotron-3.5-lightning)
+        // pueden gastar más de 2000 tokens pensando antes de responder
+        // y devolvían contenido vacío con prompts largos.
+        $payload = $this->withThinkingOption([
             'model' => $model,
             'messages' => $this->prependSystem($messages, $systemPrompt),
-            'max_tokens' => 2048,
+            'max_tokens' => 4096,
             'temperature' => 0.3,
-        ];
+        ]);
 
         try {
             // Retry up to 3 times with 2s backoff on 429 (rate limit) or 5xx errors
@@ -474,15 +477,20 @@ class LlmService
                 'HTTP-Referer' => config('app.url'),
                 'X-Title' => config('app.name'),
             ])
-                ->timeout(60)
-                ->retry(3, 2000, function ($exception, $request) {
+                // 45 s alcanza para modelos que razonan antes de responder.
+                // Si el modelo no contesta (timeout) NO se reintenta: se
+                // pasa de inmediato al modelo de respaldo, para que el
+                // usuario no quede minutos esperando.
+                ->connectTimeout(10)
+                ->timeout(45)
+                ->retry(2, 1500, function ($exception, $request) {
                     if (isset($exception->response)) {
                         $status = $exception->response->status();
 
                         return $status === 429 || $status >= 500;
                     }
 
-                    return true;
+                    return false;
                 })
                 ->post($this->chatEndpoint(), $payload);
 
@@ -517,7 +525,7 @@ class LlmService
                     'model' => $model,
                     'provider' => $this->provider,
                     'hint' => 'Los modelos ":free" de OpenRouter se descontinúan sin aviso. '
-                        .'Actualizá LLM_MODEL en el .env con un modelo vigente.',
+                        .'Actualiza LLM_MODEL en el .env con un modelo vigente.',
                 ]);
             } else {
                 Log::error('LlmService OpenRouter unexpected error', [
@@ -683,6 +691,24 @@ PROMPT;
             'title' => (string) $parsed['title'],
             'body' => (string) $parsed['body'],
         ];
+    }
+
+    /**
+     * Con LLM_DISABLE_THINKING=true se le pide al modelo que no "razone"
+     * antes de responder (NVIDIA: chat_template_kwargs.enable_thinking).
+     * En nemotron-3.5-lightning baja la respuesta de ~30 s a ~2 s sin
+     * perder calidad para respuestas de soporte.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    protected function withThinkingOption(array $payload): array
+    {
+        if ($this->provider === 'nvidia' && config('services.llm.disable_thinking')) {
+            $payload['chat_template_kwargs'] = ['enable_thinking' => false];
+        }
+
+        return $payload;
     }
 
     /**

@@ -37,6 +37,14 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
 - ✅ **Chatbot: acción supervisor "crear ticket por respuesta IA incorrecta"** — commit `2510164`.
 - ✅ **Inventario: UI botones agrupados en menú ⋮ con tooltips** — commit `3fa9495`.
 
+### Por verificar tras el despliegue de noviembre 2026
+
+- ⏳ **Velocidad de carga de la Bitácora** (`/admin/activity-logs` y `/soporte/activity-logs`), pedido por Luis el 2026-11-03. La tabla `activity_log` crece con cada inicio de sesión y cada cambio, y la pantalla carga el usuario y el registro afectado de cada fila. Medir con datos reales de prod. Si tarda:
+  - índices en `created_at` y en `(causer_type, causer_id)`;
+  - paginación más corta;
+  - limitar la carga por defecto a los últimos 30 días;
+  - una tarea de limpieza (`activitylog:clean`) para registros de más de 1 año.
+
 ### Pendientes con bloqueo externo
 
 13. **Habilitar correo SMTP** ⏳ — coordinar credenciales con John (sysadmin). Notifications ya implementadas (Created/Assigned/Commented/Resolved/Reopened + Kactus + KB rechazo).

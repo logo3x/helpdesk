@@ -91,6 +91,9 @@ return [
         // Apaga el "razonamiento" previo de los modelos NVIDIA que lo
         // soportan (respuestas mucho más rápidas). Ver LlmService.
         'disable_thinking' => (bool) env('LLM_DISABLE_THINKING', false),
+        // Modelos extra (separados por coma) que el vigilante prueba antes
+        // de recorrer el catálogo del proveedor cuando el activo se cae.
+        'model_candidates' => env('LLM_MODEL_CANDIDATES', ''),
         'api_key' => env('LLM_API_KEY', ''),
         'embedding_model' => env('LLM_EMBEDDING_MODEL', 'nvidia/nemotron-3.5-embed-1b'),
         // Feature flag: habilita el botón "Redactar con IA" en el form

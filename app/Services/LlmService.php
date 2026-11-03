@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\User;
+use App\Notifications\LlmModelSwitchedNotification;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -17,6 +20,10 @@ use Illuminate\Support\Facades\Log;
  */
 class LlmService
 {
+    public const ACTIVE_MODEL_CACHE_KEY = 'llm:active_model';
+
+    public const DOWN_NOTICE_CACHE_KEY = 'llm:down_notified';
+
     protected string $provider;
 
     protected string $model;
@@ -30,7 +37,7 @@ class LlmService
         $this->provider = config('services.llm.provider', 'nvidia');
         // Sin default: el modelo se define en el .env. Ver la nota en
         // config/services.php sobre por qué no hay valor hardcodeado.
-        $this->model = config('services.llm.model', '');
+        $this->model = self::activeModel();
         $this->apiKey = config('services.llm.api_key', '');
         $this->fallbackModel = (string) config('services.llm.fallback_model', '');
     }
@@ -376,6 +383,135 @@ class LlmService
     }
 
     /**
+     * Modelo en uso: el que eligió el vigilante automático, o el del .env.
+     */
+    public static function activeModel(): string
+    {
+        return (string) (Cache::get(self::ACTIVE_MODEL_CACHE_KEY) ?: config('services.llm.model', ''));
+    }
+
+    /**
+     * Prueba real de un modelo: una consulta corta en español que debe
+     * devolver texto en menos de 25 s.
+     */
+    public function probeModel(string $model): bool
+    {
+        if (blank($this->apiKey) || blank($model)) {
+            return false;
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$this->apiKey}",
+                'Content-Type' => 'application/json',
+            ])
+                ->connectTimeout(10)
+                ->timeout(25)
+                ->post($this->chatEndpoint(), $this->withThinkingOption([
+                    'model' => $model,
+                    'messages' => [
+                        ['role' => 'system', 'content' => 'Eres soporte de TI. Responde en español en una sola frase.'],
+                        ['role' => 'user', 'content' => '¿Cómo reinicio mi contraseña del correo?'],
+                    ],
+                    'max_tokens' => 1024,
+                    'temperature' => 0.3,
+                ]));
+
+            return $response->successful() && mb_strlen(trim((string) $response->json('choices.0.message.content'))) >= 10;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Vigilante: comprueba el modelo activo y, si no responde, busca uno
+     * que sí funcione (preferido del .env, respaldo, candidatos y el
+     * catálogo del proveedor) y lo activa. Avisa a los administradores.
+     *
+     * @return array{status: string, model: string, previous?: string, tried?: array<int, string>}
+     */
+    public function autoHeal(int $maxProbes = 8): array
+    {
+        $current = self::activeModel();
+        $preferred = (string) config('services.llm.model', '');
+
+        // Si estamos en un modelo alterno y el preferido volvió, regresamos.
+        if ($current !== $preferred && $this->probeModel($preferred)) {
+            $this->switchModel($preferred, 'El modelo preferido «'.$preferred.'» volvió a responder.');
+
+            return ['status' => 'restored', 'model' => $preferred, 'previous' => $current];
+        }
+
+        if ($this->probeModel($current)) {
+            Cache::forget(self::DOWN_NOTICE_CACHE_KEY);
+
+            return ['status' => 'ok', 'model' => $current];
+        }
+
+        $candidates = collect([
+            $this->fallbackModel,
+            ...array_map('trim', explode(',', (string) config('services.llm.model_candidates', ''))),
+            ...$this->suggestAvailableModels(),
+        ])
+            ->filter()
+            ->reject(fn (string $model): bool => in_array($model, [$current, $preferred], true))
+            ->unique()
+            ->take($maxProbes)
+            ->values();
+
+        foreach ($candidates as $candidate) {
+            if ($this->probeModel($candidate)) {
+                $this->switchModel($candidate, 'El modelo «'.$current.'» dejó de responder; se encontró uno que funciona.');
+
+                return ['status' => 'switched', 'model' => $candidate, 'previous' => $current, 'tried' => $candidates->all()];
+            }
+        }
+
+        Log::error('[IA] Ningún modelo respondió', ['current' => $current, 'tried' => $candidates->all()]);
+
+        // Un solo aviso de "IA caída" cada 6 horas.
+        if (Cache::add(self::DOWN_NOTICE_CACHE_KEY, true, now()->addHours(6))) {
+            $this->notifyAdmins(new LlmModelSwitchedNotification(
+                previous: $current,
+                current: null,
+                reason: 'Ningún modelo del proveedor respondió. Probados: '.implode(', ', $candidates->all()),
+            ));
+        }
+
+        return ['status' => 'down', 'model' => $current, 'tried' => $candidates->all()];
+    }
+
+    protected function switchModel(string $model, string $reason): void
+    {
+        $previous = self::activeModel();
+
+        if ($previous === $model) {
+            return;
+        }
+
+        if ($model === config('services.llm.model')) {
+            Cache::forget(self::ACTIVE_MODEL_CACHE_KEY);
+        } else {
+            Cache::forever(self::ACTIVE_MODEL_CACHE_KEY, $model);
+        }
+
+        $this->model = $model;
+        Cache::forget(self::DOWN_NOTICE_CACHE_KEY);
+
+        Log::warning('[IA] Cambio automático de modelo', ['from' => $previous, 'to' => $model, 'reason' => $reason]);
+
+        $this->notifyAdmins(new LlmModelSwitchedNotification($previous, $model, $reason));
+    }
+
+    protected function notifyAdmins(LlmModelSwitchedNotification $notification): void
+    {
+        User::query()
+            ->whereHas('roles', fn ($q) => $q->whereIn('name', ['admin', 'super_admin']))
+            ->get()
+            ->each(fn (User $admin) => $admin->notify($notification));
+    }
+
+    /**
      * Generate a chat completion.
      *
      * @param  array<int, array{role: string, content: string}>  $messages
@@ -403,6 +539,14 @@ class LlmService
             ]);
 
             $reply = $this->chatOpenRouter($messages, $systemPrompt, $this->fallbackModel);
+
+            // El respaldo respondió: queda como activo para que los
+            // siguientes usuarios no esperen el timeout del principal.
+            // El vigilante (llm:watchdog) vuelve al preferido cuando se
+            // recupere.
+            if (filled($reply)) {
+                $this->switchModel($this->fallbackModel, 'El modelo «'.$this->model.'» no respondió y el de respaldo sí.');
+            }
         }
 
         return $reply;

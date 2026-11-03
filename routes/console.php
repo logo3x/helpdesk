@@ -8,6 +8,7 @@ use App\Jobs\GenerateKbSuggestionsJob;
 use App\Jobs\MaintenanceAlertJob;
 use App\Jobs\NotifyDueMaintenancesJob;
 use App\Services\KbSuggestionService;
+use App\Services\LlmService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
@@ -70,3 +71,21 @@ Artisan::command('kb:suggest', function (KbSuggestionService $service) {
         ? 'No hay temas nuevos que ameriten un artículo.'
         : 'Borradores sugeridos: '.$created->pluck('title')->implode(' · '));
 })->purpose('Analiza consultas del chatbot sin respuesta y propone artículos KB');
+
+// Vigilante de la IA: si el modelo activo deja de responder, busca uno
+// que funcione y lo activa (y vuelve al del .env cuando se recupera).
+Artisan::command('llm:watchdog', function (LlmService $llm) {
+    $result = $llm->autoHeal();
+
+    $this->info(match ($result['status']) {
+        'ok' => "La IA responde con {$result['model']}.",
+        'restored' => "Se volvió al modelo preferido {$result['model']} (antes {$result['previous']}).",
+        'switched' => "Cambio automático: {$result['previous']} → {$result['model']}.",
+        default => 'Ningún modelo respondió. Probados: '.implode(', ', $result['tried'] ?? []),
+    });
+})->purpose('Comprueba el modelo de IA y cambia a uno que funcione si se cayó');
+
+Schedule::command('llm:watchdog')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->when(fn () => filled(config('services.llm.api_key')));

@@ -98,8 +98,10 @@ Schedule::command('activitylog:clean --force')
     ->withoutOverlapping();
 
 // Tickets en "Pendiente cliente": recordatorios y cierre por falta de
-// respuesta (config/tickets.php → awaiting_customer). Días hábiles.
+// respuesta (config/tickets.php → awaiting_customer). Horas hábiles:
+// todo ocurre dentro de 1 día hábil, por eso revisa cada 15 minutos.
 Schedule::job(new AwaitingCustomerFollowUpJob)
+    ->everyFifteenMinutes()
     ->weekdays()
-    ->dailyAt('08:00')
+    ->between('08:00', '18:15')
     ->withoutOverlapping();

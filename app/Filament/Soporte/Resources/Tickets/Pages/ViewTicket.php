@@ -127,8 +127,8 @@ class ViewTicket extends ViewRecord
 
                     Toggle::make('await_customer')
                         ->label('Esperar respuesta del cliente')
-                        ->helperText('Pausa el SLA. Si el cliente no responde, recibe recordatorios y el ticket se cierra solo a los '
-                            .config('tickets.awaiting_customer.close_days').' días hábiles.')
+                        ->helperText('Pausa el SLA. Si el cliente no responde, recibe recordatorios y el ticket se cierra solo a las '
+                            .config('tickets.awaiting_customer.close_hours').' horas hábiles (1 jornada).')
                         ->visible(fn ($get) => ! $get('is_private')),
                 ])
                 ->action(function (array $data) use ($ticket): void {

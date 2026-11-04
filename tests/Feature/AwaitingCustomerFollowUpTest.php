@@ -36,8 +36,8 @@ function runFollowUp(): void
     app()->call([new AwaitingCustomerFollowUpJob, 'handle']);
 }
 
-it('el día hábil 2 envía el primer recordatorio, una sola vez', function () {
-    $this->travelTo(CarbonImmutable::parse('2026-11-04 08:00')); // miércoles
+it('a las 3 horas hábiles envía el primer recordatorio, una sola vez', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-02 12:05')); // 3 h hábiles
 
     runFollowUp();
     runFollowUp();
@@ -48,36 +48,46 @@ it('el día hábil 2 envía el primer recordatorio, una sola vez', function () {
         ->and($reminders->first()->is_private)->toBeFalse()
         ->and($reminders->first()->body)->toContain('Ana Cliente')
         ->and($reminders->first()->body)->toContain($this->ticket->number)
-        ->and($reminders->first()->body)->toContain('3 días hábiles');
+        ->and($reminders->first()->body)->toContain('7 horas hábiles');
 
     Notification::assertSentToTimes($this->requester, TicketCommentedNotification::class, 1);
 });
 
-it('el fin de semana no cuenta como día hábil', function () {
-    $this->travelTo(CarbonImmutable::parse('2026-11-02 09:00'));
-    $this->ticket->update(['paused_at' => CarbonImmutable::parse('2026-11-06 09:00')]); // viernes
-    $this->travelTo(CarbonImmutable::parse('2026-11-09 08:00')); // lunes: 1 día hábil
+it('antes de las 3 horas hábiles no hace nada', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-02 11:30'));
 
     runFollowUp();
 
     expect($this->ticket->comments()->count())->toBe(0);
 });
 
-it('el día hábil 4 envía el último aviso', function () {
-    $this->travelTo(CarbonImmutable::parse('2026-11-04 08:00')); // día hábil 2
+it('las horas fuera de la jornada y el fin de semana no cuentan', function () {
+    // Pausado el viernes a las 17:00: a las 12:30 del lunes van 1 h + 4,5 h = 5,5 h hábiles.
+    $this->ticket->update(['paused_at' => CarbonImmutable::parse('2026-11-06 17:00')]);
+    $this->travelTo(CarbonImmutable::parse('2026-11-09 12:30'));
+
     runFollowUp();
 
-    $this->travelTo(CarbonImmutable::parse('2026-11-06 08:00')); // viernes: día hábil 4
+    expect($this->ticket->comments()->count())->toBe(1)
+        ->and($this->ticket->fresh()->status)->toBe(TicketStatus::PendienteCliente);
+});
+
+it('a las 7 horas hábiles envía el último aviso', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-02 12:05'));
+    runFollowUp();
+
+    $this->travelTo(CarbonImmutable::parse('2026-11-02 16:05')); // 7 h hábiles
     runFollowUp();
 
     $bodies = $this->ticket->comments()->pluck('body');
 
     expect($bodies)->toHaveCount(2)
-        ->and($bodies->last())->toContain('último aviso');
+        ->and($bodies->last())->toContain('último aviso')
+        ->and($bodies->last())->toContain('3 horas hábiles');
 });
 
-it('el día hábil 5 cierra el ticket por falta de respuesta y sin encuesta', function () {
-    $this->travelTo(CarbonImmutable::parse('2026-11-09 08:00')); // lunes siguiente: 5 días hábiles
+it('al completar 1 día hábil cierra el ticket por falta de respuesta y sin encuesta', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-03 09:05')); // 9 h del lunes + 1 h del martes = 10 h
 
     runFollowUp();
 

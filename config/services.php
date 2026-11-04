@@ -101,6 +101,9 @@ return [
         // El chatbot redacta con IA las respuestas basadas en la KB
         // (tono cercano, solo los pasos que aplican). Con false vuelve
         // a enviar el artículo tal cual.
+        // La IA propone impacto/urgencia de los tickets que se crean desde
+        // el asistente (máximo prioridad Alta). Con false: siempre Media.
+        'ai_ticket_priority' => (bool) env('CHATBOT_AI_TICKET_PRIORITY', true),
         'personalize_kb_answers' => (bool) env('CHATBOT_PERSONALIZE_KB', true),
         // Revisión horaria de consultas sin respuesta: la IA propone
         // borradores KB y avisa a supervisores y administradores.

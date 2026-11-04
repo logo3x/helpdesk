@@ -4,7 +4,11 @@ use App\Livewire\Portal\MyAssets;
 use App\Models\Asset;
 use App\Models\AssetHandover;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Livewire\Livewire;
+
+// confirmHandover avisa a los administradores por rol: los roles deben existir.
+beforeEach(fn () => $this->seed(RoleSeeder::class));
 
 it('lista solo los activos del usuario autenticado', function () {
     $alice = User::factory()->create();
@@ -38,7 +42,7 @@ it('muestra mensaje vacío cuando el usuario no tiene activos', function () {
 
     Livewire::actingAs($user)
         ->test(MyAssets::class)
-        ->assertSee('Aún no tienes activos asignados');
+        ->assertSee('Sin activos asignados');
 });
 
 it('confirma un handover pendiente y setea received_confirmed_at', function () {

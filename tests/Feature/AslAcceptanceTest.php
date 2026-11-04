@@ -31,7 +31,7 @@ it('la vista de aceptación responde 200 para un usuario pendiente', function ()
     $this->actingAs($user)
         ->get(route('asl.show'))
         ->assertOk()
-        ->assertSee('Acuerdo de Servicio');
+        ->assertSee('Acuerdo de uso');
 });
 
 it('redirige al home si el usuario ya aceptó y entra a la vista', function () {

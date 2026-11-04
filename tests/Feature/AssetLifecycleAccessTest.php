@@ -10,7 +10,7 @@ it('expone la ruta de hoja de vida en el panel admin', function () {
 
     $url = route('filament.admin.resources.assets.lifecycle', ['record' => $asset]);
 
-    expect($url)->toContain("/admin/assets/{$asset->id}/lifecycle");
+    expect($url)->toContain("/admin/assets/{$asset->id}/historial");
 });
 
 it('expone la ruta de hoja de vida en el panel soporte', function () {
@@ -21,5 +21,5 @@ it('expone la ruta de hoja de vida en el panel soporte', function () {
 
     $url = route('filament.soporte.resources.assets.lifecycle', ['record' => $asset]);
 
-    expect($url)->toContain("/soporte/assets/{$asset->id}/lifecycle");
+    expect($url)->toContain("/soporte/assets/{$asset->id}/edit/historial");
 });

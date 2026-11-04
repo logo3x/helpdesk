@@ -39,11 +39,22 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
 
 ### Por verificar tras el despliegue de noviembre 2026
 
-- ⏳ **Velocidad de carga de la Bitácora** (`/admin/activity-logs` y `/soporte/activity-logs`), pedido por Luis el 2026-11-03. La tabla `activity_log` crece con cada inicio de sesión y cada cambio, y la pantalla carga el usuario y el registro afectado de cada fila. Medir con datos reales de prod. Si tarda:
-  - índices en `created_at` y en `(causer_type, causer_id)`;
-  - paginación más corta;
-  - limitar la carga por defecto a los últimos 30 días;
-  - una tarea de limpieza (`activitylog:clean`) para registros de más de 1 año.
+- ✅ **Velocidad de carga de la Bitácora** — optimizada el 2026-11-03. Medido en local con 100.000 registros:
+
+  | Acción | Antes | Después |
+  |---|---|---|
+  | Carga de la página | 0,3 s | 0,09 s |
+  | Búsqueda por nombre | 2,8 s | 0,19 s |
+  | Consulta más lenta | 1,4 s | 0,01 s |
+
+  Cambios:
+  - índices en `created_at` y `(event, created_at)`;
+  - búsqueda por ids de usuario;
+  - carga en bloque de usuarios, roles y registros afectados;
+  - por defecto muestra el último mes, 25 filas por página;
+  - limpieza mensual de registros de más de 1 año (`activitylog:clean`).
+
+  Pendiente: confirmar en producción tras desplegar.
 
 ### Pendientes con bloqueo externo
 

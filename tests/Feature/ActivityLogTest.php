@@ -10,6 +10,7 @@ use Database\Seeders\ShieldPermissionSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
@@ -170,4 +171,31 @@ it('el coordinador solo ve la actividad de su departamento; el admin ve todo', f
 
     Livewire::test(ListActivityLogs::class)
         ->assertCanSeeTableRecords([$loginOf($agentTi), $loginOf($agentRrhh), $loginOf($admin)]);
+});
+
+it('por defecto muestra el último mes, busca por nombre y no consulta fila por fila', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $agents = User::factory()->count(15)->create();
+    $agents->each(fn (User $user) => $user->assignRole('agente_soporte'));
+    $agents->each(fn (User $user) => Auth::login($user));
+    $buscado = User::factory()->create(['name' => 'Agente Buscado Pérez']);
+    Auth::login($buscado);
+
+    $old = Activity::where('causer_id', $agents->first()->id)->first();
+    $old->forceFill(['created_at' => now()->subDays(45)])->saveQuietly();
+
+    $this->actingAs($admin);
+    DB::enableQueryLog();
+
+    $component = Livewire::test(ListActivityLogs::class)
+        ->assertCanNotSeeTableRecords([$old]);
+
+    expect(count(DB::getQueryLog()))->toBeLessThan(30);
+
+    $component->searchTable('Buscado Pérez')
+        ->assertCanSeeTableRecords([Activity::where('causer_id', $buscado->id)->first()])
+        ->assertCountTableRecords(1);
 });

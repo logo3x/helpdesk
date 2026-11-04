@@ -89,3 +89,9 @@ Schedule::command('llm:watchdog')
     ->everyTenMinutes()
     ->withoutOverlapping()
     ->when(fn () => filled(config('services.llm.api_key')));
+
+// Bitácora: borra registros de más de 1 año (activitylog.clean_after_days)
+// para que la tabla no crezca sin límite.
+Schedule::command('activitylog:clean --force')
+    ->monthlyOn(1, '03:00')
+    ->withoutOverlapping();

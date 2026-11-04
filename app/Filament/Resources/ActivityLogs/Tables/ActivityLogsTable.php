@@ -17,6 +17,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role;
 
@@ -25,8 +26,15 @@ class ActivityLogsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['causer', 'subject']))
+            // Carga en bloque usuario + roles y registro afectado (y el
+            // ticket de los comentarios) para no consultar fila por fila.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
+                'causer' => fn (MorphTo $morph) => $morph->morphWith([User::class => ['roles']]),
+                'subject' => fn (MorphTo $morph) => $morph->morphWith([TicketComment::class => ['ticket']]),
+            ]))
             ->defaultSort('created_at', 'desc')
+            ->paginated([25, 50, 100])
+            ->defaultPaginationPageOption(25)
             ->columns([
                 TextColumn::make('created_at')
                     ->label('Fecha y hora')
@@ -40,10 +48,16 @@ class ActivityLogsTable
                     ->description(fn (Activity $record): ?string => $record->causer instanceof User
                         ? $record->causer->getRoleNames()->implode(', ')
                         : ($record->properties?->get('email') ? 'Correo usado: '.$record->properties->get('email') : null))
+                    // Primero se buscan los usuarios (tabla pequeña) y luego
+                    // se filtra la bitácora por sus ids con el índice de
+                    // causer: mucho más rápido que un whereHas sobre miles
+                    // de registros.
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query
-                        ->whereHasMorph('causer', [User::class], fn (Builder $q) => $q
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%"))),
+                        ->where('causer_type', (new User)->getMorphClass())
+                        ->whereIn('causer_id', User::query()
+                            ->where(fn (Builder $q) => $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"))
+                            ->limit(500)
+                            ->pluck('id'))),
 
                 TextColumn::make('event')
                     ->label('Acción')
@@ -70,7 +84,6 @@ class ActivityLogsTable
 
                 TextColumn::make('description')
                     ->label('Detalle')
-                    ->searchable()
                     ->limit(60)
                     ->toggleable(isToggledHiddenByDefault: true),
 
@@ -120,7 +133,9 @@ class ActivityLogsTable
 
                 Filter::make('period')
                     ->schema([
-                        DatePicker::make('from')->label('Desde'),
+                        // Por defecto, último mes: la tabla crece con cada
+                        // inicio de sesión y así la primera carga es liviana.
+                        DatePicker::make('from')->label('Desde')->default(fn (): string => now()->subDays(30)->toDateString()),
                         TimePicker::make('from_time')->label('Hora desde')->seconds(false),
                         DatePicker::make('until')->label('Hasta'),
                         TimePicker::make('until_time')->label('Hora hasta')->seconds(false),

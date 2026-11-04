@@ -18,6 +18,7 @@ use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Utilities\Set;
@@ -38,6 +39,38 @@ class ViewTicket extends ViewRecord
     }
 
     /**
+     * En la vista, la conversación ya se muestra estilo chat dentro del
+     * infolist y se responde con el botón "Responder"; la tabla de
+     * comentarios sigue disponible en la página de edición.
+     *
+     * @return array<class-string>
+     */
+    public function getRelationManagers(): array
+    {
+        return [];
+    }
+
+    /**
+     * Respuestas predefinidas activas: por categoría del depto del
+     * usuario o globales (admin ve todas).
+     *
+     * @return array<int, string>
+     */
+    protected static function cannedResponseOptions(): array
+    {
+        $user = auth()->user();
+        $query = CannedResponse::query()->where('is_active', true);
+
+        if ($user && ! $user->hasAnyRole(['super_admin', 'admin']) && $user->department_id) {
+            $query->where(fn ($q) => $q
+                ->whereHas('category', fn ($sub) => $sub->where('department_id', $user->department_id))
+                ->orWhereNull('category_id'));
+        }
+
+        return $query->orderBy('sort_order')->pluck('title', 'id')->all();
+    }
+
+    /**
      * @return array<int, Action|EditAction>
      */
     protected function getHeaderActions(): array
@@ -53,6 +86,86 @@ class ViewTicket extends ViewRecord
             EditAction::make()
                 ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])),
 
+            // ── Responder (acción principal de la vista) ───────────────
+            // Mensaje al solicitante o nota interna, con respuestas
+            // predefinidas. "Esperar respuesta del cliente" pausa el SLA
+            // y activa los recordatorios / cierre automático
+            // (AwaitingCustomerFollowUpJob).
+            Action::make('respond')
+                ->label('Responder')
+                ->icon('heroicon-o-chat-bubble-left-ellipsis')
+                ->color('primary')
+                ->visible(fn () => $ticket->status->isOpen() && (auth()->user()?->can('update', $ticket) ?? false))
+                ->modalHeading('Responder el ticket '.$ticket->number)
+                ->modalSubmitActionLabel('Enviar')
+                ->modalWidth('2xl')
+                ->schema([
+                    Select::make('canned_response_id')
+                        ->label('Respuesta predefinida')
+                        ->helperText('Opcional. Inserta una plantilla y luego edítala si quieres.')
+                        ->options(fn (): array => self::cannedResponseOptions())
+                        ->searchable()
+                        ->live()
+                        ->dehydrated(false)
+                        ->placeholder('— Sin respuesta predefinida —')
+                        ->afterStateUpdated(function ($state, Set $set): void {
+                            if ($state && ($canned = CannedResponse::find($state))) {
+                                $set('body', $canned->body);
+                            }
+                        }),
+
+                    Textarea::make('body')
+                        ->label('Mensaje')
+                        ->rows(6)
+                        ->required()
+                        ->minLength(2)
+                        ->maxLength(5000),
+
+                    Toggle::make('is_private')
+                        ->label('Nota interna (el solicitante no la ve)')
+                        ->live(),
+
+                    Toggle::make('await_customer')
+                        ->label('Esperar respuesta del cliente')
+                        ->helperText('Pausa el SLA. Si el cliente no responde, recibe recordatorios y el ticket se cierra solo a los '
+                            .config('tickets.awaiting_customer.close_days').' días hábiles.')
+                        ->visible(fn ($get) => ! $get('is_private')),
+                ])
+                ->action(function (array $data) use ($ticket): void {
+                    $user = auth()->user();
+                    abort_unless($user?->can('update', $ticket), 403);
+
+                    $service = app(TicketService::class);
+                    $isPrivate = (bool) ($data['is_private'] ?? false);
+
+                    $comment = TicketComment::create([
+                        'ticket_id' => $ticket->id,
+                        'user_id' => $user->id,
+                        'body' => $data['body'],
+                        'is_private' => $isPrivate,
+                    ]);
+
+                    if (! $isPrivate) {
+                        if ($ticket->first_responded_at === null) {
+                            $service->markFirstResponse($ticket->fresh(), firstResponder: $user);
+                        }
+
+                        $fresh = $ticket->fresh();
+                        $fresh->requester?->notify(new TicketCommentedNotification($fresh, $comment));
+
+                        if (($data['await_customer'] ?? false) && $fresh->status !== TicketStatus::PendienteCliente) {
+                            $service->pauseSla($fresh);
+                        }
+                    }
+
+                    Notification::make()
+                        ->title($isPrivate ? 'Nota interna guardada' : 'Respuesta enviada al solicitante')
+                        ->success()
+                        ->send();
+
+                    $this->refreshFormData(['status', 'first_responded_at', 'paused_at']);
+                }),
+
             // ── Tomar este ticket (solo agentes/técnicos) ──────────────
             // Self-assign con saludo personalizable: el agente puede
             // elegir una respuesta predefinida del depto/categoría o
@@ -62,12 +175,12 @@ class ViewTicket extends ViewRecord
                 ->label('Tomar este ticket')
                 ->icon('heroicon-o-hand-raised')
                 ->color('primary')
-                ->tooltip('Te asigna el ticket, publica un saludo automático al solicitante y arranca el reloj de SLA. Usá esto cuando vas a empezar a trabajar el caso ahora.')
+                ->tooltip('Te asigna el ticket, publica un saludo automático al solicitante y arranca el reloj de SLA. Úsalo cuando vayas a empezar a trabajar el caso ahora.')
                 ->visible(fn () => $ticket->status->isOpen()
                     && auth()->user()?->hasAnyRole(['agente_soporte', 'tecnico_campo'])
                     && $ticket->assigned_to_id !== auth()->id())
                 ->modalHeading('Tomar este ticket')
-                ->modalDescription('Te asignaremos el ticket y publicaremos un saludo al solicitante para que sepa que alguien lo va a atender. Podés editar el texto o elegir una respuesta predefinida.')
+                ->modalDescription('Te asignaremos el ticket y publicaremos un saludo al solicitante para que sepa que alguien lo va a atender. Puedes editar el texto o elegir una respuesta predefinida.')
                 ->modalSubmitActionLabel('Tomar y comentar')
                 ->fillForm(fn () => [
                     'body' => 'Hola, he tomado tu ticket y lo voy a revisar. Te contacto en breve con novedades.',
@@ -254,7 +367,7 @@ class ViewTicket extends ViewRecord
                 ->label('Registrar respuesta externa')
                 ->icon('heroicon-o-phone')
                 ->color('info')
-                ->tooltip('Solo si ya respondiste al solicitante por Teams, llamada o correo. Detiene el reloj de SLA de primera respuesta sin publicar un comentario en el ticket. Si vas a responder aquí mismo, usá "Tomar este ticket" o escribí un comentario público.')
+                ->tooltip('Solo si ya respondiste al solicitante por Teams, llamada o correo. Detiene el reloj de SLA de primera respuesta sin publicar un comentario en el ticket. Si vas a responder aquí mismo, usa "Responder" o "Tomar este ticket".')
                 ->visible(fn () => $ticket->first_responded_at === null && $ticket->status->isOpen())
                 ->requiresConfirmation()
                 ->modalHeading('Registrar respuesta externa')

@@ -43,7 +43,7 @@ class SlaConfigChangedNotification extends Notification
 
         $body = $isCreated
             ? "Se creó una nueva configuración SLA para {$dept}."
-            : "Los tiempos de respuesta/resolución del SLA de {$dept} cambiaron. Revisá tus tickets abiertos.";
+            : "Los tiempos de respuesta/resolución del SLA de {$dept} cambiaron. Revisa tus tickets abiertos.";
 
         return FilamentNotification::make()
             ->title($title)

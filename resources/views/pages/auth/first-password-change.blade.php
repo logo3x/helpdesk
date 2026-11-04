@@ -57,7 +57,7 @@
         </form>
 
         <flux:text class="text-center text-xs text-zinc-400">
-            No podés continuar hasta cambiarla — es por seguridad.
+            No puedes continuar hasta cambiarla — es por seguridad.
         </flux:text>
     </div>
 </x-layouts::auth>

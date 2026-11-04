@@ -180,7 +180,7 @@ class CreateTicketForm
                                     ->placeholder('Selecciona depto')
                                     ->helperText(fn () => static::canCrossDepartments()
                                         ? null
-                                        : 'Solo podés crear tickets en tu departamento.'),
+                                        : 'Solo puedes crear tickets en tu departamento.'),
 
                                 Select::make('category_id')
                                     ->label('Categoría')

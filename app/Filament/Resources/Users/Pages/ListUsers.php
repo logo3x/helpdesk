@@ -64,7 +64,7 @@ class ListUsers extends ListRecords
                                 'application/vnd.ms-excel',
                             ])
                             ->maxSize(10 * 1024)
-                            ->helperText('Máximo 10 MB. Usá la plantilla para garantizar los encabezados correctos.'),
+                            ->helperText('Máximo 10 MB. Usa la plantilla para garantizar los encabezados correctos.'),
                         Checkbox::make('dry_run')
                             ->label('Previsualizar (dry-run) sin guardar cambios')
                             ->default(false),

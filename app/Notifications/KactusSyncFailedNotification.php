@@ -26,7 +26,7 @@ class KactusSyncFailedNotification extends Notification implements ShouldQueue
             ->greeting('Hola '.($notifiable->name ?? 'admin').',')
             ->line('El sync programado de Kactus falló con el siguiente detalle:')
             ->line($this->reason)
-            ->line('Revisá storage/logs/laravel.log para más contexto.')
+            ->line('Revisa storage/logs/laravel.log para más contexto.')
             ->action('Abrir panel admin', url('/admin/users'));
     }
 

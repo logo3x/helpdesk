@@ -117,9 +117,9 @@ class AuditManagementArea extends Command
         );
 
         $this->newLine();
-        $this->comment('Este comando NO modifica nada. Revisá la tabla y decidí qué hacer con los valores no oficiales.');
+        $this->comment('Este comando NO modifica nada. Revisa la tabla y decide qué hacer con los valores no oficiales.');
         $this->line('Cuando decidas el mapeo, se aplica con el comando `gerencia:migrate`.');
-        $this->line('Podés exportar la tabla completa con: php artisan gerencia:audit --json > gerencia-audit.json');
+        $this->line('Puedes exportar la tabla completa con: php artisan gerencia:audit --json > gerencia-audit.json');
 
         return self::SUCCESS;
     }

@@ -117,7 +117,7 @@ class CleanupImportedEmails extends Command
 
         if ($missing->isNotEmpty()) {
             $this->newLine();
-            $this->warn('=== Sin cédula — NO se tocan, revisá manualmente ===');
+            $this->warn('=== Sin cédula — NO se tocan, revisa manualmente ===');
             $this->table(
                 ['ID', 'Nombre', 'Email actual', 'Activos'],
                 $missing->map(fn (User $u) => [
@@ -128,7 +128,7 @@ class CleanupImportedEmails extends Command
                 ])->all(),
             );
             $this->newLine();
-            $this->line('Para estos, tenés 3 opciones:');
+            $this->line('Para estos, tienes 3 opciones:');
             $this->line('  1. Agregar cédula desde /admin/users → Editar.');
             $this->line('  2. Eliminar si son duplicados o testeo.');
             $this->line('  3. Dejar así (siguen funcionando con el email fabricado).');

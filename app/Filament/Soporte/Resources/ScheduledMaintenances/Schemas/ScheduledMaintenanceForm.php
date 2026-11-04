@@ -50,7 +50,7 @@ class ScheduledMaintenanceForm
             ->components([
                 // ── SELECTOR DE MODO (solo en Create) ─────────────────
                 Radio::make('creation_mode')
-                    ->label('¿Qué querés programar?')
+                    ->label('¿Qué quieres programar?')
                     ->options([
                         'individual' => '📄 Un solo activo',
                         'bulk' => '📦 Varios activos (programación masiva)',
@@ -227,7 +227,7 @@ class ScheduledMaintenanceForm
                             ->options(fn (Get $get) => self::bulkAssetSearchResults('', $get))
                             ->getSearchResultsUsing(fn (string $search, Get $get) => self::bulkAssetSearchResults($search, $get))
                             ->getOptionLabelsUsing(fn (array $values) => self::bulkAssetLabelsFor($values))
-                            ->helperText('Al abrir aparecen los activos que matchean los filtros. También podés escribir para buscar por TAG, hostname o custodio. Podés seleccionar varios.'),
+                            ->helperText('Al abrir aparecen los activos que matchean los filtros. También puedes escribir para buscar por TAG, hostname o custodio. Puedes seleccionar varios.'),
                     ]),
 
                 // ── PROGRAMACIÓN (fecha, agente, frecuencia) ──────────

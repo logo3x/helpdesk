@@ -51,7 +51,7 @@ class TicketResolvedNotification extends Notification implements ShouldQueue
     {
         return FilamentNotification::make()
             ->title("Ticket {$this->ticket->number} resuelto")
-            ->body("{$this->ticket->subject} — si no quedó resuelto, podés reabrirlo desde el portal.")
+            ->body("{$this->ticket->subject} — si no quedó resuelto, puedes reabrirlo desde el portal.")
             ->icon('heroicon-o-check-circle')
             ->iconColor('success')
             ->actions([

@@ -205,7 +205,7 @@ class InventoryTemplateService
 
         $sheet->setCellValue('A16', 'Cómo cargar:');
         $sheet->getStyle('A16')->getFont()->setBold(true);
-        $sheet->setCellValue('A17', "1. Completá la hoja 'Inventario' (podés borrar la fila de ejemplo).");
+        $sheet->setCellValue('A17', "1. Completa la hoja 'Inventario' (puedes borrar la fila de ejemplo).");
         $sheet->setCellValue('A18', '2. Guardá como .xlsx.');
         $sheet->setCellValue('A19', '3. En /admin/assets, botón "📤 Importar inventario".');
         $sheet->setCellValue('A20', '4. Recomendado: primero corré en modo "dry-run" para ver el reporte.');

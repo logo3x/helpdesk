@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Portal;
 
+use App\Enums\TicketStatus;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Notifications\TicketCommentedNotification;
@@ -53,6 +54,12 @@ class ViewTicket extends Component
             'body' => $this->commentBody,
             'is_private' => false,
         ]);
+
+        // Si el ticket esperaba respuesta del cliente, la respuesta lo
+        // reactiva: vuelve a "En progreso" y el SLA se reanuda.
+        if ($this->ticket->status === TicketStatus::PendienteCliente) {
+            app(TicketService::class)->resumeSla($this->ticket, TicketStatus::EnProgreso);
+        }
 
         // Notify the assigned agent (if any) that the requester commented
         if ($this->ticket->assignee && $this->ticket->assigned_to_id !== auth()->id()) {

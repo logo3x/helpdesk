@@ -3,6 +3,7 @@
 use App\Jobs\AutoCloseTicketsJob;
 use App\Jobs\AutoMarkMaintenanceSurveysPositiveJob;
 use App\Jobs\AutoMarkSurveysPositiveJob;
+use App\Jobs\AwaitingCustomerFollowUpJob;
 use App\Jobs\CheckSlaBreachesJob;
 use App\Jobs\GenerateKbSuggestionsJob;
 use App\Jobs\MaintenanceAlertJob;
@@ -94,4 +95,11 @@ Schedule::command('llm:watchdog')
 // para que la tabla no crezca sin límite.
 Schedule::command('activitylog:clean --force')
     ->monthlyOn(1, '03:00')
+    ->withoutOverlapping();
+
+// Tickets en "Pendiente cliente": recordatorios y cierre por falta de
+// respuesta (config/tickets.php → awaiting_customer). Días hábiles.
+Schedule::job(new AwaitingCustomerFollowUpJob)
+    ->weekdays()
+    ->dailyAt('08:00')
     ->withoutOverlapping();

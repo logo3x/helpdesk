@@ -4,6 +4,8 @@ namespace App\Jobs;
 
 use App\Enums\TicketStatus;
 use App\Models\Ticket;
+use App\Models\TicketComment;
+use App\Services\KbSuggestionService;
 use App\Services\TicketService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,6 +26,9 @@ class AutoCloseTicketsJob implements ShouldBeUnique, ShouldQueue
 
     public function handle(TicketService $ticketService): void
     {
+        $system = app(KbSuggestionService::class)->systemUser();
+        $template = (string) config('tickets.awaiting_customer.messages.resolved_closed');
+
         $days = (int) config('tickets.auto_close_days', 7);
 
         $tickets = Ticket::query()
@@ -34,6 +39,17 @@ class AutoCloseTicketsJob implements ShouldBeUnique, ShouldQueue
         $count = 0;
 
         foreach ($tickets as $ticket) {
+            // Mensaje visible en el portal explicando el cierre. No se
+            // notifica aparte: la encuesta que dispara close() ya le llega.
+            TicketComment::create([
+                'ticket_id' => $ticket->id,
+                'user_id' => $system->id,
+                'body' => strtr($template, [':name' => $ticket->requester?->name ?? '', ':number' => $ticket->number]),
+                'is_private' => false,
+                'is_system_event' => true,
+                'event_type' => 'auto_closed',
+            ]);
+
             $ticketService->close($ticket);
             $count++;
         }

@@ -276,14 +276,14 @@ PROMPT;
     }
 
     /**
-     * Usuario "Asistente IA (sistema)" que figura como autor. No tiene
+     * Usuario "Helpdesk Confipetrol (sistema)": autor de las sugerencias KB y de los avisos automáticos en tickets. No tiene
      * roles, así que no puede entrar a ningún panel.
      */
     public function systemUser(): User
     {
         return User::firstOrCreate(
             ['email' => self::SYSTEM_USER_EMAIL],
-            ['name' => 'Asistente IA (sistema)', 'password' => Str::password(40)],
+            ['name' => 'Helpdesk Confipetrol (sistema)', 'password' => Str::password(40)],
         );
     }
 

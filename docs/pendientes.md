@@ -75,7 +75,16 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
 - ~~**Inspecciones Vehiculares: migrar a PHP 8.5**~~ ❌ **DESCARTADO 2026-11-04** por decisión de Luis; el sitio sigue en PHP 8.3.29 (soporte de seguridad hasta dic-2027).
 - **Metrologia y COC-Confipetrol detenidos** (2026-10-30, PHP 8.0/8.1 sin soporte). Si se necesitan, migrarlos a 8.5 antes de encenderlos.
 - **Restringir la app de Azure a su buzón** (ApplicationAccessPolicy en Exchange) — pendiente, requiere al administrador de Microsoft 365.
-- **Instalar el worker de la cola (NSSM) y el scheduler** — script listo (2026-11-04): `powershell -ExecutionPolicy Bypass -File tools\install-servicios-helpdesk.ps1 -PhpPath "C:\Program Files\PHP\v8.5.12\php.exe"`. Requiere `C:\nssm\nssm.exe` (https://nssm.cc/download). Crea la tarea "Helpdesk - Laravel Scheduler" (cada minuto) y el servicio `HelpdeskConfipetrolQueue`. Después: `QUEUE_CONNECTION=database`, `config:cache`, `queue:restart`; y tras unos días sin errores, `MAIL_FAIL_SAFE=false` y quitar `FailSafeMailChannel`.
+- ⏳ **PASO 3 DEL DESPLIEGUE — Instalar el scheduler y el worker de la cola** (pendiente desde el despliegue del 2026-11-04; sin esto NO corren los recordatorios al cliente, el cierre automático, el vigilante de la IA, las sugerencias KB ni las alertas SLA):
+  1. Descargar NSSM 2.24 de https://nssm.cc/download y copiar `win64\nssm.exe` a `C:\nssm\nssm.exe`.
+  2. Confirmar PHP: `Test-Path "C:\Program Files\PHP\v8.5.12\php.exe"` → `True`.
+  3. PowerShell **como Administrador**, en `C:\inetpub\wwwroot\helpdesk`:
+     `powershell -ExecutionPolicy Bypass -File tools\install-servicios-helpdesk.ps1 -PhpPath "C:\Program Files\PHP\v8.5.12\php.exe"` (deben salir dos `[OK]`; con `-SoloScheduler` instala solo la tarea programada).
+  4. En el `.env`: `QUEUE_CONNECTION=database`; luego `php artisan config:cache` y `php artisan queue:restart`.
+  5. Verificar: `Get-ScheduledTask -TaskName "Helpdesk - Laravel Scheduler" | Get-ScheduledTaskInfo` (LastTaskResult 0), `Get-Service HelpdeskConfipetrolQueue` (Running) y `Get-Content storage\logs\queue-worker.err.log -Tail 20` (vacío).
+  6. Prueba: comentar un ticket de prueba; el correo al solicitante llega en menos de 1 minuto.
+  7. Tras unos días sin errores: `MAIL_FAIL_SAFE=false` y quitar `FailSafeMailChannel` (temporal).
+  - Opcional: `git config gc.auto 0` en el servidor para que git no pregunte "Unlink of file … failed" al hacer pull.
 
 ---
 

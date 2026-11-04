@@ -2,6 +2,7 @@
 
 namespace App\Filament\Soporte\Resources\Tickets\Pages;
 
+use App\Filament\Soporte\Resources\Tickets\Concerns\HasTicketWorkflowActions;
 use App\Filament\Soporte\Resources\Tickets\Schemas\EditTicketForm;
 use App\Filament\Soporte\Resources\Tickets\TicketResource;
 use Filament\Actions\DeleteAction;
@@ -13,6 +14,8 @@ use Filament\Support\Enums\Width;
 
 class EditTicket extends EditRecord
 {
+    use HasTicketWorkflowActions;
+
     protected static string $resource = TicketResource::class;
 
     /**
@@ -51,6 +54,7 @@ class EditTicket extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ...$this->ticketWorkflowActions(),
             DeleteAction::make(),
             ForceDeleteAction::make(),
             RestoreAction::make(),

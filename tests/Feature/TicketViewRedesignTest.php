@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\TicketStatus;
+use App\Filament\Soporte\Resources\Tickets\Pages\EditTicket;
+use App\Filament\Soporte\Resources\Tickets\Pages\ListTickets;
 use App\Filament\Soporte\Resources\Tickets\Pages\ViewTicket;
 use App\Models\Department;
 use App\Models\Ticket;
@@ -80,4 +82,35 @@ it('no se puede responder un ticket cerrado', function () {
 
     Livewire::test(ViewTicket::class, ['record' => $this->ticket->getRouteKey()])
         ->assertActionHidden('respond');
+});
+
+it('en la lista, "Ver" abre un modal con la conversación', function () {
+    TicketComment::create(['ticket_id' => $this->ticket->id, 'user_id' => $this->requester->id, 'body' => 'Mensaje del cliente en el modal', 'is_private' => false]);
+
+    Livewire::test(ListTickets::class)
+        ->mountTableAction('quickView', $this->ticket)
+        ->assertMountedActionModalSee(['Conversación', 'Mensaje del cliente en el modal']);
+});
+
+it('el clic en la fila lleva a Editar al supervisor y a la página del ticket al agente', function () {
+    $supervisor = User::factory()->create(['department_id' => $this->ticket->department_id]);
+    $supervisor->assignRole('supervisor_soporte');
+
+    $table = fn () => Livewire::test(ListTickets::class)->instance()->getTable();
+
+    expect($table()->getRecordUrl($this->ticket))->toEndWith("/soporte/tickets/{$this->ticket->getRouteKey()}");
+
+    $this->actingAs($supervisor);
+
+    expect($table()->getRecordUrl($this->ticket))->toEndWith("/soporte/tickets/{$this->ticket->getRouteKey()}/edit");
+});
+
+it('la página Editar también tiene los botones de trabajo', function () {
+    $supervisor = User::factory()->create(['department_id' => $this->ticket->department_id]);
+    $supervisor->assignRole('supervisor_soporte');
+    $this->actingAs($supervisor);
+
+    Livewire::test(EditTicket::class, ['record' => $this->ticket->getRouteKey()])
+        ->assertActionExists('respond')
+        ->assertActionExists('resolve');
 });

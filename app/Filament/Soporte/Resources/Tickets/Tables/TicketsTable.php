@@ -6,8 +6,11 @@ use App\Enums\TicketImpact;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\TicketUrgency;
+use App\Filament\Soporte\Resources\Tickets\Schemas\TicketViewInfolist;
+use App\Filament\Soporte\Resources\Tickets\TicketResource;
 use App\Models\Category;
 use App\Models\Department;
+use App\Models\Ticket;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -16,6 +19,8 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -192,9 +197,27 @@ class TicketsTable
                         'survey' => $record->satisfactionSurvey,
                         'ticket' => $record,
                     ])),
-                ViewAction::make(),
+                // "Ver" abre una lectura rápida en modal (misma vista en filas
+                // que la página del ticket), sin salir de la lista.
+                // Acción propia (no ViewAction) porque Filament convierte
+                // ViewAction en enlace cuando existe la página del ticket.
+                Action::make('quickView')
+                    ->label('Ver')
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalHeading(fn (Ticket $record): string => "Ticket {$record->number} — {$record->subject}")
+                    ->modalWidth(Width::FiveExtraLarge)
+                    ->schema(fn (Schema $schema): Schema => TicketViewInfolist::configure($schema)),
                 EditAction::make(),
             ])
+            // Clic en la fila: Editar para supervisor/admin. Los agentes no
+            // editan el contenido, así que van a la página del ticket
+            // (donde responden y gestionan el caso).
+            ->recordUrl(fn (Ticket $record): string => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])
+                ? TicketResource::getUrl('edit', ['record' => $record])
+                : TicketResource::getUrl('view', ['record' => $record]))
             ->toolbarActions([
                 BulkActionGroup::make([
                     ExportBulkAction::make()->label('Exportar Excel'),

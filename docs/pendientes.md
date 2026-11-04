@@ -58,11 +58,11 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
 
 ### Pendientes con bloqueo externo
 
-13. **Habilitar correo SMTP** ⏳ — coordinar credenciales con John (sysadmin). Notifications ya implementadas (Created/Assigned/Commented/Resolved/Reopened + Kactus + KB rechazo).
-14. **Reorganizar UI respuesta de tickets** ⏳ — esperar mockup de Yury (formato Protexa).
-15. **Definir "tiempo pausado"** ⏳ — ¿cuándo se pausa el SLA? ¿estado pendiente_cliente? ¿manual?
-16. **Definir "tiempo Resuelto → Cerrado"** ⏳ — métrica + dónde mostrarla.
-17. **Definir "tiempo de solución"** ⏳ — `resolved_at - created_at` menos pausas. Dónde se visualiza.
+13. ~~**Habilitar correo SMTP**~~ ✅ **RESUELTO 2026-10-30** — el correo sale por Microsoft Graph (`MAIL_MAILER=graph`); el MFA bloqueó SMTP.
+14. ~~**Reorganizar UI respuesta de tickets**~~ ✅ **HECHO 2026-11-04** (sin esperar el mockup): vista en dos columnas, conversación tipo chat con notas internas y eventos, botón **Responder** con respuestas predefinidas y "esperar respuesta del cliente". Si llega el mockup de Yury, se ajusta sobre esta base.
+15. ~~**Definir "tiempo pausado"**~~ ✅ **DEFINIDO 2026-11-04** — el SLA se pausa mientras el ticket está en **Pendiente cliente** (el agente lo activa con "esperar respuesta del cliente" al responder). Si el cliente responde, vuelve a *En progreso* y se reanuda. Si no responde: recordatorio el día hábil 2, último aviso el día 4 y cierre automático el día 5, sin encuesta (`AwaitingCustomerFollowUpJob`). Días y mensajes en `config/tickets.php` → `awaiting_customer`. Al cierre automático de tickets *Resueltos* (2 días) también se deja un mensaje explicativo.
+16. ~~**Definir "tiempo Resuelto → Cerrado"**~~ ✅ ya implementado — horas calendario entre `resolved_at` y `closed_at`; se ve en la vista del ticket (SLA y tiempos).
+17. ~~**Definir "tiempo de solución"**~~ ✅ ya implementado — minutos hábiles entre creación y resolución menos el tiempo pausado; se ve en la vista del ticket (SLA y tiempos).
 18. ~~**Integración Kactus API**~~ ❌ **DESCARTADO 2026-10-26**. La estructura queda en el código detrás del toggle `KACTUS_ENABLED=false` (commit `3fa9495`). Si se retoma a futuro, basta con setear las credenciales.
 
 ### Operación (no es código)
@@ -72,16 +72,18 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
 - **7 sitios IIS con handler PHP83 huérfano** ✅ resuelto 2026-10-30: la mayoría de sitios quedó en PHP 8.5.12 (backup IIS: `appcmd restore backup "antes-php-8.5.12"`). Inspecciones sigue en 8.3.29 y EstimaWeb en 8.5.6 por decisión.
 - **Borrar carpetas de PHP en desuso** — pendiente, después del 2026-11-06 si ningún sitio falla. En `C:\Program Files\PHP`: `v8.0_borrar`, `v8.3.24_borrar`, `v8.4.11_borrar` y `v8.2.10 viejo`. Comando: `Remove-Item "v8.0_borrar","v8.3.24_borrar","v8.4.11_borrar","v8.2.10 viejo" -Recurse -Force`. **No borrar:** `v8.5.12`, `v8.5.6` (EstimaWeb), `php-8.3.29-Win32-vs16-x64` (Inspecciones), `v8.1.12` (COC-Confipetrol).
 - **Renovar el secreto de Azure del Helpdesk** antes de que venza (creado 2026-10-30, 24 meses). Lo usan el SSO **y** el envío de correo por Graph: si vence, caen ambos.
-- **Inspecciones Vehiculares en PHP 8.3** — actualizar el parche 8.3.x periódicamente y migrarlo a 8.5 antes de dic-2027 (fin de soporte de 8.3).
+- ~~**Inspecciones Vehiculares: migrar a PHP 8.5**~~ ❌ **DESCARTADO 2026-11-04** por decisión de Luis; el sitio sigue en PHP 8.3.29 (soporte de seguridad hasta dic-2027).
 - **Metrologia y COC-Confipetrol detenidos** (2026-10-30, PHP 8.0/8.1 sin soporte). Si se necesitan, migrarlos a 8.5 antes de encenderlos.
 - **Restringir la app de Azure a su buzón** (ApplicationAccessPolicy en Exchange) — pendiente, requiere al administrador de Microsoft 365.
-- **Instalar el worker de la cola (NSSM) y pasar a `QUEUE_CONNECTION=database`**; después desactivar `MAIL_FAIL_SAFE` y quitar `FailSafeMailChannel` (temporal).
+- **Instalar el worker de la cola (NSSM) y el scheduler** — script listo (2026-11-04): `powershell -ExecutionPolicy Bypass -File tools\install-servicios-helpdesk.ps1 -PhpPath "C:\Program Files\PHP\v8.5.12\php.exe"`. Requiere `C:\nssm\nssm.exe` (https://nssm.cc/download). Crea la tarea "Helpdesk - Laravel Scheduler" (cada minuto) y el servicio `HelpdeskConfipetrolQueue`. Después: `QUEUE_CONNECTION=database`, `config:cache`, `queue:restart`; y tras unos días sin errores, `MAIL_FAIL_SAFE=false` y quitar `FailSafeMailChannel`.
 
 ---
 
 ## 🔴 P0 — Pre-producción (antes del go-live)
 
 ### 0. Migrar LLM de OpenRouter a Claude API o Azure OpenAI
+
+> **Actualización 2026-11-04:** desde el 2026-10-26 el chatbot ya no usa OpenRouter sino **NVIDIA NIM** (modelo recomendado `nvidia/nemotron-3.5-lightning-30b-a3b` con `LLM_DISABLE_THINKING=true`), con vigilante automático de caídas (`llm:watchdog`). Sigue pendiente lo de fondo: decidir proveedor definitivo con acuerdo de tratamiento de datos (DPA) y avisar en la política de privacidad que las consultas al asistente las procesa una IA externa.
 
 **Estado hoy:** todas las llamadas LLM (chatbot RAG + redacción IA de KB) van a **OpenRouter** con modelos gratuitos (Llama 3.1). Esto está bien para pruebas pero tiene implicaciones de privacidad:
 

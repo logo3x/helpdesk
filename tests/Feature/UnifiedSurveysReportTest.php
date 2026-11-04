@@ -142,3 +142,10 @@ it('es accesible para super_admin', function () {
 
     expect(UnifiedSurveysReport::canAccess())->toBeTrue();
 });
+
+it('el informe unificado también está en el panel de administración', function () {
+    $this->actingAs($this->admin)
+        ->get('/admin/unified-surveys-report')
+        ->assertOk()
+        ->assertSee('Encuestas de satisfacción');
+});

@@ -25,7 +25,7 @@ cd /d "%~dp0\.."
 
 REM Ajusta la ruta a php.exe si no está en el PATH del sistema.
 REM Para Wampserver típicamente: C:\wamp64\bin\php\php8.5.0\php.exe
-set PHP_BIN=php
+if not defined PHP_BIN set PHP_BIN=php
 
 %PHP_BIN% artisan queue:work ^
     --queue=default ^

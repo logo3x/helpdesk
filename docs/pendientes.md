@@ -84,12 +84,12 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
   5. Verificar: `Get-ScheduledTask -TaskName 'Helpdesk*' | Select TaskName, State` (worker en Running), `Get-ScheduledTask -TaskName "Helpdesk - Laravel Scheduler" | Get-ScheduledTaskInfo` (LastTaskResult 0) y `Get-Content storage\logs\queue-worker.err.log -Tail 20` (vacío).
   6. Prueba: comentar un ticket de prueba; el correo al solicitante llega en menos de 1 minuto.
   7. Tras unos días sin errores: `MAIL_FAIL_SAFE=false` y quitar `FailSafeMailChannel` (temporal).
+  - Opcional: `git config gc.auto 0` en el servidor para que git no pregunte "Unlink of file … failed" al hacer pull.
 - ✅ **Respaldos automáticos funcionando** (2026-11-05): BD diaria 01:30 y completo dominical 02:30 en `C:/Respaldos/helpdesk`, zips cifrados AES-256 (se abren con 7-Zip/WinRAR, no con el extractor de Windows). Quedan:
   - Cambiar `BACKUP_ARCHIVE_PASSWORD` por una contraseña fuerte (entre comillas dobles, sin `$ # " \`) y guardarla fuera del servidor.
   - Borrar los respaldos "Anterior" (carpeta vieja `Helpdesk Confipetrol`) desde la página Respaldos.
   - Confirmar el lunes 2026-11-09 que llegó el correo del respaldo completo del domingo.
 - **Mover adjuntos viejos al disco privado**: `php artisan tickets:move-attachments-private --dry-run` y luego sin `--dry-run`.
-  - Opcional: `git config gc.auto 0` en el servidor para que git no pregunte "Unlink of file … failed" al hacer pull.
 
 ---
 

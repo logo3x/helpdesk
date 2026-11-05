@@ -46,6 +46,17 @@ class EditTicket extends EditRecord
         return EditTicketForm::configure($schema);
     }
 
+    /**
+     * La conversación ya se muestra dentro del formulario y se responde
+     * con el botón "Responder": no hace falta la tabla de comentarios.
+     *
+     * @return array<class-string>
+     */
+    public function getRelationManagers(): array
+    {
+        return [];
+    }
+
     public function getMaxContentWidth(): Width
     {
         return Width::Full;

@@ -114,3 +114,30 @@ it('la página Editar también tiene los botones de trabajo', function () {
         ->assertActionExists('respond')
         ->assertActionExists('resolve');
 });
+
+it('el panel admin abre la lista y la vista de tickets (sin página de edición)', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+    TicketComment::create(['ticket_id' => $this->ticket->id, 'user_id' => $this->requester->id, 'body' => 'Mensaje visible en admin', 'is_private' => false]);
+
+    $this->actingAs($admin)->get('/admin/tickets')->assertOk();
+    $this->actingAs($admin)->get("/admin/tickets/{$this->ticket->id}")
+        ->assertOk()
+        ->assertSee('Conversación')
+        ->assertSee('Mensaje visible en admin');
+});
+
+it('Editar muestra el resumen, la conversación y la descripción ya formateada', function () {
+    $supervisor = User::factory()->create(['department_id' => $this->ticket->department_id]);
+    $supervisor->assignRole('supervisor_soporte');
+    $this->ticket->update(['description' => "## Síntomas\nNo abre **Adobe**"]);
+    TicketComment::create(['ticket_id' => $this->ticket->id, 'user_id' => $this->requester->id, 'body' => 'Sigue fallando', 'is_private' => false]);
+    $this->actingAs($supervisor);
+
+    Livewire::test(EditTicket::class, ['record' => $this->ticket->getRouteKey()])
+        ->assertSee('Resumen del caso')
+        ->assertSee('Conversación')
+        ->assertSee('Sigue fallando')
+        ->assertSeeHtml('<h2>Síntomas</h2>')
+        ->assertSeeHtml('<strong>Adobe</strong>');
+});

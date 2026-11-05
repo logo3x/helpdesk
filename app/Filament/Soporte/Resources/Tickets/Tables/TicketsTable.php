@@ -7,7 +7,6 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\TicketUrgency;
 use App\Filament\Soporte\Resources\Tickets\Schemas\TicketViewInfolist;
-use App\Filament\Soporte\Resources\Tickets\TicketResource;
 use App\Models\Category;
 use App\Models\Department;
 use App\Models\Ticket;
@@ -215,9 +214,15 @@ class TicketsTable
             // Clic en la fila: Editar para supervisor/admin. Los agentes no
             // editan el contenido, así que van a la página del ticket
             // (donde responden y gestionan el caso).
-            ->recordUrl(fn (Ticket $record): string => auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte'])
-                ? TicketResource::getUrl('edit', ['record' => $record])
-                : TicketResource::getUrl('view', ['record' => $record]))
+            // La tabla se comparte con el panel admin, que no tiene página
+            // de edición: se usa el resource del panel actual.
+            ->recordUrl(function (Ticket $record, $livewire): string {
+                $resource = $livewire::getResource();
+                $canEdit = $resource::hasPage('edit')
+                    && auth()->user()?->hasAnyRole(['super_admin', 'admin', 'supervisor_soporte']);
+
+                return $resource::getUrl($canEdit ? 'edit' : 'view', ['record' => $record]);
+            })
             ->toolbarActions([
                 BulkActionGroup::make([
                     ExportBulkAction::make()->label('Exportar Excel'),

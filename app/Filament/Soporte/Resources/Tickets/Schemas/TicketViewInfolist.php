@@ -33,198 +33,211 @@ class TicketViewInfolist
         return $schema
             ->columns(1)
             ->components([
-                Section::make('Resumen del caso')
-                    ->icon('heroicon-o-identification')
-                    ->collapsible()
-                    ->columnSpanFull()
-                    ->schema([
-                        Grid::make(['default' => 1, 'sm' => 2, 'lg' => 4])
-                            ->schema([
-                                TextEntry::make('requester.name')
-                                    ->label('Solicitante')
-                                    ->icon('heroicon-o-user')
-                                    ->placeholder('—')
-                                    ->helperText(fn (Ticket $record) => $record->requester?->department?->name),
-
-                                TextEntry::make('assignee.name')
-                                    ->label('Asignado a')
-                                    ->icon('heroicon-o-user-circle')
-                                    ->placeholder('Sin asignar')
-                                    ->color(fn (Ticket $record) => $record->assignee ? 'success' : 'warning'),
-
-                                TextEntry::make('category.name')
-                                    ->label('Categoría')
-                                    ->icon('heroicon-o-tag')
-                                    ->placeholder('Sin categoría')
-                                    ->helperText(fn (Ticket $record) => $record->department?->name),
-
-                                TextEntry::make('priority')
-                                    ->label('Prioridad')
-                                    ->badge()
-                                    ->formatStateUsing(fn ($state) => $state?->getLabel())
-                                    ->color(fn ($state) => match ($state?->value) {
-                                        'planificada' => 'gray',
-                                        'baja' => 'info',
-                                        'media' => 'warning',
-                                        'alta', 'critica' => 'danger',
-                                        default => 'gray',
-                                    }),
-                            ]),
-                    ]),
-
-                Section::make('Descripción del problema')
-                    ->icon('heroicon-o-document-text')
-                    ->collapsible()
-                    ->columnSpanFull()
-                    ->schema([
-                        TextEntry::make('description')
-                            ->hiddenLabel()
-                            ->markdown()
-                            ->columnSpanFull(),
-                    ]),
-
-                Section::make('Conversación')
-                    ->icon('heroicon-o-chat-bubble-left-right')
-                    ->description('Mensajes con el solicitante, notas internas y eventos del ticket, del más antiguo al más reciente.')
-                    ->schema([
-                        ViewEntry::make('conversation')
-                            ->hiddenLabel()
-                            ->view('filament.soporte.tickets.conversation'),
-                    ]),
-
-                Section::make('Adjuntos')
-                    ->icon('heroicon-o-paper-clip')
-                    ->collapsible()
-                    ->columnSpanFull()
-                    ->visible(fn (Ticket $record) => $record->getMedia('attachments')->count() > 0)
-                    ->schema([
-                        TextEntry::make('attachments_list')
-                            ->hiddenLabel()
-                            ->state(function (Ticket $record): string {
-                                return $record->getMedia('attachments')
-                                    ->map(fn ($m) => sprintf(
-                                        '<a href="%s" target="_blank" class="inline-flex items-center gap-1 rounded border border-zinc-200 bg-white px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 me-2 mb-1">📎 %s <span class="text-zinc-400">(%s)</span></a>',
-                                        e($m->getUrl()),
-                                        e($m->file_name),
-                                        Number::fileSize($m->size),
-                                    ))
-                                    ->implode('');
-                            })
-                            ->html()
-                            ->columnSpanFull(),
-                    ]),
-
-                Section::make('SLA y tiempos')
-                    ->icon('heroicon-o-clock')
-                    ->collapsible()
-                    ->collapsed()
-                    ->columnSpanFull()
-                    ->schema([
-                        Grid::make(['default' => 1, 'sm' => 2, 'lg' => 3])
-                            ->schema([
-                                TextEntry::make('created_at')
-                                    ->label(self::labelWithTip('Creado', 'Fecha y hora en que el solicitante creó el ticket. Origen del reloj de SLA.'))
-                                    ->dateTime('d M Y H:i')
-                                    ->since(),
-
-                                TextEntry::make('first_responded_at')
-                                    ->label(self::labelWithTip('Primera respuesta', 'Momento en que un agente respondió o tomó el ticket por primera vez. Detiene el reloj de "primera respuesta" del SLA.'))
-                                    ->dateTime('d M Y H:i')
-                                    ->placeholder('Pendiente')
-                                    ->color(fn (Ticket $record) => $record->first_responded_at ? 'success' : 'warning'),
-
-                                TextEntry::make('first_response_due_at')
-                                    ->label(self::labelWithTip('Vence primera respuesta', 'Objetivo de SLA para la primera respuesta. Calculado al crear el ticket usando minutos hábiles (L-V 08:00-18:00).'))
-                                    ->dateTime('d M Y H:i')
-                                    ->placeholder('—')
-                                    ->color(fn (Ticket $record) => $record->first_response_breached ? 'danger' : 'gray'),
-
-                                TextEntry::make('resolution_due_at')
-                                    ->label(self::labelWithTip('Vence resolución', 'Objetivo de SLA para resolver. Si resolved_at lo supera, el ticket entra en "fuera de SLA".'))
-                                    ->dateTime('d M Y H:i')
-                                    ->placeholder('—')
-                                    ->color(fn (Ticket $record) => $record->resolution_breached ? 'danger' : 'gray'),
-
-                                TextEntry::make('resolved_at')
-                                    ->label(self::labelWithTip('Resuelto', 'Momento en que el agente marcó el ticket como resuelto. A partir de aquí cuenta el tiempo Resuelto→Cerrado.'))
-                                    ->dateTime('d M Y H:i')
-                                    ->placeholder('—'),
-
-                                TextEntry::make('closed_at')
-                                    ->label(self::labelWithTip('Cerrado', 'Confirmación del solicitante o auto-cierre del job programado tras X días sin respuesta.'))
-                                    ->dateTime('d M Y H:i')
-                                    ->placeholder('—'),
-
-                                TextEntry::make('paused_minutes')
-                                    ->label(self::labelWithTip('Tiempo pausado', 'Minutos hábiles acumulados mientras el ticket estuvo en pendiente_cliente. El SLA se detiene en ese estado porque la demora no es responsabilidad del agente.'))
-                                    ->state(fn (Ticket $record) => self::formatPausedMinutes($record))
-                                    ->placeholder('0 min'),
-
-                                TextEntry::make('solution_time')
-                                    ->label(self::labelWithTip('Tiempo de solución', 'Trabajo efectivo del agente: minutos hábiles entre creación y resolución, descontando el tiempo pausado.'))
-                                    ->state(fn (Ticket $record) => self::computeSolutionTime($record))
-                                    ->placeholder('—'),
-
-                                TextEntry::make('resolved_to_closed')
-                                    ->label(self::labelWithTip('Resuelto → Cerrado', 'Horas calendario que el cliente tardó en confirmar la solución (o que esperamos hasta auto-cerrar).'))
-                                    ->state(fn (Ticket $record) => self::computeResolvedToClosed($record))
-                                    ->placeholder('—'),
-
-                                IconEntry::make('first_response_breached')
-                                    ->label(self::labelWithTip('¿SLA primera respuesta?', 'Rojo = SLA de primera respuesta vencido. Verde = cumplido o aún dentro de plazo.'))
-                                    ->boolean()
-                                    ->trueIcon('heroicon-o-exclamation-triangle')
-                                    ->trueColor('danger')
-                                    ->falseIcon('heroicon-o-check-circle')
-                                    ->falseColor('success'),
-
-                                IconEntry::make('resolution_breached')
-                                    ->label(self::labelWithTip('¿SLA resolución?', 'Rojo = SLA de resolución vencido. Verde = cumplido o aún dentro de plazo.'))
-                                    ->boolean()
-                                    ->trueIcon('heroicon-o-exclamation-triangle')
-                                    ->trueColor('danger')
-                                    ->falseIcon('heroicon-o-check-circle')
-                                    ->falseColor('success'),
-                            ]),
-                    ]),
-
-                Section::make('Clasificación técnica')
-                    ->icon('heroicon-o-adjustments-horizontal')
-                    ->collapsible()
-                    ->collapsed()
-                    ->columnSpanFull()
-                    ->schema([
-                        Grid::make(['default' => 1, 'sm' => 3])
-                            ->schema([
-                                TextEntry::make('impact')
-                                    ->label(self::labelWithTip('Impacto', 'Alcance del problema: cuántos usuarios o servicios afecta.'))
-                                    ->badge()
-                                    ->formatStateUsing(fn ($state) => $state?->getLabel())
-                                    ->color('gray'),
-
-                                TextEntry::make('urgency')
-                                    ->label(self::labelWithTip('Urgencia', 'Qué tan rápido debe resolverse desde la perspectiva del solicitante.'))
-                                    ->badge()
-                                    ->formatStateUsing(fn ($state) => $state?->getLabel())
-                                    ->color('gray'),
-
-                                TextEntry::make('status')
-                                    ->label(self::labelWithTip('Estado', 'Etapa actual del ticket. En pendiente_cliente el reloj de SLA queda pausado.'))
-                                    ->badge()
-                                    ->formatStateUsing(fn ($state) => $state?->getLabel())
-                                    ->color(fn ($state) => match ($state?->value) {
-                                        'nuevo' => 'info',
-                                        'asignado' => 'primary',
-                                        'en_progreso' => 'warning',
-                                        'pendiente_cliente' => 'gray',
-                                        'resuelto' => 'success',
-                                        'cerrado' => 'gray',
-                                        'reabierto' => 'danger',
-                                        default => 'gray',
-                                    }),
-                            ]),
-                    ]),
+                ...array_values(self::sections()),
             ]);
+    }
+
+    /**
+     * Secciones de la vista del ticket, reutilizadas por la página Ver,
+     * el modal "Ver" de la lista y la página Editar.
+     *
+     * @return array<string, Section>
+     */
+    public static function sections(): array
+    {
+        return [
+            'summary' => Section::make('Resumen del caso')
+                ->icon('heroicon-o-identification')
+                ->collapsible()
+                ->columnSpanFull()
+                ->schema([
+                    Grid::make(['default' => 1, 'sm' => 2, 'lg' => 4])
+                        ->schema([
+                            TextEntry::make('requester.name')
+                                ->label('Solicitante')
+                                ->icon('heroicon-o-user')
+                                ->placeholder('—')
+                                ->helperText(fn (Ticket $record) => $record->requester?->department?->name),
+
+                            TextEntry::make('assignee.name')
+                                ->label('Asignado a')
+                                ->icon('heroicon-o-user-circle')
+                                ->placeholder('Sin asignar')
+                                ->color(fn (Ticket $record) => $record->assignee ? 'success' : 'warning'),
+
+                            TextEntry::make('category.name')
+                                ->label('Categoría')
+                                ->icon('heroicon-o-tag')
+                                ->placeholder('Sin categoría')
+                                ->helperText(fn (Ticket $record) => $record->department?->name),
+
+                            TextEntry::make('priority')
+                                ->label('Prioridad')
+                                ->badge()
+                                ->formatStateUsing(fn ($state) => $state?->getLabel())
+                                ->color(fn ($state) => match ($state?->value) {
+                                    'planificada' => 'gray',
+                                    'baja' => 'info',
+                                    'media' => 'warning',
+                                    'alta', 'critica' => 'danger',
+                                    default => 'gray',
+                                }),
+                        ]),
+                ]),
+
+            'description' => Section::make('Descripción del problema')
+                ->icon('heroicon-o-document-text')
+                ->collapsible()
+                ->columnSpanFull()
+                ->schema([
+                    TextEntry::make('description')
+                        ->hiddenLabel()
+                        ->markdown()
+                        ->columnSpanFull(),
+                ]),
+
+            'conversation' => Section::make('Conversación')
+                ->icon('heroicon-o-chat-bubble-left-right')
+                ->description('Mensajes con el solicitante, notas internas y eventos del ticket, del más antiguo al más reciente.')
+                ->schema([
+                    ViewEntry::make('conversation')
+                        ->hiddenLabel()
+                        ->view('filament.soporte.tickets.conversation'),
+                ]),
+
+            'attachments' => Section::make('Adjuntos')
+                ->icon('heroicon-o-paper-clip')
+                ->collapsible()
+                ->columnSpanFull()
+                ->visible(fn (Ticket $record) => $record->getMedia('attachments')->count() > 0)
+                ->schema([
+                    TextEntry::make('attachments_list')
+                        ->hiddenLabel()
+                        ->state(function (Ticket $record): string {
+                            return $record->getMedia('attachments')
+                                ->map(fn ($m) => sprintf(
+                                    '<a href="%s" target="_blank" class="inline-flex items-center gap-1 rounded border border-zinc-200 bg-white px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 me-2 mb-1">📎 %s <span class="text-zinc-400">(%s)</span></a>',
+                                    e($m->getUrl()),
+                                    e($m->file_name),
+                                    Number::fileSize($m->size),
+                                ))
+                                ->implode('');
+                        })
+                        ->html()
+                        ->columnSpanFull(),
+                ]),
+
+            'sla' => Section::make('SLA y tiempos')
+                ->icon('heroicon-o-clock')
+                ->collapsible()
+                ->collapsed()
+                ->columnSpanFull()
+                ->schema([
+                    Grid::make(['default' => 1, 'sm' => 2, 'lg' => 3])
+                        ->schema([
+                            TextEntry::make('created_at')
+                                ->label(self::labelWithTip('Creado', 'Fecha y hora en que el solicitante creó el ticket. Origen del reloj de SLA.'))
+                                ->dateTime('d M Y H:i')
+                                ->since(),
+
+                            TextEntry::make('first_responded_at')
+                                ->label(self::labelWithTip('Primera respuesta', 'Momento en que un agente respondió o tomó el ticket por primera vez. Detiene el reloj de "primera respuesta" del SLA.'))
+                                ->dateTime('d M Y H:i')
+                                ->placeholder('Pendiente')
+                                ->color(fn (Ticket $record) => $record->first_responded_at ? 'success' : 'warning'),
+
+                            TextEntry::make('first_response_due_at')
+                                ->label(self::labelWithTip('Vence primera respuesta', 'Objetivo de SLA para la primera respuesta. Calculado al crear el ticket usando minutos hábiles (L-V 08:00-18:00).'))
+                                ->dateTime('d M Y H:i')
+                                ->placeholder('—')
+                                ->color(fn (Ticket $record) => $record->first_response_breached ? 'danger' : 'gray'),
+
+                            TextEntry::make('resolution_due_at')
+                                ->label(self::labelWithTip('Vence resolución', 'Objetivo de SLA para resolver. Si resolved_at lo supera, el ticket entra en "fuera de SLA".'))
+                                ->dateTime('d M Y H:i')
+                                ->placeholder('—')
+                                ->color(fn (Ticket $record) => $record->resolution_breached ? 'danger' : 'gray'),
+
+                            TextEntry::make('resolved_at')
+                                ->label(self::labelWithTip('Resuelto', 'Momento en que el agente marcó el ticket como resuelto. A partir de aquí cuenta el tiempo Resuelto→Cerrado.'))
+                                ->dateTime('d M Y H:i')
+                                ->placeholder('—'),
+
+                            TextEntry::make('closed_at')
+                                ->label(self::labelWithTip('Cerrado', 'Confirmación del solicitante o auto-cierre del job programado tras X días sin respuesta.'))
+                                ->dateTime('d M Y H:i')
+                                ->placeholder('—'),
+
+                            TextEntry::make('paused_minutes')
+                                ->label(self::labelWithTip('Tiempo pausado', 'Minutos hábiles acumulados mientras el ticket estuvo en pendiente_cliente. El SLA se detiene en ese estado porque la demora no es responsabilidad del agente.'))
+                                ->state(fn (Ticket $record) => self::formatPausedMinutes($record))
+                                ->placeholder('0 min'),
+
+                            TextEntry::make('solution_time')
+                                ->label(self::labelWithTip('Tiempo de solución', 'Trabajo efectivo del agente: minutos hábiles entre creación y resolución, descontando el tiempo pausado.'))
+                                ->state(fn (Ticket $record) => self::computeSolutionTime($record))
+                                ->placeholder('—'),
+
+                            TextEntry::make('resolved_to_closed')
+                                ->label(self::labelWithTip('Resuelto → Cerrado', 'Horas calendario que el cliente tardó en confirmar la solución (o que esperamos hasta auto-cerrar).'))
+                                ->state(fn (Ticket $record) => self::computeResolvedToClosed($record))
+                                ->placeholder('—'),
+
+                            IconEntry::make('first_response_breached')
+                                ->label(self::labelWithTip('¿SLA primera respuesta?', 'Rojo = SLA de primera respuesta vencido. Verde = cumplido o aún dentro de plazo.'))
+                                ->boolean()
+                                ->trueIcon('heroicon-o-exclamation-triangle')
+                                ->trueColor('danger')
+                                ->falseIcon('heroicon-o-check-circle')
+                                ->falseColor('success'),
+
+                            IconEntry::make('resolution_breached')
+                                ->label(self::labelWithTip('¿SLA resolución?', 'Rojo = SLA de resolución vencido. Verde = cumplido o aún dentro de plazo.'))
+                                ->boolean()
+                                ->trueIcon('heroicon-o-exclamation-triangle')
+                                ->trueColor('danger')
+                                ->falseIcon('heroicon-o-check-circle')
+                                ->falseColor('success'),
+                        ]),
+                ]),
+
+            'classification' => Section::make('Clasificación técnica')
+                ->icon('heroicon-o-adjustments-horizontal')
+                ->collapsible()
+                ->collapsed()
+                ->columnSpanFull()
+                ->schema([
+                    Grid::make(['default' => 1, 'sm' => 3])
+                        ->schema([
+                            TextEntry::make('impact')
+                                ->label(self::labelWithTip('Impacto', 'Alcance del problema: cuántos usuarios o servicios afecta.'))
+                                ->badge()
+                                ->formatStateUsing(fn ($state) => $state?->getLabel())
+                                ->color('gray'),
+
+                            TextEntry::make('urgency')
+                                ->label(self::labelWithTip('Urgencia', 'Qué tan rápido debe resolverse desde la perspectiva del solicitante.'))
+                                ->badge()
+                                ->formatStateUsing(fn ($state) => $state?->getLabel())
+                                ->color('gray'),
+
+                            TextEntry::make('status')
+                                ->label(self::labelWithTip('Estado', 'Etapa actual del ticket. En pendiente_cliente el reloj de SLA queda pausado.'))
+                                ->badge()
+                                ->formatStateUsing(fn ($state) => $state?->getLabel())
+                                ->color(fn ($state) => match ($state?->value) {
+                                    'nuevo' => 'info',
+                                    'asignado' => 'primary',
+                                    'en_progreso' => 'warning',
+                                    'pendiente_cliente' => 'gray',
+                                    'resuelto' => 'success',
+                                    'cerrado' => 'gray',
+                                    'reabierto' => 'danger',
+                                    default => 'gray',
+                                }),
+                        ]),
+                ]),
+        ];
     }
 
     /**

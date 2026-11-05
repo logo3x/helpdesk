@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Tickets\Pages;
 use App\Enums\TicketImpact;
 use App\Enums\TicketUrgency;
 use App\Filament\Resources\Tickets\TicketResource;
+use App\Filament\Soporte\Resources\Tickets\Schemas\TicketViewInfolist;
 use App\Models\Department;
 use App\Models\Ticket;
 use App\Services\TicketService;
@@ -13,10 +14,20 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Schema;
 
 class ViewTicket extends ViewRecord
 {
     protected static string $resource = TicketResource::class;
+
+    /**
+     * Misma vista que en el panel Soporte: resumen, descripción,
+     * conversación, adjuntos, SLA y clasificación, en filas.
+     */
+    public function infolist(Schema $schema): Schema
+    {
+        return TicketViewInfolist::configure($schema);
+    }
 
     /**
      * El panel /admin permite al super_admin/admin trasladar cualquier

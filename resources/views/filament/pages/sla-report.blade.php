@@ -221,8 +221,8 @@
                 transcurrido con el límite:
             </p>
             <ul>
-                <li><strong>Alerta 70%</strong> y <strong>Alerta 90%</strong>: avisos preventivos. Quedan en «Escalaciones» y el ticket sigue en cumplimiento.</li>
-                <li><strong>Incumplido (100%)</strong>: se superó el límite. El ticket queda marcado con SLA incumplido y la marca no se borra al resolverlo.</li>
+                <li><strong>Alerta 70%</strong> y <strong>Alerta 90%</strong>: avisos preventivos. Al 70% le llega un aviso en la campanita al agente asignado; al 90%, campanita y correo. Quedan en «Escalaciones» y el ticket sigue en cumplimiento.</li>
+                <li><strong>Incumplido (100%)</strong>: se superó el límite. Se avisa por campanita y correo al asignado y también a los supervisores del departamento. El ticket queda marcado con SLA incumplido y la marca no se borra al resolverlo. Si el ticket no tiene asignado, los avisos llegan a los supervisores.</li>
             </ul>
             <p>
                 El <strong>% de cumplimiento</strong> se calcula sobre los tickets <strong>resueltos</strong> en el rango:
@@ -613,9 +613,9 @@
 
     {{-- ── Últimas escalaciones ──────────────────────────────────────── --}}
     <x-filament::section class="sla-section">
-        <x-slot name="heading">Últimas escalaciones ({{ $tableTotals['escalations'] }}) <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Cada 5 minutos, en horario hábil, el sistema compara el tiempo transcurrido de los tickets abiertos con su límite y registra una alerta al 70%, otra al 90% y el incumplimiento al 100%." style="width:0.95rem;height:0.95rem;" /></x-slot>
+        <x-slot name="heading">Últimas escalaciones ({{ $tableTotals['escalations'] }}) <x-heroicon-o-information-circle class="sla-info" x-tooltip.raw="Cada 5 minutos, en horario hábil, el sistema compara el tiempo transcurrido de los tickets abiertos con su límite, registra una alerta al 70%, otra al 90% y el incumplimiento al 100%, y avisa: 70% campanita al asignado; 90% campanita y correo al asignado; incumplido, también a los supervisores del departamento." style="width:0.95rem;height:0.95rem;" /></x-slot>
         <x-slot name="description">
-            Alertas registradas en el rango: avisos preventivos al 70% y 90% del tiempo, e incumplimientos al 100%. Se muestran las 50 más recientes.
+            Alertas registradas en el rango: avisos preventivos al 70% y 90% del tiempo, e incumplimientos al 100%. Cada alerta avisa al asignado (o a los supervisores si no hay) y los incumplimientos también a los supervisores del departamento. Se muestran las 50 más recientes.
         </x-slot>
 
         @if ($tableTotals['escalations'] === 0)

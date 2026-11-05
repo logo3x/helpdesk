@@ -34,6 +34,31 @@ class EscalationLog extends Model
     }
 
     /**
+     * Nivel de la alerta para leer su configuración en
+     * config('tickets.sla_alerts.channels'): warning_70, warning_90 o breach.
+     */
+    public function alertLevel(): string
+    {
+        if ($this->isBreach()) {
+            return 'breach';
+        }
+
+        return str_starts_with((string) $this->type, 'warning_90_') ? 'warning_90' : 'warning_70';
+    }
+
+    /**
+     * Umbral del SLA que disparó el registro: 70, 90 o 100.
+     */
+    public function thresholdPercent(): int
+    {
+        return match ($this->alertLevel()) {
+            'breach' => 100,
+            'warning_90' => 90,
+            default => 70,
+        };
+    }
+
+    /**
      * Qué reloj SLA generó el registro: primera respuesta o resolución.
      */
     public function metricLabel(): string

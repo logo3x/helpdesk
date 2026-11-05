@@ -89,7 +89,9 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
   - Cambiar `BACKUP_ARCHIVE_PASSWORD` por una contraseña fuerte (entre comillas dobles, sin `$ # " \`) y guardarla fuera del servidor.
   - Borrar los respaldos "Anterior" (carpeta vieja `Helpdesk Confipetrol`) desde la página Respaldos.
   - Confirmar el lunes 2026-11-09 que llegó el correo del respaldo completo del domingo.
-- **Mover adjuntos viejos al disco privado**: `php artisan tickets:move-attachments-private --dry-run` y luego sin `--dry-run`.
+- ✅ **Mover adjuntos viejos al disco privado** — verificado 2026-11-05: no había adjuntos por mover.
+- ✅ **Alertas SLA con aviso** (2026-11-05): 70 % campanita al asignado; 90 % campanita + correo al asignado; incumplido también a los supervisores del departamento (sin asignado → supervisores). Config en `config/tickets.php` → `sla_alerts` (`SLA_ALERTS_ENABLED`, `SLA_ALERTS_NOTIFY_ADMINS`). La pausa en curso de «Pendiente cliente» ya no consume plazo.
+- ✅ **Reporte SLA unificado** (2026-11-05): `BaseSlaReport` + dos páginas delgadas. Decisión pendiente: el botón **Exportar consolidado** quedó solo para admin/super_admin (suma datos de toda la empresa); confirmar si los supervisores lo necesitan.
 
 ---
 

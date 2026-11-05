@@ -5,7 +5,11 @@ namespace App\Services;
 use App\Models\EscalationLog;
 use App\Models\SlaConfig;
 use App\Models\Ticket;
+use App\Models\User;
+use App\Notifications\SlaAlertNotification;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * SLA engine — computes due dates, elapsed business time, and breach detection.
@@ -151,8 +155,7 @@ class SlaService
             return 0;
         }
 
-        $elapsed = $this->businessMinutesBetween($ticket->created_at, $now)
-            - $ticket->paused_minutes;
+        $elapsed = $this->elapsedBusinessMinutes($ticket, $now);
         $limit = $ticket->slaConfig->first_response_minutes;
 
         return $this->evaluateThresholds($ticket, 'first_response', $elapsed, $limit);
@@ -164,20 +167,42 @@ class SlaService
             return 0;
         }
 
-        $elapsed = $this->businessMinutesBetween($ticket->created_at, $now)
-            - $ticket->paused_minutes;
+        $elapsed = $this->elapsedBusinessMinutes($ticket, $now);
         $limit = $ticket->slaConfig->resolution_minutes;
 
         return $this->evaluateThresholds($ticket, 'resolution', $elapsed, $limit);
     }
 
     /**
+     * Minutos hábiles que lleva corriendo el reloj SLA de un ticket abierto:
+     * descuenta las pausas ya cerradas (paused_minutes) y también la pausa
+     * en curso (paused_at → $now), para que un ticket en «Pendiente de
+     * cliente» no siga consumiendo plazo ni dispare avisos mientras espera.
+     */
+    protected function elapsedBusinessMinutes(Ticket $ticket, CarbonInterface $now): int
+    {
+        $elapsed = $this->businessMinutesBetween($ticket->created_at, $now)
+            - (int) $ticket->paused_minutes;
+
+        if ($ticket->paused_at !== null) {
+            $elapsed -= $this->businessMinutesBetween($ticket->paused_at, $now);
+        }
+
+        return max(0, $elapsed);
+    }
+
+    /**
      * Create escalation logs at 70%, 90%, and 100% thresholds.
      * Idempotent — skips if an escalation log of that type already exists.
+     *
+     * Si en la misma pasada se crean varios registros del mismo reloj
+     * (p. ej. un ticket que ya superó el 100 % sin registros previos),
+     * solo se avisa del umbral más alto recién creado.
      */
     protected function evaluateThresholds(Ticket $ticket, string $prefix, int $elapsed, int $limit): int
     {
-        $created = 0;
+        /** @var list<EscalationLog> $createdLogs */
+        $createdLogs = [];
 
         $thresholds = [
             ['pct' => 100, 'type' => "{$prefix}_breach"],
@@ -200,7 +225,7 @@ class SlaService
                 continue;
             }
 
-            EscalationLog::create([
+            $createdLogs[] = EscalationLog::create([
                 'ticket_id' => $ticket->id,
                 'type' => $t['type'],
                 'sla_minutes' => $limit,
@@ -214,11 +239,111 @@ class SlaService
                 $ticket->{$field} = true;
                 $ticket->save();
             }
-
-            $created++;
         }
 
-        return $created;
+        if ($createdLogs !== []) {
+            $this->notifyAlert($ticket, $createdLogs[0]);
+        }
+
+        return count($createdLogs);
+    }
+
+    /**
+     * Avisa (campanita y, según config, correo) a los destinatarios de
+     * una alerta SLA y deja constancia en el registro de escalación.
+     */
+    public function notifyAlert(Ticket $ticket, EscalationLog $log): void
+    {
+        if (! config('tickets.sla_alerts.enabled', true)) {
+            return;
+        }
+
+        $recipients = $this->alertRecipients($ticket, $log);
+
+        if ($recipients->isEmpty()) {
+            $log->update(['notes' => 'Sin destinatarios: el ticket no tiene asignado ni supervisores activos en su departamento.']);
+
+            return;
+        }
+
+        $notification = new SlaAlertNotification($log->setRelation('ticket', $ticket));
+
+        foreach ($recipients as $recipient) {
+            $recipient->notify($notification);
+        }
+
+        $log->update([
+            'notified_user_id' => $recipients->firstWhere('id', $ticket->assigned_to_id)?->id ?? $recipients->first()->id,
+            'notes' => mb_substr('Aviso enviado a: '.$recipients->pluck('name')->implode(', '), 0, 1000),
+        ]);
+    }
+
+    /**
+     * Quién recibe el aviso de una alerta SLA:
+     *  - 70 % y 90 %: el agente asignado; si no hay, los supervisores
+     *    activos del departamento del ticket.
+     *  - Incumplimiento: el asignado y los supervisores del departamento
+     *    (y los administradores si notify_admins_on_breach está activo).
+     *
+     * Solo usuarios activos y sin duplicados.
+     *
+     * @return Collection<int, User>
+     */
+    public function alertRecipients(Ticket $ticket, EscalationLog $log): Collection
+    {
+        $assignee = $ticket->assigned_to_id !== null
+            ? $this->activeUsers()->whereKey($ticket->assigned_to_id)->first()
+            : null;
+
+        $recipients = new Collection(array_filter([$assignee]));
+
+        if ($log->isBreach() || $assignee === null) {
+            $recipients = $recipients->merge($this->activeDepartmentSupervisors($ticket->department_id));
+        }
+
+        if ($log->isBreach() && config('tickets.sla_alerts.notify_admins_on_breach', false)) {
+            $recipients = $recipients->merge(
+                $this->activeUsers()
+                    ->whereHas('roles', fn (Builder $roles) => $roles->whereIn('name', ['admin', 'super_admin']))
+                    ->get()
+            );
+        }
+
+        return $recipients->unique('id')->values();
+    }
+
+    /**
+     * Supervisores de soporte activos de un departamento.
+     *
+     * @return Collection<int, User>
+     */
+    protected function activeDepartmentSupervisors(?int $departmentId): Collection
+    {
+        if ($departmentId === null) {
+            return new Collection;
+        }
+
+        return $this->activeUsers()
+            ->where('department_id', $departmentId)
+            ->whereHas('roles', fn (Builder $roles) => $roles->where('name', 'supervisor_soporte'))
+            ->get();
+    }
+
+    /**
+     * Usuarios que pueden recibir avisos: excluye a los retirados
+     * (sincronización con Kactus) y al usuario de sistema, que no tiene buzón.
+     *
+     * @return Builder<User>
+     */
+    protected function activeUsers(): Builder
+    {
+        return User::query()
+            ->where(fn (Builder $status) => $status
+                ->whereNull('employment_status')
+                ->orWhere('employment_status', '!=', 'terminated'))
+            ->where(fn (Builder $email) => $email
+                ->whereNull('email')
+                ->orWhere('email', '!=', KbSuggestionService::SYSTEM_USER_EMAIL));
     }
 
     /**

@@ -66,6 +66,8 @@ final class SlaDefinitions
 
             'resolution_breached' => 'Rojo: se venció el plazo de resolución. Verde: se cumplió o aún está dentro del plazo.',
 
+            'sla_alerts' => self::alertsText(),
+
             'sla_compliance' => "Porcentaje de tickets resueltos dentro del plazo de resolución del SLA. Verde: {$good} % o más; ámbar: {$warning} % o más; rojo: menos de {$warning} %.",
 
             'first_response_avg' => 'Tiempo promedio entre la creación del ticket y la primera respuesta de un agente. Se mide en tiempo calendario (incluye noches y fines de semana).',
@@ -87,6 +89,29 @@ final class SlaDefinitions
     public static function help(string $key): string
     {
         return self::all()[$key] ?? throw new InvalidArgumentException("No hay definición de SLA para [{$key}].");
+    }
+
+    /**
+     * Quién recibe los avisos de alertas SLA y por qué medio, según
+     * config('tickets.sla_alerts').
+     */
+    protected static function alertsText(): string
+    {
+        $hours = self::BUSINESS_HOURS;
+        $intro = "Cada 5 minutos, en horario hábil ({$hours}), el sistema revisa los tickets abiertos y registra una alerta al 70 % y al 90 % del plazo, y el incumplimiento al 100 %.";
+
+        if (! config('tickets.sla_alerts.enabled', true)) {
+            return "{$intro} Los avisos están desactivados: las alertas solo quedan en «Escalaciones».";
+        }
+
+        $channels = fn (string $level): string => in_array('mail', (array) config("tickets.sla_alerts.channels.{$level}", []), true)
+            ? 'campanita y correo'
+            : 'campanita';
+        $admins = config('tickets.sla_alerts.notify_admins_on_breach', false) ? ' y a los administradores' : '';
+
+        return "{$intro} Al 70 % avisa al agente asignado por {$channels('warning_70')}; al 90 %, por {$channels('warning_90')}. "
+            ."Al incumplirse avisa por {$channels('breach')} al asignado y también a los supervisores del departamento{$admins}. "
+            .'Si el ticket no tiene asignado, los avisos llegan a los supervisores del departamento.';
     }
 
     /**

@@ -81,4 +81,33 @@ return [
                 .'Si el problema vuelve a aparecer, crea un ticket nuevo e indica este número (**:number**).',
         ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Avisos de alertas SLA (70 %, 90 % e incumplimiento)
+    |--------------------------------------------------------------------------
+    |
+    | CheckSlaBreachesJob registra las escalaciones y avisa con
+    | SlaAlertNotification. Al 70 % y 90 % se avisa al agente asignado (si
+    | el ticket no tiene asignado, a los supervisores activos de su
+    | departamento). En el incumplimiento se avisa al asignado y a los
+    | supervisores del departamento; con notify_admins_on_breach también
+    | a los administradores.
+    |
+    | 'channels' define por qué medio llega cada nivel: 'database' es la
+    | campanita (siempre se envía) y 'mail' agrega el correo. Con
+    | 'enabled' en false las escalaciones se siguen registrando, pero no se
+    | avisa a nadie.
+    */
+    'sla_alerts' => [
+        'enabled' => (bool) env('SLA_ALERTS_ENABLED', true),
+
+        'channels' => [
+            'warning_70' => ['database'],
+            'warning_90' => ['database', 'mail'],
+            'breach' => ['database', 'mail'],
+        ],
+
+        'notify_admins_on_breach' => (bool) env('SLA_ALERTS_NOTIFY_ADMINS', false),
+    ],
 ];

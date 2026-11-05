@@ -131,7 +131,7 @@ trait HasSlaBreachDetails
             ->orderByDesc('resolved_at')
             ->limit(100);
 
-        if ($scopeDepartmentId) {
+        if ($scopeDepartmentId !== null) {
             $query->where('department_id', $scopeDepartmentId);
         }
 
@@ -176,7 +176,7 @@ trait HasSlaBreachDetails
             ->latest()
             ->limit(50);
 
-        if ($scopeDepartmentId) {
+        if ($scopeDepartmentId !== null) {
             $query->whereHas('ticket', fn ($q) => $q->where('department_id', $scopeDepartmentId));
         }
 

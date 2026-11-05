@@ -55,6 +55,8 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(asset('images/logo-confipetrol-dark.png'))
             ->brandLogoHeight('2.5rem')
             ->darkModeBrandLogo(asset('images/logo-confipetrol.png'))
+            // Tema propio: compila las clases Tailwind de las vistas a medida.
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->colors([
                 'primary' => Color::Amber,
             ])

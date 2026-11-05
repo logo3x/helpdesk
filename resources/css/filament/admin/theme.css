@@ -1,0 +1,13 @@
+/*
+ * Tema compartido por los paneles /admin y /soporte.
+ *
+ * Sin este tema, Filament solo trae su propio CSS y las vistas a medida
+ * (reporte SLA, métricas del chatbot, encuestas, hoja de vida de activos,
+ * conversación de tickets…) perdían las clases de Tailwind que usan.
+ * Tailwind escanea las rutas de @source y compila solo lo que se usa.
+ */
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+@source '../../../../resources/views/components/**/*';

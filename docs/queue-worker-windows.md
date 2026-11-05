@@ -89,6 +89,7 @@ Unregister-ScheduledTask -TaskName 'Helpdesk - Laravel Scheduler' -Confirm:$fals
 | La tabla `jobs` no se vacía | Worker detenido o `QUEUE_CONNECTION` distinto de `database` | Revisa el estado de la tarea y el `.env`; corre `config:cache` |
 | `"php" no se reconoce` en `queue-worker.err.log` | Ruta de PHP incorrecta | Vuelve a correr el script con `-PhpPath` correcto |
 | Errores de conexión a MySQL en el log | Credenciales o MySQL caído | Revisa `DB_*` en el `.env` y el servicio de MySQL |
+| `LastTaskResult` = `2147946720` (0x800710E0) en el worker | Es normal: la tarea intentó lanzar otro worker y Windows lo rechazó porque ya hay uno corriendo | Nada; confirma con `(Get-ScheduledTask -TaskName 'Helpdesk - Queue Worker').State` → `Running` |
 | Los correos tardan hasta un minuto | El worker se estaba reiniciando (cada hora o tras un deploy) | Es normal |
 | Respaldos o recordatorios duplicados | Dos tareas corriendo `schedule:run` | Deja solo `Helpdesk - Laravel Scheduler` |
 

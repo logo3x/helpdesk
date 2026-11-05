@@ -75,7 +75,7 @@ Lista priorizada de trabajo no incluido en el MVP actual. Orden de la lista = pr
 - ~~**Inspecciones Vehiculares: migrar a PHP 8.5**~~ ❌ **DESCARTADO 2026-11-04** por decisión de Luis; el sitio sigue en PHP 8.3.29 (soporte de seguridad hasta dic-2027).
 - **Metrologia y COC-Confipetrol detenidos** (2026-10-30, PHP 8.0/8.1 sin soporte). Si se necesitan, migrarlos a 8.5 antes de encenderlos.
 - **Restringir la app de Azure a su buzón** (ApplicationAccessPolicy en Exchange) — pendiente, requiere al administrador de Microsoft 365.
-- ⏳ **PASO 3 DEL DESPLIEGUE — Instalar el scheduler y el worker de la cola** (pendiente desde el despliegue del 2026-11-04; sin esto NO corren los recordatorios al cliente, el cierre automático, el vigilante de la IA, las sugerencias KB ni las alertas SLA):
+- ✅ **PASO 3 DEL DESPLIEGUE — Scheduler y worker de la cola instalados** (2026-11-05): tareas "Helpdesk - Laravel Scheduler" y "Helpdesk - Queue Worker" corriendo como SYSTEM; worker verificado procesando trabajos. `DB_DUMP_BINARY_PATH` apunta a MySQL Server 8.0. Queda solo el punto 7:
   1. ~~NSSM~~ descartado: Microsoft Defender bloquea `nssm.exe` como software potencialmente no deseado. El worker ahora es una tarea programada (ver [docs/queue-worker-windows.md](queue-worker-windows.md)).
   2. Confirmar PHP: `Test-Path "C:\Program Files\PHP\v8.5.12\php.exe"` → `True` ✅. La tarea vieja "Laravel Helpdesk Scheduler" ya se borró (2026-11-05) para no duplicar el scheduler.
   3. PowerShell **como Administrador**, en `C:\inetpub\wwwroot\helpdesk`:

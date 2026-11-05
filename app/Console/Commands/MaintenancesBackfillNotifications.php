@@ -25,7 +25,7 @@ class MaintenancesBackfillNotifications extends Command
     {
         $this->info('Disparando NotifyDueMaintenancesJob...');
         (new NotifyDueMaintenancesJob)->handle();
-        $this->info('OK — los mantenimientos elegibles quedaron con notified_due_at=now(). Chequeá la campanita del agente asignado.');
+        $this->info('OK — los mantenimientos elegibles quedaron con notified_due_at=now(). Revisa la campanita del agente asignado.');
 
         return self::SUCCESS;
     }

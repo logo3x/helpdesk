@@ -390,7 +390,12 @@
     {{-- ── Gaps de KB ───────────────────────────────────────────────── --}}
     <x-filament::section class="cm-section">
         <x-slot name="heading">Gaps de KB — preguntas que el bot no supo responder</x-slot>
-        <x-slot name="description">Cada pregunta representa un artículo KB por escribir. Click en el botón para crearlo con el título pre-rellenado.</x-slot>
+        <x-slot name="description">
+            Cada pregunta representa un artículo KB por escribir. Click en el botón para crearlo con el título pre-rellenado.
+            @if (config('services.llm.kb_suggestions_enabled'))
+                Además, cada hora (lunes a viernes, de 07:00 a 19:00) la IA agrupa estas preguntas y deja borradores sugeridos en Artículos KB para que los revises.
+            @endif
+        </x-slot>
 
         @if (empty($fallbackQuestions))
             <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;color:#059669">

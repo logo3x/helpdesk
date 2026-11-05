@@ -60,7 +60,7 @@ class DeployController extends Controller
         if (! $lock->get()) {
             return response()->json([
                 'status' => 'busy',
-                'message' => 'Ya hay un deploy en curso. Llamá /api/deploy/log para ver el progreso.',
+                'message' => 'Ya hay un deploy en curso. Consulta /api/deploy/log para ver el progreso.',
                 'log' => $this->readLog(),
             ], 409);
         }
@@ -73,7 +73,7 @@ class DeployController extends Controller
             if (! $taskResult->successful()) {
                 return response()->json([
                     'status' => 'failed_to_start',
-                    'message' => 'schtasks /run falló — verificá que la tarea "HelpdeskDeploy" exista y el usuario que corre el App Pool de IIS tenga permiso para dispararla.',
+                    'message' => 'schtasks /run falló — verifica que la tarea "HelpdeskDeploy" exista y el usuario que corre el App Pool de IIS tenga permiso para dispararla.',
                     'stderr' => $taskResult->errorOutput(),
                     'stdout' => $taskResult->output(),
                 ], 500);

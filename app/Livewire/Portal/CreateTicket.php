@@ -6,6 +6,7 @@ use App\Enums\TicketImpact;
 use App\Enums\TicketPriority;
 use App\Enums\TicketUrgency;
 use App\Models\Category;
+use App\Services\TicketAttachmentService;
 use App\Services\TicketService;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -47,7 +48,7 @@ class CreateTicket extends Component
             'impact' => ['required', Rule::enum(TicketImpact::class)],
             'urgency' => ['required', Rule::enum(TicketUrgency::class)],
             'attachments' => ['nullable', 'array', 'max:5'],
-            'attachments.*' => ['file', 'max:10240'],
+            'attachments.*' => TicketAttachmentService::uploadRules(),
         ];
     }
 
@@ -63,6 +64,18 @@ class CreateTicket extends Component
             'impact' => 'impacto',
             'urgency' => 'urgencia',
             'attachments' => 'adjuntos',
+            'attachments.*' => 'adjunto',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function messages(): array
+    {
+        return [
+            'attachments.*.mimes' => 'Ese tipo de archivo no se permite. Adjunta imágenes, PDF, Word, Excel, PowerPoint, TXT, CSV, ZIP o RAR.',
+            'attachments.*.extensions' => 'Ese tipo de archivo no se permite. Adjunta imágenes, PDF, Word, Excel, PowerPoint, TXT, CSV, ZIP o RAR.',
         ];
     }
 
@@ -83,7 +96,7 @@ class CreateTicket extends Component
         foreach ($this->attachments as $file) {
             $ticket->addMedia($file->getRealPath())
                 ->usingFileName($file->getClientOriginalName())
-                ->toMediaCollection('attachments');
+                ->toMediaCollection(TicketAttachmentService::COLLECTION);
         }
 
         Flux::toast(

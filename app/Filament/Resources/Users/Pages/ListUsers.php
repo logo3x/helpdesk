@@ -50,7 +50,7 @@ class ListUsers extends ListRecords
                     ->icon('heroicon-o-arrow-up-tray')
                     ->color('warning')
                     ->modalHeading('Precarga masiva de personas')
-                    ->modalDescription('Subí el .xlsx con la lista de empleados. Los que tengan email @confipetrol.com quedan como "Azure pendiente" y se enlazan solos al primer login SSO. El resto queda como cuenta local con password = primeros 8 dígitos de la cédula.')
+                    ->modalDescription('Sube el .xlsx con la lista de empleados. Los que tengan email @confipetrol.com quedan como "Azure pendiente" y se enlazan solos al primer login SSO. El resto queda como cuenta local con password = primeros 8 dígitos de la cédula.')
                     ->modalSubmitActionLabel('Procesar')
                     ->modalWidth('lg')
                     ->schema([

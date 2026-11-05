@@ -144,8 +144,8 @@ it('Editar muestra el resumen, la conversación y la descripción ya formateada'
         ->assertSeeHtml('<strong>Adobe</strong>');
 });
 
-it('los adjuntos se muestran como tarjetas con nombre, tamaño e ícono', function () {
-    Storage::fake(config('media-library.disk_name'));
+it('los adjuntos se muestran como tarjetas con visor modal y ruta autenticada', function () {
+    Storage::fake('local');
     $this->ticket->addMedia(UploadedFile::fake()->create('informe-falla.pdf', 120, 'application/pdf'))
         ->toMediaCollection('attachments');
 
@@ -153,7 +153,10 @@ it('los adjuntos se muestran como tarjetas con nombre, tamaño e ícono', functi
         ->assertSee('Adjuntos')
         ->assertSee('informe-falla.pdf')
         ->assertSee('📕')
-        ->assertSee('Abrir');
+        ->assertSee('Abrir en pestaña nueva')
+        ->assertSee('Descargar')
+        ->assertSeeHtml('ticket-attachments')
+        ->assertDontSeeHtml('/storage/');
 });
 
 it('la descripción de un ticket del portal se muestra formateada con quién y cuándo', function () {
@@ -183,4 +186,34 @@ it('si viene del asistente destaca el resumen y pliega la transcripción', funct
         ->assertSee('Prioridad sugerida por la IA')
         ->assertSee('Ver conversación con el asistente')
         ->assertSeeHtml('<details');
+});
+
+it('/soporte/tickets/{id}/edit muestra al supervisor la misma descripción que la página Ver', function () {
+    $supervisor = User::factory()->create(['department_id' => $this->ticket->department_id]);
+    $supervisor->assignRole('supervisor_soporte');
+    $this->ticket->update(['description' => 'No abre **Adobe** al abrir PDFs.']);
+
+    $this->actingAs($supervisor)
+        ->get("/soporte/tickets/{$this->ticket->getRouteKey()}/edit")
+        ->assertOk()
+        ->assertSeeInOrder(['Resumen del caso', 'Descripción del problema', 'Contenido del ticket', 'Editar la descripción (Markdown)', 'Conversación'])
+        ->assertSee('Creado en el portal')
+        ->assertSee('Ana Cliente')
+        ->assertSeeHtml('<strong>Adobe</strong>')
+        ->assertDontSee('description_preview');
+});
+
+it('Editar destaca el resumen de un ticket escalado desde el asistente', function () {
+    $supervisor = User::factory()->create(['department_id' => $this->ticket->department_id]);
+    $supervisor->assignRole('supervisor_soporte');
+    $this->ticket->update(['description' => "# Ticket escalado desde el asistente virtual\n\n"
+        ."**Resumen del usuario:** No puedo entrar a SAP\n\n---\n\n"
+        ."## Transcripción de la conversación\n\n**👤 Ana** · _10:00_\n\nno me abre sap"]);
+    $this->actingAs($supervisor);
+
+    Livewire::test(EditTicket::class, ['record' => $this->ticket->getRouteKey()])
+        ->assertSee('Escalado desde el asistente virtual')
+        ->assertSee('Problema reportado')
+        ->assertSee('No puedo entrar a SAP')
+        ->assertSee('Ver conversación con el asistente');
 });

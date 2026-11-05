@@ -74,42 +74,7 @@ class UserForm
                     ])
                     ->columns(2),
 
-                Section::make('Datos laborales')
-                    ->description('Información de ubicación y cargo para auto-completar activos.')
-                    ->icon('heroicon-o-building-office')
-                    ->collapsed()
-                    ->schema([
-                        TextInput::make('identification')
-                            ->label('Cédula / Identificación')
-                            ->maxLength(30),
-
-                        TextInput::make('position')
-                            ->label('Cargo')
-                            ->maxLength(150),
-
-                        TextInput::make('phone')
-                            ->label('Teléfono')
-                            ->tel()
-                            ->maxLength(30),
-
-                        Select::make('management_area')
-                            ->label('Gerencia')
-                            ->options(ManagementArea::options())
-                            ->native(false)
-                            ->searchable()
-                            ->placeholder('Seleccioná una gerencia'),
-
-                        TextInput::make('field')
-                            ->label('Campo')
-                            ->placeholder('Ej: PORE, SAN MARTIN')
-                            ->maxLength(100),
-
-                        TextInput::make('location_zone')
-                            ->label('Ubicación')
-                            ->placeholder('Ej: Bodega central, Piso 3')
-                            ->maxLength(100),
-                    ])
-                    ->columns(2),
+                static::workSection(),
 
                 Section::make('Integración Kactus')
                     ->description('Datos sincronizados desde el sistema de nómina. Solo lectura — se actualizan automáticamente.')
@@ -141,5 +106,50 @@ class UserForm
                     ])
                     ->columns(2),
             ]);
+    }
+
+    /**
+     * Datos laborales (cédula, cargo, gerencia...). Compartido con el form
+     * de usuarios de /soporte: la cédula y el cargo se usan en las actas
+     * de entrega de activos.
+     */
+    public static function workSection(): Section
+    {
+        return Section::make('Datos laborales')
+            ->description('Información de ubicación y cargo para auto-completar activos.')
+            ->icon('heroicon-o-building-office')
+            ->collapsed()
+            ->schema([
+                TextInput::make('identification')
+                    ->label('Cédula / Identificación')
+                    ->maxLength(30),
+
+                TextInput::make('position')
+                    ->label('Cargo')
+                    ->maxLength(150),
+
+                TextInput::make('phone')
+                    ->label('Teléfono')
+                    ->tel()
+                    ->maxLength(30),
+
+                Select::make('management_area')
+                    ->label('Gerencia')
+                    ->options(ManagementArea::options())
+                    ->native(false)
+                    ->searchable()
+                    ->placeholder('Selecciona una gerencia'),
+
+                TextInput::make('field')
+                    ->label('Campo')
+                    ->placeholder('Ej: PORE, SAN MARTIN')
+                    ->maxLength(100),
+
+                TextInput::make('location_zone')
+                    ->label('Ubicación')
+                    ->placeholder('Ej: Bodega central, Piso 3')
+                    ->maxLength(100),
+            ])
+            ->columns(2);
     }
 }

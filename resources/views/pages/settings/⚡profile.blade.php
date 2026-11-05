@@ -156,7 +156,7 @@ new #[Layout('layouts.portal')] #[Title('Profile settings')] class extends Compo
                 <flux:input wire:model="identification" label="Cédula / Identificación" type="text" autocomplete="off" placeholder="Ej: 12345678" />
                 <flux:input wire:model="position" label="Cargo" type="text" autocomplete="off" placeholder="Ej: Técnico de campo" />
                 <flux:input wire:model="phone" label="Teléfono" type="tel" autocomplete="tel" placeholder="Ej: 3001234567" />
-                <flux:select wire:model="management_area" label="Gerencia" placeholder="Seleccioná una gerencia">
+                <flux:select wire:model="management_area" label="Gerencia" placeholder="Selecciona una gerencia">
                     @foreach (\App\Enums\ManagementArea::cases() as $g)
                         <flux:select.option value="{{ $g->value }}">{{ $g->label() }}</flux:select.option>
                     @endforeach

@@ -8,7 +8,8 @@ use Spatie\Backup\Notifications\Notifiable as SpatieNotifiable;
 class BackupNotifiable extends SpatieNotifiable
 {
     /**
-     * Envía notificaciones de backup a todos los admins y super_admins.
+     * Envía las alertas de spatie (respaldo no sano, limpieza fallida) a
+     * todos los admins y super_admins, más BACKUP_NOTIFY_EMAILS.
      *
      * @return array<int, string>
      */
@@ -16,7 +17,9 @@ class BackupNotifiable extends SpatieNotifiable
     {
         return User::role(['super_admin', 'admin'])
             ->pluck('email')
+            ->merge(config('backup.helpdesk.notify_emails', []))
             ->filter()
+            ->unique()
             ->values()
             ->all();
     }

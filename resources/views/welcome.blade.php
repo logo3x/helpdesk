@@ -369,7 +369,7 @@
                     </h3>
                     <p class="text-sm text-slate-400 leading-relaxed">
                         El sistema asigna automáticamente tu caso al equipo correcto y monitorea que tenga respuesta.
-                        Si pasa demasiado tiempo sin atención, se escala solo.
+                        Si se acerca el plazo de atención, el sistema genera una alerta para que el equipo lo priorice.
                     </p>
                 </div>
             </div>
@@ -388,7 +388,8 @@
                         </h3>
                         <p class="text-sm text-slate-400 leading-relaxed">
                             Antes de abrir un ticket, consulta el centro de ayuda. Hay artículos escritos por el equipo de TI
-                            y un asistente que responde preguntas frecuentes al instante — sin esperar a que nadie conteste.
+                            y un asistente con IA que busca en ellos, adapta la respuesta a tu caso y te guía paso a paso — sin esperar a que nadie conteste.
+                            Si no se resuelve, crea el ticket por ti.
                         </p>
                     </div>
                 </div>
@@ -505,9 +506,11 @@
                         Problema resuelto y registrado
                     </h3>
                     <p class="text-slate-600 dark:text-slate-300 leading-relaxed mb-5 max-w-2xl">
-                        Cuando tu caso se cierra, recibes una notificación con el resumen de lo que se hizo.
+                        Cuando tu caso se resuelve, recibes una notificación con el resumen de lo que se hizo.
+                        @php($autoCloseDays = (int) config('tickets.auto_close_days'))
+                        Si no hay novedades, se cierra solo {{ $autoCloseDays === 1 ? '1 día' : "{$autoCloseDays} días" }} después.
                         Puedes calificar la atención, consultar el historial de tus casos anteriores
-                        o reabrir el caso si el problema regresa.
+                        o abrir un caso nuevo con el número anterior si el problema regresa.
                     </p>
 
                     <div class="flex flex-col sm:flex-row gap-3">

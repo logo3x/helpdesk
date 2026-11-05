@@ -173,7 +173,7 @@ class PeopleTemplateService
         $sheet->setCellValue('A16', 'Cómo cargar:');
         $sheet->getStyle('A16')->getFont()->setBold(true);
         $sheet->setCellValue('A17', "1. Completa la hoja 'Personas' (puedes borrar la fila de ejemplo).");
-        $sheet->setCellValue('A18', '2. Guardá como .xlsx.');
+        $sheet->setCellValue('A18', '2. Guarda como .xlsx.');
         $sheet->setCellValue('A19', '3. En /admin/users, botón "📥 Precargar personas".');
         $sheet->setCellValue('A20', '4. Puedes hacer un "dry-run" primero para ver qué pasaría sin escribir.');
 

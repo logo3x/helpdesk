@@ -57,7 +57,7 @@ class ScheduledMaintenanceForm
                     ])
                     ->descriptions([
                         'individual' => 'Programa un mantenimiento sobre un activo específico.',
-                        'bulk' => 'Filtrá por gerencia, campo, zona, proyecto o custodio y seleccioná varios activos a la vez. Ideal para jornadas de mtto de una sede.',
+                        'bulk' => 'Filtra por gerencia, campo, zona, proyecto o custodio y selecciona varios activos a la vez. Ideal para jornadas de mantenimiento en una sede.',
                     ])
                     ->default('individual')
                     ->required()
@@ -98,13 +98,13 @@ class ScheduledMaintenanceForm
                             ->required(fn (Get $get, string $operation) => $operation === 'edit' || ($get('creation_mode') ?? 'individual') === 'individual')
                             ->disabled(fn (string $operation) => $operation === 'edit')
                             ->dehydrated()
-                            ->helperText('Buscá por TAG, serial, código SAP, hostname, nombre o cédula del custodio, proyecto, campo, zona o gerencia. Solo activos de tipo computador, portátil, all-in-one y servidor.'),
+                            ->helperText('Busca por TAG, serial, código SAP, hostname, nombre o cédula del custodio, proyecto, campo, zona o gerencia. Solo activos de tipo computador, portátil, all-in-one y servidor.'),
                     ]),
 
                 // ── MODO MASIVO: FILTROS ──────────────────────────────
                 Section::make('Filtros de búsqueda')
                     ->icon('heroicon-o-funnel')
-                    ->description('Aplicá uno o más filtros. El listado se actualiza a medida que seleccionás. Todos los filtros son opcionales.')
+                    ->description('Aplica uno o más filtros. El listado se actualiza a medida que seleccionas. Todos los filtros son opcionales.')
                     ->columns(3)
                     ->columnSpanFull()
                     ->visible(fn (Get $get, string $operation) => $operation === 'create' && ($get('creation_mode') ?? '') === 'bulk')
@@ -194,7 +194,7 @@ class ScheduledMaintenanceForm
                                 if ($selected === 0) {
                                     return new HtmlString(sprintf(
                                         '<div class="text-sm text-gray-500 dark:text-gray-400">'
-                                        .'Hay <b>%d</b> activo(s) que matchean los filtros actuales. Empezá a escribir o hacé click en el campo de abajo para verlos y seleccionar.'
+                                        .'Hay <b>%d</b> activo(s) que coinciden con los filtros actuales. Empieza a escribir o haz clic en el campo de abajo para verlos y seleccionarlos.'
                                         .'</div>',
                                         $matching,
                                     ));
@@ -203,7 +203,7 @@ class ScheduledMaintenanceForm
                                 return new HtmlString(sprintf(
                                     '<div class="text-sm font-medium text-warning-600 dark:text-warning-400">'
                                     .'Vas a crear <b>%d</b> mantenimiento(s) — uno por cada activo — con la misma fecha, agente y frecuencia.'
-                                    .' <span class="text-gray-500 dark:text-gray-400 font-normal">(%d activos matchean los filtros en total)</span>'
+                                    .' <span class="text-gray-500 dark:text-gray-400 font-normal">(%d activos coinciden con los filtros en total)</span>'
                                     .'</div>',
                                     $selected, $matching,
                                 ));
@@ -227,7 +227,7 @@ class ScheduledMaintenanceForm
                             ->options(fn (Get $get) => self::bulkAssetSearchResults('', $get))
                             ->getSearchResultsUsing(fn (string $search, Get $get) => self::bulkAssetSearchResults($search, $get))
                             ->getOptionLabelsUsing(fn (array $values) => self::bulkAssetLabelsFor($values))
-                            ->helperText('Al abrir aparecen los activos que matchean los filtros. También puedes escribir para buscar por TAG, hostname o custodio. Puedes seleccionar varios.'),
+                            ->helperText('Al abrir aparecen los activos que coinciden con los filtros. También puedes escribir para buscar por TAG, hostname o custodio. Puedes seleccionar varios.'),
                     ]),
 
                 // ── PROGRAMACIÓN (fecha, agente, frecuencia) ──────────

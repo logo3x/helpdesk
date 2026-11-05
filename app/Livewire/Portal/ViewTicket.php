@@ -26,7 +26,7 @@ class ViewTicket extends Component
     {
         abort_unless($ticket->requester_id === auth()->id(), 403);
 
-        $this->ticket = $ticket;
+        $this->ticket = $ticket->load('media');
     }
 
     public function resolveByRequester(): void
@@ -76,8 +76,9 @@ class ViewTicket extends Component
         return view('livewire.portal.view-ticket', [
             'comments' => $this->ticket
                 ->publicComments()
-                ->with('user:id,name')
+                ->with(['user:id,name', 'media'])
                 ->oldest()
+                ->oldest('id')
                 ->get(),
         ])->title("Ticket {$this->ticket->number}");
     }

@@ -87,7 +87,7 @@
                                 <span class="opacity-60">{{ $msg->created_at->format('d/m H:i') }}</span>
                             </div>
                             <div class="chat-body text-white">
-                                {!! str($msg->content)->markdown()->toHtmlString() !!}
+                                {!! \App\Services\MarkdownRenderer::safe($msg->content) !!}
                             </div>
                         </div>
                     </div>
@@ -104,7 +104,7 @@
                                     <span>{{ $msg->created_at->format('d/m H:i') }}</span>
                                 </div>
                                 <div class="chat-body">
-                                    {!! str($msg->content)->markdown()->toHtmlString() !!}
+                                    {!! \App\Services\MarkdownRenderer::safe($msg->content) !!}
                                 </div>
                             </div>
                         </div>

@@ -5,15 +5,11 @@ namespace App\Filament\Soporte\Resources\Tickets\Schemas;
 use App\Models\Category;
 use App\Models\Ticket;
 use Filament\Forms\Components\MarkdownEditor;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Illuminate\Support\HtmlString;
-use Illuminate\Support\Str;
 
 /**
  * Formulario reducido para editar un ticket existente.
@@ -22,8 +18,9 @@ use Illuminate\Support\Str;
  * contenido que NO afecta la prioridad ni el SLA:
  *
  *   - asunto
- *   - descripción
  *   - categoría (acotada al depto actual del ticket)
+ *   - descripción (editor Markdown plegado; la versión formateada se
+ *     muestra arriba con la misma sección de la página Ver)
  *
  * Para cambiar impacto/urgencia → acción "Recalibrar prioridad".
  * Para cambiar departamento → acción "Trasladar a otro depto.".
@@ -44,6 +41,10 @@ class EditTicketForm
             ->columns(1)
             ->components([
                 $sections['summary'],
+
+                // Misma descripción que la página Ver y el panel admin
+                // (origen, resumen destacado y transcripción plegada).
+                $sections['description'],
 
                 Section::make('Contenido del ticket')
                     ->icon('heroicon-o-pencil-square')
@@ -81,18 +82,6 @@ class EditTicketForm
                             })
                             ->searchable(),
 
-                        // La descripción se muestra ya formateada (así la ve
-                        // el solicitante); el Markdown se edita aparte.
-                        Placeholder::make('description_preview')
-                            ->label('Descripción')
-                            ->content(fn (Get $get): HtmlString => new HtmlString(
-                                '<div class="fi-prose" style="max-width: none; padding: 1rem; border: 1px solid rgba(128,128,128,.25); border-radius: 0.5rem; background: rgba(128,128,128,.04);">'
-                                .(filled($get('description'))
-                                    ? Str::markdown((string) $get('description'), ['html_input' => 'escape', 'allow_unsafe_links' => false])
-                                    : '<p class="text-gray-500">Sin descripción.</p>')
-                                .'</div>'
-                            )),
-
                         Section::make('Editar la descripción (Markdown)')
                             ->icon('heroicon-o-code-bracket')
                             ->collapsible()
@@ -102,7 +91,6 @@ class EditTicketForm
                                 MarkdownEditor::make('description')
                                     ->hiddenLabel()
                                     ->required()
-                                    ->live(debounce: 1000)
                                     ->toolbarButtons(['bold', 'italic', 'link', 'bulletList', 'orderedList', 'codeBlock', 'blockquote', 'heading', 'undo', 'redo']),
                             ]),
                     ])

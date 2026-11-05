@@ -2,9 +2,11 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\HasHelpLabels;
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Filament\Resources\Users\UserResource;
 use App\Filament\Soporte\Resources\KbArticles\KbArticleResource;
+use App\Filament\Support\SlaDefinitions;
 use App\Models\Asset;
 use App\Models\KbArticle;
 use App\Models\SatisfactionSurvey;
@@ -15,6 +17,8 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class AdminStatsWidget extends StatsOverviewWidget
 {
+    use HasHelpLabels;
+
     protected ?string $pollingInterval = '60s';
 
     protected function getStats(): array
@@ -77,7 +81,7 @@ class AdminStatsWidget extends StatsOverviewWidget
                     'tableFilters' => ['status' => ['value' => 'published']],
                 ])),
 
-            Stat::make('Satisfacción (CSAT)', $csat)
+            Stat::make(static::helpLabel('Satisfacción (CSAT)', SlaDefinitions::help('csat')), $csat)
                 ->description('Promedio de encuestas')
                 ->descriptionIcon('heroicon-m-star')
                 ->color('success'),

@@ -5,8 +5,10 @@ use App\Http\Controllers\Assets\AssetHandoverPdfController;
 use App\Http\Controllers\Assets\AssetLifecyclePdfController;
 use App\Http\Controllers\Auth\AzureAuthController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
+use App\Http\Controllers\BackupDownloadController;
 use App\Http\Controllers\InventoryAgentController;
 use App\Http\Controllers\MaintenanceEvidenceController;
+use App\Http\Controllers\TicketAttachmentController;
 use App\Http\Middleware\EnsureAslAccepted;
 use App\Livewire\Portal\Chatbot;
 use App\Livewire\Portal\CreateTicket;
@@ -136,5 +138,27 @@ Route::middleware(['auth', 'verified', EnsureAslAccepted::class])->group(functio
         [MaintenanceEvidenceController::class, 'download']
     )->name('maintenance.evidence.download');
 });
+
+// Adjuntos de tickets
+// Se sirven solo con sesión iniciada y si el usuario puede ver el
+// ticket (TicketPolicy::viewAttachments). "show" los muestra en línea
+// en el visor modal (imágenes, PDF, texto); "download" fuerza descarga.
+// Sin "verified": los paneles tampoco lo exigen y las miniaturas se
+// romperían para personal con el correo sin verificar.
+Route::middleware(['auth', EnsureAslAccepted::class])->group(function () {
+    Route::get('ticket-attachments/{media}', [TicketAttachmentController::class, 'show'])
+        ->name('tickets.attachments.show');
+    Route::get('ticket-attachments/{media}/download', [TicketAttachmentController::class, 'download'])
+        ->name('tickets.attachments.download');
+});
+
+// Descarga de respaldos
+// Link firmado y temporal (correo de respaldos y botón de la página
+// Respaldos). Además de la firma exige sesión con rol admin o
+// super_admin; el controlador valida que el zip exista en el disco.
+Route::get('respaldos/descargar/{folder}/{file}', BackupDownloadController::class)
+    ->middleware(['auth', 'signed'])
+    ->where(['folder' => '[^/]+', 'file' => '[^/]+'])
+    ->name('backups.download');
 
 require __DIR__.'/settings.php';

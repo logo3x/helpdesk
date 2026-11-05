@@ -124,7 +124,7 @@ trait HasTicketWorkflowActions
                 ->label('Tomar este ticket')
                 ->icon('heroicon-o-hand-raised')
                 ->color('primary')
-                ->tooltip('Te asigna el ticket, publica un saludo automático al solicitante y arranca el reloj de SLA. Úsalo cuando vayas a empezar a trabajar el caso ahora.')
+                ->tooltip('Te asigna el ticket y publica un saludo automático al solicitante, que cuenta como primera respuesta del SLA. Úsalo cuando vayas a empezar a trabajar el caso ahora.')
                 ->visible(fn () => $ticket->status->isOpen()
                     && auth()->user()?->hasAnyRole(['agente_soporte', 'tecnico_campo'])
                     && $ticket->assigned_to_id !== auth()->id())
@@ -340,6 +340,12 @@ trait HasTicketWorkflowActions
                     TicketStatus::PendienteCliente,
                 ], true))
                 ->requiresConfirmation()
+                ->modalDescription(function (): string {
+                    $days = (int) config('tickets.auto_close_days');
+                    $daysLabel = $days === 1 ? '1 día' : "{$days} días";
+
+                    return "Se detiene el SLA de resolución y se avisa al solicitante. Si no hay novedades, el ticket se cierra solo {$daysLabel} después y se le envía la encuesta de satisfacción.";
+                })
                 ->action(function () use ($ticket): void {
                     abort_unless(auth()->user()?->can('update', $ticket), 403);
                     app(TicketService::class)->resolve($ticket);

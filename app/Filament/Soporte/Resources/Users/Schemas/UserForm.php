@@ -2,6 +2,7 @@
 
 namespace App\Filament\Soporte\Resources\Users\Schemas;
 
+use App\Filament\Resources\Users\Schemas\UserForm as AdminUserForm;
 use App\Models\User;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -78,6 +79,10 @@ class UserForm
                             ->helperText('Los supervisores solo pueden crear usuarios en su propio departamento.'),
                     ])
                     ->columns(2),
+
+                // Misma sección que /admin: la cédula y el cargo se usan en
+                // las actas de entrega de activos.
+                AdminUserForm::workSection(),
             ]);
     }
 }

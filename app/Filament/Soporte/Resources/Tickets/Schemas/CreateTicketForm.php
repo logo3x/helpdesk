@@ -7,6 +7,7 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketUrgency;
 use App\Models\Category;
 use App\Models\TicketTemplate;
+use App\Services\TicketAttachmentService;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -128,13 +129,8 @@ class CreateTicketForm
                             ->multiple()
                             ->maxFiles(10)
                             ->maxSize(10240)
-                            ->acceptedFileTypes([
-                                'image/*', 'application/pdf',
-                                'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                                'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                                'text/plain', 'text/csv',
-                                'application/zip', 'application/x-rar-compressed',
-                            ])
+                            // Sin SVG ni HTML: se podrían ejecutar en el navegador.
+                            ->acceptedFileTypes(TicketAttachmentService::ACCEPTED_MIME_TYPES)
                             ->columnSpanFull(),
                     ])
                     ->columnSpanFull(),

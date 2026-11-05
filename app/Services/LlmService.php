@@ -186,8 +186,8 @@ class LlmService
 
             $status === 402 => [
                 'title' => 'Sin créditos disponibles',
-                'detail' => 'La cuenta no tiene saldo para este modelo. Cambia a un modelo '
-                    .'gratuito o recarga créditos en openrouter.ai.'.$suffix,
+                'detail' => 'La cuenta no tiene saldo o cuota para este modelo. Cambia a otro '
+                    ."modelo disponible o revisa la cuenta en {$this->accountHost()}.".$suffix,
             ],
 
             // NVIDIA devuelve 410 cuando un modelo llegó a su fin de vida.
@@ -260,6 +260,18 @@ class LlmService
         return $this->provider === 'nvidia'
             ? 'https://integrate.api.nvidia.com/v1'
             : 'https://openrouter.ai/api/v1';
+    }
+
+    /**
+     * Sitio donde se administra la cuenta (saldo y cuota) del proveedor actual.
+     */
+    protected function accountHost(): string
+    {
+        return match ($this->provider) {
+            'nvidia' => 'build.nvidia.com',
+            'anthropic' => 'console.anthropic.com',
+            default => 'openrouter.ai',
+        };
     }
 
     /**

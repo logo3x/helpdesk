@@ -33,7 +33,7 @@
         </header>
 
         <div class="kb-content prose prose-zinc max-w-none dark:prose-invert">
-            {!! str($article->body)->markdown()->toHtmlString() !!}
+            {!! \App\Services\MarkdownRenderer::safe($article->body) !!}
         </div>
 
         {{-- Feedback --}}

@@ -3,6 +3,8 @@
 namespace App\Filament\Soporte\Widgets;
 
 use App\Enums\TicketStatus;
+use App\Filament\Concerns\HasHelpLabels;
+use App\Filament\Support\SlaDefinitions;
 use App\Models\Ticket;
 use App\Models\User;
 use Filament\Tables\Columns\TextColumn;
@@ -33,6 +35,8 @@ use Illuminate\Support\HtmlString;
  */
 class AgentRankingWidget extends BaseWidget
 {
+    use HasHelpLabels;
+
     protected int|string|array $columnSpan = 'full';
 
     protected static ?int $sort = 99;
@@ -66,17 +70,17 @@ class AgentRankingWidget extends BaseWidget
                     ->color(fn ($state) => (int) $state > 10 ? 'danger' : ((int) $state > 5 ? 'warning' : 'gray')),
 
                 TextColumn::make('first_response_avg_minutes')
-                    ->label('1a resp. (prom)')
+                    ->label(static::helpLabel('1.ª resp. (prom.)', SlaDefinitions::help('first_response_avg')))
                     ->alignEnd()
                     ->formatStateUsing(fn ($state) => self::formatMinutes($state)),
 
                 TextColumn::make('resolution_avg_minutes')
-                    ->label('Resolución (prom)')
+                    ->label(static::helpLabel('Resolución (prom.)', SlaDefinitions::help('resolution_avg')))
                     ->alignEnd()
                     ->formatStateUsing(fn ($state) => self::formatMinutes($state)),
 
                 TextColumn::make('csat_avg')
-                    ->label('CSAT')
+                    ->label(static::helpLabel('CSAT', SlaDefinitions::help('csat')))
                     ->alignEnd()
                     ->formatStateUsing(fn ($state) => $state !== null
                         ? number_format((float) $state, 1).' / 5'
@@ -89,7 +93,7 @@ class AgentRankingWidget extends BaseWidget
                     }),
 
                 TextColumn::make('reopened_rate')
-                    ->label('% Reaper.')
+                    ->label(static::helpLabel('% Reaper.', SlaDefinitions::help('reopened_rate')))
                     ->alignEnd()
                     ->formatStateUsing(fn ($state) => $state !== null ? round((float) $state, 1).'%' : '—')
                     ->color(fn ($state) => match (true) {
@@ -97,18 +101,21 @@ class AgentRankingWidget extends BaseWidget
                         (float) $state === 0.0 => 'success',
                         (float) $state <= 10 => 'warning',
                         default => 'danger',
-                    })
-                    ->tooltip('Porcentaje de tickets que este agente resolvió y que fueron reabiertos por el solicitante. Menor es mejor.'),
+                    }),
 
                 TextColumn::make('sla_compliance_pct')
-                    ->label('% SLA')
+                    ->label(static::helpLabel('% SLA', SlaDefinitions::help('sla_compliance')))
                     ->alignEnd()
                     ->formatStateUsing(function ($state) {
                         if ($state === null) {
                             return '—';
                         }
                         $pct = (int) round((float) $state);
-                        $color = $pct >= 90 ? '#16a34a' : ($pct >= 70 ? '#d97706' : '#dc2626');
+                        $color = match (SlaDefinitions::complianceColor($pct)) {
+                            'success' => '#16a34a',
+                            'warning' => '#d97706',
+                            default => '#dc2626',
+                        };
 
                         return new HtmlString(sprintf(
                             '<div style="display:inline-flex;align-items:center;gap:0.5rem;justify-content:flex-end;min-width:110px;">'
@@ -123,8 +130,7 @@ class AgentRankingWidget extends BaseWidget
                             $pct,
                         ));
                     })
-                    ->html()
-                    ->tooltip('Porcentaje de tickets resueltos dentro del plazo de SLA. Verde ≥90%, ámbar ≥70%, rojo <70%.'),
+                    ->html(),
             ])
             ->defaultSort('resolved_count', 'desc');
     }

@@ -9,6 +9,7 @@ use App\Enums\TicketUrgency;
 use App\Models\Category;
 use App\Models\TicketTemplate;
 use App\Models\User;
+use App\Services\TicketAttachmentService;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\MarkdownEditor;
@@ -131,7 +132,7 @@ class TicketForm
 
                         Select::make('urgency')
                             ->label('Urgencia')
-                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Qué tan rápido se necesita solución: Baja (cuando se pueda), Media (esta semana), Alta (hoy mismo o bloquea trabajo).')
+                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Qué tan rápido se necesita solución: Baja (puede esperar unos días), Media (hoy o mañana), Alta (bloquea el trabajo ahora y no hay alternativa).')
                             ->options(TicketUrgency::class)
                             ->default(TicketUrgency::Media)
                             ->live()
@@ -149,7 +150,7 @@ class TicketForm
 
                         Select::make('status')
                             ->label('Estado')
-                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Estado del ciclo de vida: Nuevo → Asignado → En progreso → Resuelto → Cerrado. Los tickets nuevos siempre inician en Nuevo.')
+                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Ciclo de vida: Nuevo → Asignado → En progreso ⇄ Pendiente cliente (SLA en pausa) → Resuelto → Cerrado. Si el solicitante no está conforme, pasa a Reabierto. Los tickets nuevos siempre inician en Nuevo.')
                             ->options(TicketStatus::class)
                             ->default(TicketStatus::Nuevo)
                             ->required()
@@ -213,13 +214,7 @@ class TicketForm
                             ->multiple()
                             ->maxFiles(10)
                             ->maxSize(10240)
-                            ->acceptedFileTypes([
-                                'image/*', 'application/pdf',
-                                'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                                'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                                'text/plain', 'text/csv',
-                                'application/zip', 'application/x-rar-compressed',
-                            ])
+                            ->acceptedFileTypes(TicketAttachmentService::ACCEPTED_MIME_TYPES)
                             ->columnSpanFull(),
                     ])
                     ->collapsible()

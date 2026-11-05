@@ -37,7 +37,7 @@ class EditAsset extends EditRecord
                 ->tooltip(fn () => $position && $total
                     ? "Activo {$position}/{$total} de la lista filtrada"
                     : 'Volver al anterior de la lista filtrada')
-                ->url(fn () => AssetResource::getUrl('edit', ['record' => $prevId])),
+                ->url(fn () => static::getResource()::getUrl('edit', ['record' => $prevId])),
 
             Action::make('nextAsset')
                 ->label('Siguiente →')
@@ -46,7 +46,7 @@ class EditAsset extends EditRecord
                 ->tooltip(fn () => $position && $total
                     ? "Activo {$position}/{$total} de la lista filtrada"
                     : 'Ir al siguiente de la lista filtrada')
-                ->url(fn () => AssetResource::getUrl('edit', ['record' => $nextId])),
+                ->url(fn () => static::getResource()::getUrl('edit', ['record' => $nextId])),
 
             // ── Ver hoja de vida (timeline del activo) ──────────────
             Action::make('viewLifecycle')

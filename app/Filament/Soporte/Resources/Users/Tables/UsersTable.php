@@ -2,12 +2,14 @@
 
 namespace App\Filament\Soporte\Resources\Users\Tables;
 
+use App\Filament\Resources\Users\Tables\UsersTable as AdminUsersTable;
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use STS\FilamentImpersonate\Actions\Impersonate;
 
 class UsersTable
@@ -15,32 +17,14 @@ class UsersTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->columns([
-                TextColumn::make('name')
-                    ->label('Nombre')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('email')
-                    ->label('Correo')
-                    ->searchable()
-                    ->copyable(),
-
-                TextColumn::make('roles.name')
-                    ->label('Rol')
-                    ->badge()
-                    ->color('success'),
-
-                TextColumn::make('department.name')
-                    ->label('Departamento')
-                    ->sortable()
-                    ->placeholder('—'),
-
-                TextColumn::make('last_login_at')
-                    ->label('Último acceso')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable()
-                    ->placeholder('Nunca'),
+            // Mismas columnas que /admin (cédula, rol, Kactus, ASL...) para
+            // que los dos paneles muestren los mismos datos y tooltips.
+            ->columns(AdminUsersTable::columns())
+            ->filters([
+                Filter::make('asl_pending')
+                    ->label('Sin aceptar ASL')
+                    ->query(fn (Builder $query): Builder => $query->whereNull('asl_accepted_at'))
+                    ->toggle(),
             ])
             ->defaultSort('name')
             ->recordActions([

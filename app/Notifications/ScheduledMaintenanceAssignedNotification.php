@@ -39,7 +39,7 @@ class ScheduledMaintenanceAssignedNotification extends Notification implements S
             ->line('Fecha programada: '.$date)
             ->line('Frecuencia: '.$this->maintenance->frequency->label())
             ->action('Ver mantenimiento', url('/soporte/scheduled-maintenances/'.$this->maintenance->id.'/edit'))
-            ->line('Recordá registrar las observaciones al ejecutarlo.');
+            ->line('Recuerda registrar las observaciones al ejecutarlo.');
     }
 
     /**

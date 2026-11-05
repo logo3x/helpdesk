@@ -7,6 +7,7 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\TicketUrgency;
 use App\Observers\TicketObserver;
+use App\Services\TicketAttachmentService;
 use Database\Factories\TicketFactory;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,6 +21,7 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\File;
 
 #[ObservedBy(TicketObserver::class)]
 class Ticket extends Model implements HasMedia
@@ -34,6 +36,18 @@ class Ticket extends Model implements HasMedia
             ->logOnlyDirty()
             ->useLogName('tickets')
             ->setDescriptionForEvent(fn (string $eventName): string => "Ticket {$this->number} fue {$eventName}");
+    }
+
+    /**
+     * Adjuntos en disco privado: solo se sirven por la ruta autenticada
+     * tickets.attachments.show. Los antiguos pueden seguir en "public"
+     * (ver tickets:move-attachments-private).
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(TicketAttachmentService::COLLECTION)
+            ->useDisk(TicketAttachmentService::DISK)
+            ->acceptsFile(fn (File $file): bool => TicketAttachmentService::isAcceptable($file));
     }
 
     protected $fillable = [

@@ -139,8 +139,8 @@ class AuditUserRoles extends Command
         $this->newLine();
         $this->line('Para reasignarles el rol correcto:');
         $this->line('  1. Entrá a /admin/users con cuenta super_admin.');
-        $this->line('  2. Buscá cada uno de estos usuarios por email.');
-        $this->line('  3. En Editar → Rol → seleccioná el rol correcto ('.$proposedRole.', supervisor_soporte, tecnico_campo, etc.).');
+        $this->line('  2. Busca cada uno de estos usuarios por email.');
+        $this->line('  3. En Editar → Rol → selecciona el rol correcto ('.$proposedRole.', supervisor_soporte, tecnico_campo, etc.).');
         $this->newLine();
         $this->comment('Nota: el bug ya está arreglado — el SSO ya NO borra roles al hacer login.');
 

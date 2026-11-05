@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Backups;
 use App\Filament\Soporte\Pages\UnifiedSurveysReport;
 use App\Filament\Soporte\Resources\KbArticles\KbArticleResource;
 use App\Filament\Widgets\AdminStatsWidget;
@@ -104,9 +105,14 @@ class AdminPanelProvider extends PanelProvider
                 FilamentShieldPlugin::make(),
                 QuickCreatePlugin::make(),
                 GlobalSearchModalPlugin::make(),
+                // Página propia de respaldos (estado, tabla por tipo y
+                // respaldos en cola). Ver App\Filament\Pages\Backups.
                 FilamentSpatieLaravelBackupPlugin::make()
+                    ->usingPage(Backups::class)
+                    ->authorize(fn (): bool => auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false)
                     ->navigationGroup('Configuración')
                     ->navigationLabel('Respaldos')
+                    ->navigationIcon('heroicon-o-circle-stack')
                     ->navigationSort(100),
             ])
             ->userMenuItems([

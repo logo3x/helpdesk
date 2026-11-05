@@ -105,3 +105,35 @@ Schedule::job(new AwaitingCustomerFollowUpJob)
     ->weekdays()
     ->between('08:00', '18:15')
     ->withoutOverlapping();
+
+// Respaldos
+// Franja de madrugada (America/Bogota), sin usuarios conectados y lejos
+// de los jobs de las 06:00 en adelante y de activitylog:clean (día 1,
+// 03:00). Horas en config/backup.php → helpdesk.schedule (.env BACKUP_*).
+//  - BD: diario 01:30. Avisa solo si falla (BACKUP_DAILY_EMAIL=always
+//    para confirmar a diario con el zip adjunto).
+//  - Completo (archivos + BD): domingo 02:30. Envía a los admins el zip
+//    de BD (adjunto si cabe) y el link de descarga del completo.
+//  - Limpieza según la retención de cada perfil: 04:00 y 04:15.
+//  - Revisión de salud: 05:00 (alerta si el último respaldo es viejo).
+// Requiere la tarea de Windows que ejecuta `php artisan schedule:run`
+// cada minuto (tools/install-servicios-helpdesk.ps1).
+Schedule::command('backups:database')
+    ->dailyAt(config('backup.helpdesk.schedule.database_time'))
+    ->withoutOverlapping(240);
+
+Schedule::command('backups:full')
+    ->weeklyOn(config('backup.helpdesk.schedule.full_day'), config('backup.helpdesk.schedule.full_time'))
+    ->withoutOverlapping(240);
+
+Schedule::command('backup:clean')
+    ->dailyAt(config('backup.helpdesk.schedule.cleanup_time'))
+    ->withoutOverlapping();
+
+Schedule::command('backup:clean --config=backup.full')
+    ->dailyAt(config('backup.helpdesk.schedule.full_cleanup_time'))
+    ->withoutOverlapping();
+
+Schedule::command('backup:monitor')
+    ->dailyAt(config('backup.helpdesk.schedule.monitor_time'))
+    ->withoutOverlapping();

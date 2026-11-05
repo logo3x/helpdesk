@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Categories\Schemas;
 
 use App\Models\Category;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -12,19 +13,29 @@ use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
+/**
+ * Form de categorías compartido por /admin y /soporte.
+ *
+ * Con $lockDepartment (supervisor en /soporte) el departamento no se
+ * elige: queda fijo en el del usuario al crear, o en el de la categoría
+ * al editar. Las páginas de soporte lo vuelven a forzar al guardar.
+ */
 class CategoryForm
 {
-    public static function configure(Schema $schema): Schema
+    public static function configure(Schema $schema, bool $lockDepartment = false): Schema
     {
         return $schema
             ->components([
-                Select::make('department_id')
-                    ->label('Departamento')
-                    ->relationship('department', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->live(),
+                $lockDepartment
+                    ? Hidden::make('department_id')
+                        ->default(fn (): ?int => auth()->user()?->department_id)
+                    : Select::make('department_id')
+                        ->label('Departamento')
+                        ->relationship('department', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->live(),
 
                 Select::make('parent_id')
                     ->label('Categoría padre (opcional)')

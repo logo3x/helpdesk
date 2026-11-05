@@ -118,7 +118,7 @@
             <flux:field>
                 <flux:label class="flex items-center gap-1.5">
                     Urgencia
-                    <flux:tooltip content="Qué tan rápido necesitas solución: Baja (cuando se pueda), Media (esta semana), Alta (hoy mismo o bloquea trabajo).">
+                    <flux:tooltip content="Qué tan rápido necesitas solución: Baja (puede esperar unos días), Media (hoy o mañana), Alta (bloquea tu trabajo ahora y no hay alternativa).">
                         <flux:icon.question-mark-circle class="size-4 text-zinc-400 cursor-help" />
                     </flux:tooltip>
                 </flux:label>
@@ -145,7 +145,7 @@
         <flux:field>
             <flux:label class="flex items-center gap-1.5">
                 Adjuntos
-                <flux:tooltip content="Opcional. Adjunta capturas de pantalla, documentos o logs que ayuden a entender el problema. Máximo 5 archivos de 10 MB cada uno.">
+                <flux:tooltip content="Opcional. Adjunta capturas de pantalla, documentos o logs que ayuden a entender el problema. Se permiten imágenes, PDF, Word, Excel, PowerPoint, TXT, CSV, ZIP y RAR. Máximo 5 archivos de 10 MB cada uno.">
                     <flux:icon.question-mark-circle class="size-4 text-zinc-400 cursor-help" />
                 </flux:tooltip>
             </flux:label>
@@ -153,6 +153,7 @@
                 type="file"
                 wire:model="attachments"
                 multiple
+                accept="{{ collect(\App\Services\TicketAttachmentService::ALLOWED_EXTENSIONS)->map(fn ($extension) => '.'.$extension)->implode(',') }}"
                 class="block w-full text-sm text-zinc-500 file:mr-4 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-4 file:py-2 file:text-sm file:font-medium hover:file:bg-zinc-200 dark:text-zinc-400 dark:file:bg-zinc-700 dark:hover:file:bg-zinc-600"
             />
             @error('attachments.*') <flux:text class="mt-1 text-sm text-red-500">{{ $message }}</flux:text> @enderror

@@ -78,7 +78,7 @@ class MaintenancesCleanDuplicateChildren extends Command
         }
 
         if ($dryRun) {
-            $this->info("DRY-RUN: se borrarían {$deletedTotal} registros. Corré sin --dry-run para aplicar.");
+            $this->info("DRY-RUN: se borrarían {$deletedTotal} registros. Ejecuta sin --dry-run para aplicar.");
         } else {
             $this->info("OK — {$deletedTotal} hijos duplicados eliminados.");
         }

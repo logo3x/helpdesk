@@ -68,53 +68,69 @@
         </div>
     </div>
 
-    {{-- Adjuntos --}}
-    @if ($ticket->getMedia('attachments')->count())
-        <div class="mb-6">
-            <div class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                <flux:icon name="paper-clip" class="size-3.5" />
-                Adjuntos
-            </div>
-            <div class="flex flex-wrap gap-2">
-                @foreach ($ticket->getMedia('attachments') as $media)
-                    <a href="{{ $media->getUrl() }}" target="_blank"
-                       class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700">
-                        <flux:icon name="paper-clip" class="size-4 text-zinc-400" />
-                        {{ $media->file_name }}
-                        <span class="text-xs text-zinc-400">({{ Number::fileSize($media->size) }})</span>
-                    </a>
-                @endforeach
-            </div>
-        </div>
-    @endif
+    @php
+        $description = \App\Services\TicketDescriptionParser::parse($ticket->description);
+        $ticketAttachments = $ticket->getMedia('attachments');
+        $messageCount = 1 + $comments->where('is_system_event', false)->count();
+    @endphp
 
     {{-- Encabezado conversación --}}
     <div class="mb-4 flex items-center gap-2">
         <flux:icon name="chat-bubble-left-right" class="size-5 text-zinc-400" />
         <flux:heading size="sm" class="text-zinc-600 dark:text-zinc-400">Conversación</flux:heading>
         <span class="ml-auto rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-500 dark:bg-zinc-800">
-            {{ 1 + count($comments) }} mensaje(s)
+            {{ $messageCount }} {{ $messageCount === 1 ? 'mensaje' : 'mensajes' }}
         </span>
     </div>
 
-    {{-- Hilo --}}
-    <div class="space-y-4">
+    {{-- Hilo: tus mensajes a la derecha, los de soporte a la izquierda --}}
+    <div class="space-y-5">
         {{-- Mensaje original --}}
-        <div class="msg-anim flex gap-3" style="animation-delay: 0ms">
+        <div class="msg-anim flex flex-row-reverse gap-3" style="animation-delay: 0ms">
             <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 text-xs font-bold text-white shadow-sm">
                 {{ $ticket->requester?->initials() ?? '?' }}
             </div>
-            <div class="flex-1 min-w-0">
-                <div class="mb-1.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
-                    <span class="font-semibold text-zinc-800 dark:text-zinc-200">
-                        {{ $ticket->requester_id === auth()->id() ? 'Tú' : $ticket->requester?->name }}
-                    </span>
+            <div class="flex min-w-0 max-w-[90%] flex-col items-end sm:max-w-[80%]">
+                <div class="mb-1.5 flex flex-wrap items-center justify-end gap-1.5 text-xs text-zinc-500">
+                    <span class="font-semibold text-zinc-800 dark:text-zinc-200">Tú</span>
                     <flux:badge size="sm" color="sky">Mensaje original</flux:badge>
+                    <flux:badge size="sm" :color="$description['fromAssistant'] ? 'violet' : 'zinc'">
+                        {{ $description['fromAssistant'] ? 'Desde el asistente virtual' : 'Creado en el portal' }}
+                    </flux:badge>
                     <span class="text-zinc-300">·</span>
-                    <span>{{ $ticket->created_at->diffForHumans() }}</span>
+                    <span title="{{ $ticket->created_at->format('d/m/Y H:i') }}">{{ $ticket->created_at->diffForHumans() }}</span>
                 </div>
-                <div class="ticket-msg rounded-xl rounded-tl-sm border border-sky-100 bg-sky-50/80 px-4 py-3 text-sm text-zinc-800 shadow-sm dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-zinc-100">
-                    {!! str($ticket->description)->markdown()->toHtmlString() !!}
+                <div class="ticket-msg w-full rounded-2xl rounded-tr-sm border border-sky-100 bg-sky-50/80 px-4 py-3 text-sm text-zinc-800 shadow-sm dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-zinc-100">
+                    @if ($description['fromAssistant'])
+                        @if ($description['summary'])
+                            <div class="rounded-lg border-l-4 border-violet-400 bg-white/70 px-3 py-2 dark:bg-zinc-900/50">
+                                <div class="text-[0.7rem] font-semibold uppercase tracking-wide text-zinc-500">Problema reportado</div>
+                                <div class="font-semibold">{{ $description['summary'] }}</div>
+                            </div>
+                        @endif
+                        @if ($description['transcript'])
+                            <details class="mt-2">
+                                <summary class="cursor-pointer text-xs font-medium text-sky-700 dark:text-sky-400">
+                                    Ver conversación con el asistente ({{ $description['messages'] }} {{ $description['messages'] === 1 ? 'mensaje' : 'mensajes' }})
+                                </summary>
+                                <div class="mt-2">
+                                    {!! \App\Services\MarkdownRenderer::safe($description['transcript']) !!}
+                                </div>
+                            </details>
+                        @endif
+                    @else
+                        {!! \App\Services\MarkdownRenderer::safe($description['body']) !!}
+                    @endif
+
+                    @if ($ticketAttachments->isNotEmpty())
+                        <div class="mt-3 border-t border-sky-100 pt-3 dark:border-sky-900/50">
+                            <div class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                                <flux:icon name="paper-clip" class="size-3.5" />
+                                Adjuntos ({{ $ticketAttachments->count() }})
+                            </div>
+                            <x-attachment-viewer :files="$ticketAttachments" />
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -127,46 +143,52 @@
                     <div class="flex items-center gap-1.5 rounded-full border border-zinc-200/80 bg-white px-3 py-1 text-xs text-zinc-500 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
                         <flux:icon name="arrow-path" class="size-3 text-zinc-400" />
                         <span class="ticket-msg-system">
-                            {!! str($comment->body)->markdown()->toHtmlString() !!}
+                            {!! \App\Services\MarkdownRenderer::safe($comment->body) !!}
                         </span>
                         @if ($comment->user)
                             <span class="text-zinc-300 dark:text-zinc-600">·</span>
                             <span>{{ $comment->user->name }}</span>
                         @endif
                         <span class="text-zinc-300 dark:text-zinc-600">·</span>
-                        <span>{{ $comment->created_at->diffForHumans() }}</span>
+                        <span title="{{ $comment->created_at->format('d/m/Y H:i') }}">{{ $comment->created_at->diffForHumans() }}</span>
                     </div>
                     <span class="h-px flex-1 bg-zinc-200/60 dark:bg-zinc-700/60"></span>
                 </div>
             @else
                 @php
-                    $isMine = $comment->user_id === auth()->id();
                     $isRequester = $comment->user_id === $ticket->requester_id;
-                    $bubbleClasses = $isRequester
-                        ? 'border-sky-100 bg-sky-50/80 dark:border-sky-900/50 dark:bg-sky-950/40 rounded-tl-sm'
-                        : 'border-emerald-100 bg-emerald-50/80 dark:border-emerald-900/50 dark:bg-emerald-950/40 rounded-tl-sm';
-                    $avatarGradient = $isRequester
-                        ? 'from-sky-400 to-sky-600'
-                        : 'from-emerald-500 to-emerald-700';
-                    $roleLabel = $isRequester ? 'Solicitante' : 'Soporte';
-                    $roleBadgeColor = $isRequester ? 'sky' : 'emerald';
+                    $commentAttachments = $comment->media->where('collection_name', 'attachments');
                 @endphp
 
-                <div class="msg-anim flex gap-3" style="animation-delay: {{ ($idx + 1) * 50 }}ms">
-                    <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br {{ $avatarGradient }} text-xs font-bold text-white shadow-sm">
+                <div @class(['msg-anim flex gap-3', 'flex-row-reverse' => $isRequester]) style="animation-delay: {{ ($idx + 1) * 50 }}ms">
+                    <div @class([
+                        'flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-bold text-white shadow-sm',
+                        'from-sky-400 to-sky-600' => $isRequester,
+                        'from-emerald-500 to-emerald-700' => ! $isRequester,
+                    ])>
                         {{ $comment->user?->initials() ?? '?' }}
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="mb-1.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
+                    <div @class(['flex min-w-0 max-w-[90%] flex-col sm:max-w-[80%]', 'items-end' => $isRequester, 'items-start' => ! $isRequester])>
+                        <div @class(['mb-1.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500', 'justify-end' => $isRequester])>
                             <span class="font-semibold text-zinc-800 dark:text-zinc-200">
-                                {{ $isMine ? 'Tú' : $comment->user?->name }}
+                                {{ $isRequester ? 'Tú' : ($comment->user?->name ?? 'Soporte') }}
                             </span>
-                            <flux:badge size="sm" :color="$roleBadgeColor">{{ $roleLabel }}</flux:badge>
+                            @unless ($isRequester)
+                                <flux:badge size="sm" color="emerald">Soporte</flux:badge>
+                            @endunless
                             <span class="text-zinc-300">·</span>
-                            <span>{{ $comment->created_at->diffForHumans() }}</span>
+                            <span title="{{ $comment->created_at->format('d/m/Y H:i') }}">{{ $comment->created_at->diffForHumans() }}</span>
                         </div>
-                        <div class="ticket-msg rounded-xl border px-4 py-3 text-sm text-zinc-800 shadow-sm dark:text-zinc-100 {{ $bubbleClasses }}">
-                            {!! str($comment->body)->markdown()->toHtmlString() !!}
+                        <div @class([
+                            'ticket-msg w-full rounded-2xl border px-4 py-3 text-sm text-zinc-800 shadow-sm dark:text-zinc-100',
+                            'rounded-tr-sm border-sky-100 bg-sky-50/80 dark:border-sky-900/50 dark:bg-sky-950/40' => $isRequester,
+                            'rounded-tl-sm border-emerald-100 bg-emerald-50/80 dark:border-emerald-900/50 dark:bg-emerald-950/40' => ! $isRequester,
+                        ])>
+                            {!! \App\Services\MarkdownRenderer::safe($comment->body) !!}
+
+                            @if ($commentAttachments->isNotEmpty())
+                                <x-attachment-viewer :files="$commentAttachments" compact class="mt-3" />
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -290,6 +312,13 @@
         <div class="mt-8 rounded-xl border border-dashed border-zinc-300 py-6 text-center dark:border-zinc-600">
             <flux:icon name="lock-closed" class="mx-auto mb-2 size-6 text-zinc-400" />
             <flux:text size="sm">Este ticket está <strong>{{ $ticket->status->getLabel() }}</strong> — no se pueden agregar comentarios.</flux:text>
+            @if ($ticket->status === \App\Enums\TicketStatus::Resuelto)
+                @php($autoCloseDays = (int) config('tickets.auto_close_days'))
+                <flux:text size="sm" class="mt-1">
+                    Se cerrará automáticamente {{ $autoCloseDays === 1 ? '1 día' : "{$autoCloseDays} días" }} después de resuelto y te enviaremos una encuesta corta.
+                    Si el problema continúa, crea un ticket nuevo e indica el número <strong>{{ $ticket->number }}</strong>.
+                </flux:text>
+            @endif
         </div>
     @endif
 </div>

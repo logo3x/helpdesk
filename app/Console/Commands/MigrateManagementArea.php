@@ -163,7 +163,7 @@ class MigrateManagementArea extends Command
 
         if ($dryRun) {
             $this->newLine();
-            $this->comment('DRY RUN — no se modificó nada. Corré sin --dry-run para aplicar.');
+            $this->comment('DRY RUN — no se modificó nada. Ejecuta sin --dry-run para aplicar.');
 
             return self::SUCCESS;
         }

@@ -27,6 +27,8 @@ class SatisfactionSurveyNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $surveyUrl = url("/portal/survey/{$this->survey->token}");
+        $days = (int) config('tickets.csat_auto_positive_days');
+        $daysLabel = $days === 1 ? '1 día' : "{$days} días";
 
         return (new MailMessage)
             ->subject("[{$this->ticket->number}] ¿Cómo fue tu experiencia?")
@@ -34,6 +36,7 @@ class SatisfactionSurveyNotification extends Notification implements ShouldQueue
             ->line("Tu ticket **{$this->ticket->number}** — {$this->ticket->subject} ha sido cerrado.")
             ->line('Nos gustaría saber qué tan satisfecho quedaste con la atención recibida.')
             ->action('Calificar atención', $surveyUrl)
+            ->line("Si no respondes en {$daysLabel}, registraremos la atención como satisfactoria (5 estrellas).")
             ->line('Tu opinión nos ayuda a mejorar. ¡Gracias!');
     }
 

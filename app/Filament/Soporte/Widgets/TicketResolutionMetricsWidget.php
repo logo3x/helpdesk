@@ -2,6 +2,9 @@
 
 namespace App\Filament\Soporte\Widgets;
 
+use App\Enums\TicketStatus;
+use App\Filament\Concerns\HasHelpLabels;
+use App\Filament\Support\SlaDefinitions;
 use App\Models\Ticket;
 use App\Services\SlaService;
 use Filament\Widgets\StatsOverviewWidget;
@@ -21,11 +24,16 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  *  4. % tickets resueltos en SLA   → porcentaje de cumplimiento del objetivo
  *     de resolution_due_at sobre el universo de tickets resueltos.
  *
+ * Los textos de ayuda ("?") salen de SlaDefinitions, igual que en la ficha
+ * del ticket, y los tiempos se formatean con SlaService::formatMinutes.
+ *
  * Solo cuenta tickets `resuelto` o `cerrado` del depto del usuario (o todos
  * si es super_admin/admin/supervisor cross-depto).
  */
 class TicketResolutionMetricsWidget extends StatsOverviewWidget
 {
+    use HasHelpLabels;
+
     protected ?string $heading = 'Tiempos de resolución (últimos 30 días)';
 
     protected function getStats(): array
@@ -56,55 +64,30 @@ class TicketResolutionMetricsWidget extends StatsOverviewWidget
 
         $slaCompliancePct = $this->slaCompliance($tickets);
 
+        $pending = TicketStatus::PendienteCliente->getLabel();
+
         return [
-            Stat::make('Tiempo de solución (prom.)', $this->formatMinutes((int) round($solutionMinutes->avg())))
-                ->description('Trabajo efectivo del agente (sin pausa)')
+            Stat::make(static::helpLabel('Tiempo de solución (prom.)', SlaDefinitions::help('solution_time')), SlaService::formatMinutes((int) round($solutionMinutes->avg())))
+                ->description('Trabajo efectivo del agente (sin pausas)')
                 ->descriptionIcon('heroicon-m-wrench-screwdriver')
-                ->color('success')
-                ->extraAttributes([
-                    'title' => 'Minutos hábiles (L-V 08:00-18:00) entre la creación '
-                        .'y la resolución, descontando el tiempo en pendiente_cliente. '
-                        .'Es el trabajo real del agente.',
-                ]),
+                ->color('success'),
 
-            Stat::make('Tiempo pausado (prom.)', $this->formatMinutes((int) round($pausedMinutes->avg())))
-                ->description('Espera al cliente en estado pendiente_cliente')
+            Stat::make(static::helpLabel('Tiempo pausado (prom.)', SlaDefinitions::help('paused')), SlaService::formatMinutes((int) round($pausedMinutes->avg())))
+                ->description("Espera al cliente en {$pending}")
                 ->descriptionIcon('heroicon-m-pause-circle')
-                ->color($pausedMinutes->avg() > 240 ? 'warning' : 'info')
-                ->extraAttributes([
-                    'title' => 'Minutos hábiles acumulados mientras el ticket estuvo en '
-                        .'pendiente_cliente. El reloj de SLA se detiene en ese estado '
-                        .'porque la demora no es responsabilidad del agente.',
-                ]),
+                ->color($pausedMinutes->avg() > 240 ? 'warning' : 'info'),
 
-            Stat::make('Resuelto → Cerrado (prom.)', $resolvedToClosedHours->isEmpty()
+            Stat::make(static::helpLabel('Resuelto → Cerrado (prom.)', SlaDefinitions::help('resolved_to_closed')), $resolvedToClosedHours->isEmpty()
                 ? '—'
                 : number_format($resolvedToClosedHours->avg(), 1).' h')
                 ->description('Cuánto tarda el cliente en confirmar')
                 ->descriptionIcon('heroicon-m-check-badge')
-                ->color('gray')
-                ->extraAttributes([
-                    'title' => 'Tiempo calendario (no hábil) entre que se marca el '
-                        .'ticket como resuelto y se cierra. Mide cuánto tarda el '
-                        .'solicitante en confirmar la solución o cuánto tardamos en '
-                        .'auto-cerrarlo por timeout.',
-                ]),
+                ->color('gray'),
 
-            Stat::make('% en SLA', $slaCompliancePct === null ? '—' : $slaCompliancePct.'%')
-                ->description('Resueltos antes del resolution_due_at')
+            Stat::make(static::helpLabel('% en SLA', SlaDefinitions::help('sla_compliance')), $slaCompliancePct === null ? '—' : $slaCompliancePct.'%')
+                ->description('Resueltos dentro del plazo de resolución')
                 ->descriptionIcon('heroicon-m-shield-check')
-                ->color(match (true) {
-                    $slaCompliancePct === null => 'gray',
-                    $slaCompliancePct >= 90 => 'success',
-                    $slaCompliancePct >= 75 => 'warning',
-                    default => 'danger',
-                })
-                ->extraAttributes([
-                    'title' => 'Porcentaje de tickets cuyo resolved_at es menor o '
-                        .'igual al resolution_due_at (objetivo de SLA calculado al '
-                        .'crear el ticket en minutos hábiles). Verde ≥90%, '
-                        .'amarillo ≥75%, rojo <75%.',
-                ]),
+                ->color(SlaDefinitions::complianceColor($slaCompliancePct)),
         ];
     }
 
@@ -134,24 +117,5 @@ class TicketResolutionMetricsWidget extends StatsOverviewWidget
         $met = $withSla->filter(fn (Ticket $t) => $t->resolved_at->lte($t->resolution_due_at))->count();
 
         return (int) round(($met / $withSla->count()) * 100);
-    }
-
-    protected function formatMinutes(int $minutes): string
-    {
-        if ($minutes < 60) {
-            return $minutes.' min';
-        }
-
-        $hours = intdiv($minutes, 60);
-        $mins = $minutes % 60;
-
-        if ($hours < 24) {
-            return $mins > 0 ? "{$hours}h {$mins}m" : "{$hours}h";
-        }
-
-        $days = intdiv($hours, 8); // días hábiles (jornada de 8h)
-        $remHours = $hours % 8;
-
-        return $remHours > 0 ? "{$days}d {$remHours}h" : "{$days}d";
     }
 }

@@ -29,7 +29,7 @@ class AutoCloseTicketsJob implements ShouldBeUnique, ShouldQueue
         $system = app(KbSuggestionService::class)->systemUser();
         $template = (string) config('tickets.awaiting_customer.messages.resolved_closed');
 
-        $days = (int) config('tickets.auto_close_days', 7);
+        $days = (int) config('tickets.auto_close_days', 2);
 
         $tickets = Ticket::query()
             ->where('status', TicketStatus::Resuelto)

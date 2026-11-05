@@ -15,9 +15,10 @@ use Illuminate\Notifications\Notification;
  * Se dispara cuando un agente marca un ticket como Resuelto.
  *
  * Va al solicitante (notifiable) con un mensaje cortés explicando
- * que su problema se considera resuelto. Si no fue así, le invitamos
- * a reabrir el ticket desde el portal — el botón con la URL de
- * detalle queda incluido en el email/notificación.
+ * que su problema se considera resuelto y que el ticket se cerrará solo
+ * a los config('tickets.auto_close_days') días. El portal no permite
+ * reabrir, así que si el problema sigue se le pide crear un ticket nuevo
+ * con el número anterior.
  */
 class TicketResolvedNotification extends Notification implements ShouldQueue
 {
@@ -41,7 +42,8 @@ class TicketResolvedNotification extends Notification implements ShouldQueue
             ->greeting("Hola {$notifiable->name},")
             ->line('Tu ticket fue marcado como **resuelto** por el equipo de soporte:')
             ->line("**{$this->ticket->number}** — {$this->ticket->subject}")
-            ->line('Si la solución no resolvió tu problema, puedes reabrir el ticket desde el portal.')
+            ->line("Si no hay novedades, el ticket se cerrará automáticamente {$this->autoCloseLabel()} después y te enviaremos una encuesta corta.")
+            ->line("Si la solución no resolvió tu problema, crea un ticket nuevo desde el portal e indica el número **{$this->ticket->number}**.")
             ->action('Ver ticket', $this->ticketUrlFor($notifiable, $this->ticket))
             ->line('Gracias por usar el helpdesk.');
     }
@@ -51,7 +53,7 @@ class TicketResolvedNotification extends Notification implements ShouldQueue
     {
         return FilamentNotification::make()
             ->title("Ticket {$this->ticket->number} resuelto")
-            ->body("{$this->ticket->subject} — si no quedó resuelto, puedes reabrirlo desde el portal.")
+            ->body("{$this->ticket->subject} — se cerrará automáticamente {$this->autoCloseLabel()} después. Si no quedó resuelto, crea un ticket nuevo con este número.")
             ->icon('heroicon-o-check-circle')
             ->iconColor('success')
             ->actions([
@@ -61,5 +63,15 @@ class TicketResolvedNotification extends Notification implements ShouldQueue
                     ->markAsRead(),
             ])
             ->getDatabaseMessage();
+    }
+
+    /**
+     * Plazo del cierre automático de tickets resueltos ("2 días", "1 día").
+     */
+    protected function autoCloseLabel(): string
+    {
+        $days = (int) config('tickets.auto_close_days');
+
+        return $days === 1 ? '1 día' : "{$days} días";
     }
 }

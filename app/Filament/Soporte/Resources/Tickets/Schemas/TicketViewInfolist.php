@@ -2,6 +2,8 @@
 
 namespace App\Filament\Soporte\Resources\Tickets\Schemas;
 
+use App\Filament\Concerns\HasHelpLabels;
+use App\Filament\Support\SlaDefinitions;
 use App\Models\Ticket;
 use App\Services\SlaService;
 use Filament\Infolists\Components\IconEntry;
@@ -10,7 +12,6 @@ use Filament\Infolists\Components\ViewEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\HtmlString;
 
 /**
  * Vista del ticket en UNA columna (filas a todo el ancho), para leer
@@ -20,13 +21,16 @@ use Illuminate\Support\HtmlString;
  *   2. Descripción del problema  — el reporte original.
  *   3. Conversación              — estilo chat, con notas internas y eventos.
  *   4. Adjuntos                  — solo si hay.
- *   5. SLA y tiempos             (colapsado) — métricas con tooltip.
+ *   5. SLA y tiempos             (colapsado) — métricas con "?" de ayuda
+ *                                   (textos en SlaDefinitions).
  *   6. Clasificación técnica     (colapsado) — impacto/urgencia/estado.
  *
  * Se usa en la página del ticket y en el modal "Ver" de la tabla.
  */
 class TicketViewInfolist
 {
+    use HasHelpLabels;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -127,55 +131,55 @@ class TicketViewInfolist
                     Grid::make(['default' => 1, 'sm' => 2, 'lg' => 3])
                         ->schema([
                             TextEntry::make('created_at')
-                                ->label(self::labelWithTip('Creado', 'Fecha y hora en que el solicitante creó el ticket. Origen del reloj de SLA.'))
+                                ->label(static::helpLabel('Creado', SlaDefinitions::help('created')))
                                 ->dateTime('d M Y H:i')
                                 ->since(),
 
                             TextEntry::make('first_responded_at')
-                                ->label(self::labelWithTip('Primera respuesta', 'Momento en que un agente respondió o tomó el ticket por primera vez. Detiene el reloj de "primera respuesta" del SLA.'))
+                                ->label(static::helpLabel('Primera respuesta', SlaDefinitions::help('first_response')))
                                 ->dateTime('d M Y H:i')
                                 ->placeholder('Pendiente')
                                 ->color(fn (Ticket $record) => $record->first_responded_at ? 'success' : 'warning'),
 
                             TextEntry::make('first_response_due_at')
-                                ->label(self::labelWithTip('Vence primera respuesta', 'Objetivo de SLA para la primera respuesta. Calculado al crear el ticket usando minutos hábiles (L-V 08:00-18:00).'))
+                                ->label(static::helpLabel('Vence primera respuesta', SlaDefinitions::help('first_response_due')))
                                 ->dateTime('d M Y H:i')
                                 ->placeholder('—')
                                 ->color(fn (Ticket $record) => $record->first_response_breached ? 'danger' : 'gray'),
 
                             TextEntry::make('resolution_due_at')
-                                ->label(self::labelWithTip('Vence resolución', 'Objetivo de SLA para resolver. Si resolved_at lo supera, el ticket entra en "fuera de SLA".'))
+                                ->label(static::helpLabel('Vence resolución', SlaDefinitions::help('resolution_due')))
                                 ->dateTime('d M Y H:i')
                                 ->placeholder('—')
                                 ->color(fn (Ticket $record) => $record->resolution_breached ? 'danger' : 'gray'),
 
                             TextEntry::make('resolved_at')
-                                ->label(self::labelWithTip('Resuelto', 'Momento en que el agente marcó el ticket como resuelto. A partir de aquí cuenta el tiempo Resuelto→Cerrado.'))
+                                ->label(static::helpLabel('Resuelto', SlaDefinitions::help('resolved')))
                                 ->dateTime('d M Y H:i')
                                 ->placeholder('—'),
 
                             TextEntry::make('closed_at')
-                                ->label(self::labelWithTip('Cerrado', 'Confirmación del solicitante o auto-cierre del job programado tras X días sin respuesta.'))
+                                ->label(static::helpLabel('Cerrado', SlaDefinitions::help('closed')))
                                 ->dateTime('d M Y H:i')
                                 ->placeholder('—'),
 
                             TextEntry::make('paused_minutes')
-                                ->label(self::labelWithTip('Tiempo pausado', 'Minutos hábiles acumulados mientras el ticket estuvo en pendiente_cliente. El SLA se detiene en ese estado porque la demora no es responsabilidad del agente.'))
+                                ->label(static::helpLabel('Tiempo pausado', SlaDefinitions::help('paused')))
                                 ->state(fn (Ticket $record) => self::formatPausedMinutes($record))
                                 ->placeholder('0 min'),
 
                             TextEntry::make('solution_time')
-                                ->label(self::labelWithTip('Tiempo de solución', 'Trabajo efectivo del agente: minutos hábiles entre creación y resolución, descontando el tiempo pausado. Termina al marcar Resuelto: la espera hasta el cierre no cuenta.'))
+                                ->label(static::helpLabel('Tiempo de solución', SlaDefinitions::help('solution_time')))
                                 ->state(fn (Ticket $record) => self::computeSolutionTime($record))
                                 ->placeholder('—'),
 
                             TextEntry::make('resolved_to_closed')
-                                ->label(self::labelWithTip('Resuelto → Cerrado', 'Horas calendario entre Resuelto y Cerrado: lo que tardó el cliente en confirmar, o la espera hasta el cierre automático. NO suma al tiempo de solución ni al SLA (el SLA se detiene al resolver).'))
+                                ->label(static::helpLabel('Resuelto → Cerrado', SlaDefinitions::help('resolved_to_closed')))
                                 ->state(fn (Ticket $record) => self::computeResolvedToClosed($record))
                                 ->placeholder('—'),
 
                             IconEntry::make('first_response_breached')
-                                ->label(self::labelWithTip('¿SLA primera respuesta?', 'Rojo = SLA de primera respuesta vencido. Verde = cumplido o aún dentro de plazo.'))
+                                ->label(static::helpLabel('¿SLA primera respuesta?', SlaDefinitions::help('first_response_breached')))
                                 ->boolean()
                                 ->trueIcon('heroicon-o-exclamation-triangle')
                                 ->trueColor('danger')
@@ -183,7 +187,7 @@ class TicketViewInfolist
                                 ->falseColor('success'),
 
                             IconEntry::make('resolution_breached')
-                                ->label(self::labelWithTip('¿SLA resolución?', 'Rojo = SLA de resolución vencido. Verde = cumplido o aún dentro de plazo.'))
+                                ->label(static::helpLabel('¿SLA resolución?', SlaDefinitions::help('resolution_breached')))
                                 ->boolean()
                                 ->trueIcon('heroicon-o-exclamation-triangle')
                                 ->trueColor('danger')
@@ -201,19 +205,19 @@ class TicketViewInfolist
                     Grid::make(['default' => 1, 'sm' => 3])
                         ->schema([
                             TextEntry::make('impact')
-                                ->label(self::labelWithTip('Impacto', 'Alcance del problema: cuántos usuarios o servicios afecta.'))
+                                ->label(static::helpLabel('Impacto', SlaDefinitions::help('impact')))
                                 ->badge()
                                 ->formatStateUsing(fn ($state) => $state?->getLabel())
                                 ->color('gray'),
 
                             TextEntry::make('urgency')
-                                ->label(self::labelWithTip('Urgencia', 'Qué tan rápido debe resolverse desde la perspectiva del solicitante.'))
+                                ->label(static::helpLabel('Urgencia', SlaDefinitions::help('urgency')))
                                 ->badge()
                                 ->formatStateUsing(fn ($state) => $state?->getLabel())
                                 ->color('gray'),
 
                             TextEntry::make('status')
-                                ->label(self::labelWithTip('Estado', 'Etapa actual del ticket. En pendiente_cliente el reloj de SLA queda pausado.'))
+                                ->label(static::helpLabel('Estado', SlaDefinitions::help('status')))
                                 ->badge()
                                 ->formatStateUsing(fn ($state) => $state?->getLabel())
                                 ->color(fn ($state) => match ($state?->value) {
@@ -231,53 +235,6 @@ class TicketViewInfolist
         ];
     }
 
-    /**
-     * Renderiza el label con un signo de interrogación inline (a la
-     * derecha del texto) que muestra la definición de la métrica al
-     * hacer hover usando el tooltip de Filament/Alpine (x-tooltip).
-     *
-     * Por qué `x-tooltip` y no `title=`:
-     *   - title nativo del browser es lento (delay 1-2s), no estilable,
-     *     fuente fea, no respeta dark mode.
-     *   - Filament ya incluye Alpine + el plugin x-tooltip (Tippy.js),
-     *     que renderiza una card con bordes redondeados, sombra, fuente
-     *     consistente y soporta dark mode automático.
-     *
-     * Se cae a `title` como fallback por accesibilidad (lectores de
-     * pantalla y dispositivos sin Alpine cargado).
-     *
-     * Usa span con texto "?" — el SVG inline lo estiraba el CSS global
-     * de Filament.
-     */
-    protected static function labelWithTip(string $label, string $tooltip): HtmlString
-    {
-        $jsonTooltip = e(json_encode([
-            'content' => $tooltip,
-            'theme' => 'dark',
-            'placement' => 'top',
-            'maxWidth' => 320,
-        ]));
-
-        return new HtmlString(sprintf(
-            '<span style="display:inline-flex;align-items:center;gap:0.375rem;">'
-            .'%s'
-            .'<span x-data x-tooltip=\'%s\' title="%s" aria-label="%s" '
-            .'style="display:inline-flex;align-items:center;justify-content:center;'
-            .'width:0.95rem;height:0.95rem;border-radius:9999px;'
-            .'background-color:rgb(228 228 231);color:rgb(82 82 91);'
-            .'font-size:0.65rem;font-weight:700;line-height:1;cursor:help;'
-            .'transition:background-color 0.15s,color 0.15s;" '
-            .'onmouseover="this.style.backgroundColor=\'rgb(63 63 70)\';this.style.color=\'rgb(244 244 245)\';" '
-            .'onmouseout="this.style.backgroundColor=\'rgb(228 228 231)\';this.style.color=\'rgb(82 82 91)\';"'
-            .'>?</span>'
-            .'</span>',
-            e($label),
-            $jsonTooltip,
-            e($tooltip),
-            e($tooltip),
-        ));
-    }
-
     protected static function formatPausedMinutes(Ticket $ticket): string
     {
         $minutes = (int) $ticket->paused_minutes;
@@ -287,18 +244,7 @@ class TicketViewInfolist
             $minutes += $live;
         }
 
-        if ($minutes === 0) {
-            return '0 min';
-        }
-
-        if ($minutes < 60) {
-            return $minutes.' min';
-        }
-
-        $h = intdiv($minutes, 60);
-        $m = $minutes % 60;
-
-        return $m > 0 ? "{$h}h {$m}m" : "{$h}h";
+        return SlaService::formatMinutes($minutes);
     }
 
     protected static function computeSolutionTime(Ticket $ticket): ?string
@@ -310,20 +256,7 @@ class TicketViewInfolist
         $total = app(SlaService::class)
             ->businessMinutesBetween($ticket->created_at, $ticket->resolved_at);
 
-        $effective = max(0, $total - (int) $ticket->paused_minutes);
-
-        if ($effective === 0) {
-            return '0 min';
-        }
-
-        if ($effective < 60) {
-            return $effective.' min';
-        }
-
-        $h = intdiv($effective, 60);
-        $m = $effective % 60;
-
-        return $m > 0 ? "{$h}h {$m}m" : "{$h}h";
+        return SlaService::formatMinutes($total - (int) $ticket->paused_minutes);
     }
 
     protected static function computeResolvedToClosed(Ticket $ticket): ?string

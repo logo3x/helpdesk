@@ -1,4 +1,4 @@
-<x-layouts::auth title="Cambiá tu contraseña temporal">
+<x-layouts::auth title="Cambia tu contraseña temporal">
     <div class="flex flex-col gap-6">
         <div class="text-center">
             <flux:heading size="lg" class="mb-1">Bienvenido al Helpdesk</flux:heading>
@@ -38,7 +38,7 @@
 
             <flux:input
                 name="password_confirmation"
-                label="Confirmá la nueva contraseña"
+                label="Confirma la nueva contraseña"
                 type="password"
                 required
                 autocomplete="new-password"

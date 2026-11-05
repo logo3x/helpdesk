@@ -330,6 +330,29 @@
                 <div class="asl-body" id="asl-body">
 
                     @php
+                    $slaTimes = $slaTimes ?? [];
+                    $awaitingCloseHours = (int) config('tickets.awaiting_customer.close_hours', 10);
+                    $priorityScopes = [
+                        'critica' => 'Aplica a incidentes que impiden completamente la operación de uno o más procesos críticos del negocio.',
+                        'alta' => 'Aplica a fallas que afectan parcialmente la operación con impacto significativo en la productividad.',
+                        'media' => 'Aplica a solicitudes que afectan al usuario pero tienen solución alternativa disponible.',
+                        'baja' => 'Aplica a consultas, mejoras o solicitudes sin impacto inmediato en la operación.',
+                        'planificada' => 'Aplica a trabajos programados con anticipación, como instalaciones, cambios o mantenimientos planeados.',
+                    ];
+                    $slaSummary = collect($slaTimes)
+                        ->map(fn (array $time): string => "{$time['label']} ({$time['first_response']} / {$time['resolution']})")
+                        ->values()
+                        ->all();
+                    $slaSummaryText = count($slaSummary) > 1
+                        ? implode(', ', array_slice($slaSummary, 0, -1)).' y '.end($slaSummary)
+                        : implode('', $slaSummary);
+                    $slaDetails = collect($slaTimes)
+                        ->map(fn (array $time, string $priority): array => [
+                            'h' => "Prioridad {$time['label']}",
+                            'p' => "Primera respuesta: {$time['first_response']} hábiles. Solución: {$time['resolution']} hábiles. ".($priorityScopes[$priority] ?? ''),
+                        ])
+                        ->values()
+                        ->all();
                     $clauses = [
                         [
                             'id'    => 'c1',
@@ -352,14 +375,14 @@
                         [
                             'id'    => 'c3',
                             'title' => 'Acuerdo de Nivel de Servicio (SLA)',
-                            'text'  => 'Entiendo y acepto los tiempos de respuesta y atención definidos según la prioridad del ticket: Crítica (2 h), Alta (8 h), Media (24 h) y Baja (72 h hábiles).',
+                            'text'  => $slaSummaryText !== ''
+                                ? "Entiendo y acepto los tiempos de primera respuesta y solución definidos según la prioridad del ticket, en horas hábiles: {$slaSummaryText}."
+                                : 'Entiendo y acepto los tiempos de primera respuesta y solución definidos según la prioridad del ticket, en horas hábiles.',
                             'full'  => [
-                                ['h' => 'Prioridad Crítica', 'p' => 'Tiempo de primera respuesta: 2 horas hábiles. Aplica a incidentes que impiden completamente la operación de uno o más procesos críticos del negocio.'],
-                                ['h' => 'Prioridad Alta', 'p' => 'Tiempo de primera respuesta: 8 horas hábiles. Aplica a fallas que afectan parcialmente la operación con impacto significativo en la productividad.'],
-                                ['h' => 'Prioridad Media', 'p' => 'Tiempo de primera respuesta: 24 horas hábiles. Aplica a solicitudes que afectan al usuario pero tienen solución alternativa disponible.'],
-                                ['h' => 'Prioridad Baja', 'p' => 'Tiempo de primera respuesta: 72 horas hábiles. Aplica a consultas, mejoras o solicitudes sin impacto inmediato en la operación.'],
-                                ['h' => 'Disponibilidad del servicio', 'p' => 'El equipo de soporte atiende en horario laboral de lunes a viernes. Los tickets fuera de horario se atienden al siguiente día hábil.'],
-                                ['h' => 'Escalonamiento', 'p' => 'Si un ticket no es resuelto en el tiempo acordado, se escala automáticamente al supervisor del área de soporte para gestión prioritaria.'],
+                                ...$slaDetails,
+                                ['h' => 'Disponibilidad del servicio', 'p' => 'El equipo de soporte atiende de lunes a viernes de 08:00 a 18:00. Los tiempos del SLA solo corren en ese horario: los tickets creados fuera de horario se atienden al siguiente día hábil.'],
+                                ['h' => 'Pausa por respuesta del solicitante', 'p' => "Mientras el ticket espera tu respuesta (Pendiente cliente), el SLA se pausa. Si no respondes, te enviamos recordatorios y el ticket se cierra a las {$awaitingCloseHours} horas hábiles."],
+                                ['h' => 'Escalamiento', 'p' => 'El sistema vigila cada ticket en horario hábil y registra alertas al 70 % y al 90 % del plazo y al vencerse, para que el supervisor del área de soporte le dé gestión prioritaria.'],
                             ],
                         ],
                         [

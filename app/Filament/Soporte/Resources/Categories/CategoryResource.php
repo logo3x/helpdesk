@@ -2,11 +2,11 @@
 
 namespace App\Filament\Soporte\Resources\Categories;
 
+use App\Filament\Resources\Categories\Schemas\CategoryForm;
 use App\Filament\Resources\Categories\Tables\CategoriesTable;
 use App\Filament\Soporte\Resources\Categories\Pages\CreateCategory;
 use App\Filament\Soporte\Resources\Categories\Pages\EditCategory;
 use App\Filament\Soporte\Resources\Categories\Pages\ListCategories;
-use App\Filament\Soporte\Resources\Categories\Schemas\CategoryForm;
 use App\Models\Category;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -57,9 +57,15 @@ class CategoryResource extends Resource
         return static::canAccess();
     }
 
+    /**
+     * Mismo form que /admin (categoría padre, selector de ícono...). El
+     * supervisor no elige departamento: queda fijo en el suyo.
+     */
     public static function form(Schema $schema): Schema
     {
-        return CategoryForm::configure($schema);
+        $isAdmin = auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
+
+        return CategoryForm::configure($schema, lockDepartment: ! $isAdmin);
     }
 
     public static function table(Table $table): Table

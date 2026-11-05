@@ -52,6 +52,6 @@ class ForcePasswordChange
         }
 
         return redirect()->route('password.first-change')
-            ->with('status', 'Por seguridad, cambiá tu contraseña temporal antes de continuar.');
+            ->with('status', 'Por seguridad, cambia tu contraseña temporal antes de continuar.');
     }
 }

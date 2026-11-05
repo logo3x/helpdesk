@@ -143,7 +143,7 @@ class CleanupImportedEmails extends Command
 
         if ($dryRun) {
             $this->newLine();
-            $this->comment('DRY RUN — no se modificó nada. Corré sin --dry-run para aplicar.');
+            $this->comment('DRY RUN — no se modificó nada. Ejecuta sin --dry-run para aplicar.');
 
             return self::SUCCESS;
         }
@@ -165,7 +165,7 @@ class CleanupImportedEmails extends Command
 
         $this->newLine();
         $this->info("✓ {$updated} usuarios preparados para enlace por Azure.");
-        $this->line('Al entrar por el botón azul, se matchean por cédula (Sprint 3) y quedan con su email corporativo real.');
+        $this->line('Al entrar por el botón azul, se emparejan por cédula (Sprint 3) y quedan con su email corporativo real.');
 
         return self::SUCCESS;
     }

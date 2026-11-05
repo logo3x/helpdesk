@@ -2,6 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\HasHelpLabels;
+use App\Filament\Support\SlaDefinitions;
 use App\Models\Category;
 use App\Models\Ticket;
 use Filament\Tables\Columns\TextColumn;
@@ -10,7 +12,7 @@ use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 
 /**
- * SLA compliance discriminado por categoría y departamento — últimos 30 días.
+ * Cumplimiento del SLA discriminado por categoría y departamento — últimos 30 días.
  *
  * El reporte SLA global vive en /admin/sla-report. Este widget lo desgaja
  * en el dashboard: ¿qué categoría de qué departamento está incumpliendo?
@@ -19,6 +21,8 @@ use Illuminate\Contracts\Database\Eloquent\Builder;
  */
 class SlaComplianceByCategoryWidget extends BaseWidget
 {
+    use HasHelpLabels;
+
     protected int|string|array $columnSpan = 'full';
 
     protected static ?int $sort = 50;
@@ -27,7 +31,7 @@ class SlaComplianceByCategoryWidget extends BaseWidget
     {
         return $table
             ->query(fn () => $this->buildQuery())
-            ->heading('SLA compliance por categoría (últimos 30 días)')
+            ->heading('Cumplimiento del SLA por categoría (últimos 30 días)')
             ->description('Porcentaje de tickets resueltos dentro del SLA, agrupado por departamento y categoría.')
             ->paginated([10, 25, 50])
             ->defaultSort('compliance_pct', 'asc')
@@ -45,21 +49,16 @@ class SlaComplianceByCategoryWidget extends BaseWidget
                     ->alignEnd()
                     ->sortable(),
                 TextColumn::make('breached_count')
-                    ->label('Incumplidos')
+                    ->label(static::helpLabel('Incumplidos', 'Tickets resueltos después del plazo de resolución del SLA.'))
                     ->alignEnd()
                     ->color(fn ($state) => (int) $state > 0 ? 'danger' : 'gray')
                     ->sortable(),
                 TextColumn::make('compliance_pct')
-                    ->label('Compliance')
+                    ->label(static::helpLabel('Cumplimiento', SlaDefinitions::help('sla_compliance')))
                     ->alignEnd()
                     ->sortable()
                     ->formatStateUsing(fn ($state) => $state === null ? '—' : $state.'%')
-                    ->color(fn ($state) => match (true) {
-                        $state === null => 'gray',
-                        $state >= 90 => 'success',
-                        $state >= 70 => 'warning',
-                        default => 'danger',
-                    })
+                    ->color(fn ($state) => SlaDefinitions::complianceColor($state === null ? null : (float) $state))
                     ->weight('bold'),
             ]);
     }

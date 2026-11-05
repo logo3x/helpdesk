@@ -28,6 +28,8 @@ class AssetMaintenanceSurveyNotification extends Notification implements ShouldQ
     {
         $surveyUrl = url("/portal/maintenance-survey/{$this->survey->token}");
         $assetLabel = $this->asset->hostname ?? $this->asset->asset_tag ?? "Activo #{$this->asset->id}";
+        $days = (int) config('tickets.maintenance_csat_auto_positive_days');
+        $daysLabel = $days === 1 ? '1 día' : "{$days} días";
 
         return (new MailMessage)
             ->subject("Encuesta de mantenimiento — {$assetLabel}")
@@ -35,7 +37,7 @@ class AssetMaintenanceSurveyNotification extends Notification implements ShouldQ
             ->line("Se registró un mantenimiento en el equipo **{$assetLabel}**.")
             ->line('Por favor califica la atención recibida para ayudarnos a mejorar.')
             ->action('Responder encuesta', $surveyUrl)
-            ->line('Si no respondes en 1 día, se registrará automáticamente la calificación máxima.');
+            ->line("Si no respondes en {$daysLabel}, se registrará automáticamente la calificación máxima.");
     }
 
     /** @return array<string, mixed> */

@@ -19,99 +19,110 @@ use STS\FilamentImpersonate\Actions\Impersonate;
 
 class UsersTable
 {
+    /**
+     * Columnas compartidas con la tabla de usuarios de /soporte, para que
+     * los dos paneles muestren los mismos datos y tooltips.
+     *
+     * @return array<int, TextColumn|IconColumn>
+     */
+    public static function columns(): array
+    {
+        return [
+            TextColumn::make('name')
+                ->label('Nombre')
+                ->searchable()
+                ->sortable(),
+
+            TextColumn::make('email')
+                ->label('Correo')
+                ->searchable()
+                ->copyable(),
+
+            TextColumn::make('identification')
+                ->label('Cédula')
+                ->searchable()
+                ->toggleable(),
+
+            TextColumn::make('roles.name')
+                ->label('Rol')
+                ->badge()
+                ->color(fn (string $state): string => match ($state) {
+                    'super_admin' => 'danger',
+                    'admin' => 'warning',
+                    'supervisor_soporte' => 'info',
+                    'agente_soporte' => 'success',
+                    'tecnico_campo' => 'gray',
+                    'editor_kb' => 'primary',
+                    'usuario_final' => 'gray',
+                    default => 'gray',
+                }),
+
+            TextColumn::make('department.name')
+                ->label('Departamento')
+                ->sortable()
+                ->placeholder('—'),
+
+            IconColumn::make('kactus_status')
+                ->label('Kactus')
+                ->getStateUsing(fn (User $r) => match (true) {
+                    $r->employment_status === 'terminated' => 'terminated',
+                    $r->kactus_employee_id !== null => 'synced',
+                    default => 'unlinked',
+                })
+                ->icon(fn (string $state) => match ($state) {
+                    'synced' => 'heroicon-o-check-circle',
+                    'terminated' => 'heroicon-o-x-circle',
+                    default => 'heroicon-o-minus-circle',
+                })
+                ->color(fn (string $state) => match ($state) {
+                    'synced' => 'success',
+                    'terminated' => 'danger',
+                    default => 'gray',
+                })
+                ->tooltip(fn (string $state) => match ($state) {
+                    'synced' => 'Sincronizado con Kactus',
+                    'terminated' => 'Empleado retirado en Kactus',
+                    default => 'No vinculado a Kactus',
+                }),
+
+            IconColumn::make('asl_accepted_at')
+                ->label('ASL')
+                ->getStateUsing(fn (User $r) => $r->asl_accepted_at !== null)
+                ->boolean()
+                ->trueIcon('heroicon-o-check-circle')
+                ->falseIcon('heroicon-o-clock')
+                ->trueColor('success')
+                ->falseColor('warning')
+                ->tooltip(fn (User $r) => $r->asl_accepted_at
+                    ? 'Aceptado el '.$r->asl_accepted_at->format('d/m/Y H:i')
+                    : 'Pendiente de aceptación'),
+
+            TextColumn::make('last_login_at')
+                ->label('Último acceso')
+                ->dateTime('d/m/Y H:i')
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
+
+            TextColumn::make('kactus_synced_at')
+                ->label('Sync Kactus')
+                ->dateTime('d/m/Y H:i')
+                ->since()
+                ->placeholder('Nunca')
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
+
+            TextColumn::make('created_at')
+                ->label('Creado')
+                ->dateTime('d/m/Y')
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
+        ];
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
-            ->columns([
-                TextColumn::make('name')
-                    ->label('Nombre')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('email')
-                    ->label('Correo')
-                    ->searchable()
-                    ->copyable(),
-
-                TextColumn::make('identification')
-                    ->label('Cédula')
-                    ->searchable()
-                    ->toggleable(),
-
-                TextColumn::make('roles.name')
-                    ->label('Rol')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'super_admin' => 'danger',
-                        'admin' => 'warning',
-                        'supervisor_soporte' => 'info',
-                        'agente_soporte' => 'success',
-                        'tecnico_campo' => 'gray',
-                        'editor_kb' => 'primary',
-                        'usuario_final' => 'gray',
-                        default => 'gray',
-                    }),
-
-                TextColumn::make('department.name')
-                    ->label('Departamento')
-                    ->sortable()
-                    ->placeholder('—'),
-
-                IconColumn::make('kactus_status')
-                    ->label('Kactus')
-                    ->getStateUsing(fn (User $r) => match (true) {
-                        $r->employment_status === 'terminated' => 'terminated',
-                        $r->kactus_employee_id !== null => 'synced',
-                        default => 'unlinked',
-                    })
-                    ->icon(fn (string $state) => match ($state) {
-                        'synced' => 'heroicon-o-check-circle',
-                        'terminated' => 'heroicon-o-x-circle',
-                        default => 'heroicon-o-minus-circle',
-                    })
-                    ->color(fn (string $state) => match ($state) {
-                        'synced' => 'success',
-                        'terminated' => 'danger',
-                        default => 'gray',
-                    })
-                    ->tooltip(fn (string $state) => match ($state) {
-                        'synced' => 'Sincronizado con Kactus',
-                        'terminated' => 'Empleado retirado en Kactus',
-                        default => 'No vinculado a Kactus',
-                    }),
-
-                IconColumn::make('asl_accepted_at')
-                    ->label('ASL')
-                    ->getStateUsing(fn (User $r) => $r->asl_accepted_at !== null)
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-clock')
-                    ->trueColor('success')
-                    ->falseColor('warning')
-                    ->tooltip(fn (User $r) => $r->asl_accepted_at
-                        ? 'Aceptado el '.$r->asl_accepted_at->format('d/m/Y H:i')
-                        : 'Pendiente de aceptación'),
-
-                TextColumn::make('last_login_at')
-                    ->label('Último acceso')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('kactus_synced_at')
-                    ->label('Sync Kactus')
-                    ->dateTime('d/m/Y H:i')
-                    ->since()
-                    ->placeholder('Nunca')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('created_at')
-                    ->label('Creado')
-                    ->dateTime('d/m/Y')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
+            ->columns(static::columns())
             ->filters([
                 SelectFilter::make('roles')
                     ->label('Rol')

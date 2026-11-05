@@ -66,6 +66,6 @@ class ForcePasswordChangeController extends Controller
             default => '/portal/chatbot',
         };
 
-        return redirect($target)->with('status', 'Contraseña actualizada. Recordá usarla en tus próximos inicios de sesión.');
+        return redirect($target)->with('status', 'Contraseña actualizada. Recuerda usarla en tus próximos inicios de sesión.');
     }
 }

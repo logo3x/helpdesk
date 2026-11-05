@@ -178,7 +178,7 @@ class AssetForm
                                     ->options(ManagementArea::options())
                                     ->native(false)
                                     ->searchable()
-                                    ->placeholder('Seleccioná una gerencia'),
+                                    ->placeholder('Selecciona una gerencia'),
 
                                 TextInput::make('field')
                                     ->label('Campo')

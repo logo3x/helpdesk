@@ -33,6 +33,20 @@ class TicketPolicy
         return $this->canAccessTicket($authUser, $ticket);
     }
 
+    /**
+     * Ver o descargar los adjuntos del ticket: el solicitante siempre
+     * (desde el portal no tiene el permiso View:Ticket) y el personal
+     * de soporte con las mismas reglas que para ver el ticket.
+     */
+    public function viewAttachments(AuthUser $authUser, Ticket $ticket): bool
+    {
+        if ($ticket->requester_id === $authUser->getAuthIdentifier()) {
+            return true;
+        }
+
+        return $this->view($authUser, $ticket);
+    }
+
     public function create(AuthUser $authUser): bool
     {
         return $authUser->can('Create:Ticket');

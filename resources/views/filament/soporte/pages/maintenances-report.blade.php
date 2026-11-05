@@ -79,7 +79,7 @@
     >
         <x-slot name="heading">Filtros del informe</x-slot>
         <x-slot name="description">
-            Ajustá uno o varios. El informe y el PDF se recalculan automáticamente con lo que elijas.
+            Ajusta uno o varios. El informe y el PDF se recalculan automáticamente con lo que elijas.
         </x-slot>
 
         <style>

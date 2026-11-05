@@ -188,7 +188,7 @@ class InventoryTemplateService
             'font' => ['bold' => true, 'size' => 14],
         ]);
 
-        $sheet->setCellValue('A3', 'Antes de cargar activos, precargá las personas.');
+        $sheet->setCellValue('A3', 'Antes de cargar activos, precarga las personas.');
         $sheet->getStyle('A3')->getFont()->setBold(true);
         $sheet->setCellValue('A4', 'El importer busca al custodio por CÉDULA (columna Identificación).');
         $sheet->setCellValue('A5', 'Si la persona ya está en el sistema (fue precargada desde /admin/users');
@@ -206,9 +206,9 @@ class InventoryTemplateService
         $sheet->setCellValue('A16', 'Cómo cargar:');
         $sheet->getStyle('A16')->getFont()->setBold(true);
         $sheet->setCellValue('A17', "1. Completa la hoja 'Inventario' (puedes borrar la fila de ejemplo).");
-        $sheet->setCellValue('A18', '2. Guardá como .xlsx.');
+        $sheet->setCellValue('A18', '2. Guarda como .xlsx.');
         $sheet->setCellValue('A19', '3. En /admin/assets, botón "📤 Importar inventario".');
-        $sheet->setCellValue('A20', '4. Recomendado: primero corré en modo "dry-run" para ver el reporte.');
+        $sheet->setCellValue('A20', '4. Recomendado: primero ejecuta en modo "dry-run" para ver el reporte.');
 
         $sheet->setCellValue('A22', 'Columnas:');
         $sheet->getStyle('A22')->getFont()->setBold(true);

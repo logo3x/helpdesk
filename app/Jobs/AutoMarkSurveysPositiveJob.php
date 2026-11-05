@@ -25,7 +25,7 @@ class AutoMarkSurveysPositiveJob implements ShouldBeUnique, ShouldQueue
 
     public function handle(): void
     {
-        $days = (int) config('tickets.csat_auto_positive_days', 7);
+        $days = (int) config('tickets.csat_auto_positive_days', 1);
 
         $surveys = SatisfactionSurvey::query()
             ->whereNull('responded_at')

@@ -89,9 +89,11 @@ class TicketViewInfolist
                 ->collapsible()
                 ->columnSpanFull()
                 ->schema([
-                    TextEntry::make('description')
+                    // Quién/cuándo/origen, resumen destacado y, si viene del
+                    // asistente, la transcripción plegada.
+                    ViewEntry::make('description')
                         ->hiddenLabel()
-                        ->markdown()
+                        ->view('filament.soporte.tickets.description')
                         ->columnSpanFull(),
                 ]),
 
@@ -163,12 +165,12 @@ class TicketViewInfolist
                                 ->placeholder('0 min'),
 
                             TextEntry::make('solution_time')
-                                ->label(self::labelWithTip('Tiempo de solución', 'Trabajo efectivo del agente: minutos hábiles entre creación y resolución, descontando el tiempo pausado.'))
+                                ->label(self::labelWithTip('Tiempo de solución', 'Trabajo efectivo del agente: minutos hábiles entre creación y resolución, descontando el tiempo pausado. Termina al marcar Resuelto: la espera hasta el cierre no cuenta.'))
                                 ->state(fn (Ticket $record) => self::computeSolutionTime($record))
                                 ->placeholder('—'),
 
                             TextEntry::make('resolved_to_closed')
-                                ->label(self::labelWithTip('Resuelto → Cerrado', 'Horas calendario que el cliente tardó en confirmar la solución (o que esperamos hasta auto-cerrar).'))
+                                ->label(self::labelWithTip('Resuelto → Cerrado', 'Horas calendario entre Resuelto y Cerrado: lo que tardó el cliente en confirmar, o la espera hasta el cierre automático. NO suma al tiempo de solución ni al SLA (el SLA se detiene al resolver).'))
                                 ->state(fn (Ticket $record) => self::computeResolvedToClosed($record))
                                 ->placeholder('—'),
 

@@ -155,3 +155,32 @@ it('los adjuntos se muestran como tarjetas con nombre, tamaño e ícono', functi
         ->assertSee('📕')
         ->assertSee('Abrir');
 });
+
+it('la descripción de un ticket del portal se muestra formateada con quién y cuándo', function () {
+    $this->ticket->update(['description' => "No abre **Adobe** al abrir PDFs.\n\n1. Abro el archivo\n2. Se cierra"]);
+
+    Livewire::test(ViewTicket::class, ['record' => $this->ticket->getRouteKey()])
+        ->assertSee('Creado en el portal')
+        ->assertSee('Ana Cliente')
+        ->assertSeeHtml('<strong>Adobe</strong>')
+        ->assertSeeHtml('<li>Abro el archivo</li>');
+});
+
+it('si viene del asistente destaca el resumen y pliega la transcripción', function () {
+    $this->ticket->update(['description' => "# Ticket escalado desde el asistente virtual\n\n"
+        ."**Solicitante:** Ana Cliente (ana@confipetrol.com)\n"
+        ."**Sesión de chat:** #45\n"
+        ."**Resumen del usuario:** No puedo entrar a SAP\n"
+        ."**Departamento destino:** Tecnología\n"
+        ."**Total mensajes:** 6\n\n"
+        ."**Prioridad sugerida por la IA:** impacto medio, urgencia alta — bloquea su trabajo\n\n---\n\n"
+        ."## Transcripción de la conversación\n\n**👤 Ana** · _10:00_\n\nno me abre sap\n\n---\n\n**🤖 Asistente** · _10:01_\n\n¿Qué error ves?"]);
+
+    Livewire::test(ViewTicket::class, ['record' => $this->ticket->getRouteKey()])
+        ->assertSee('Escalado desde el asistente virtual')
+        ->assertSee('Problema reportado')
+        ->assertSee('No puedo entrar a SAP')
+        ->assertSee('Prioridad sugerida por la IA')
+        ->assertSee('Ver conversación con el asistente')
+        ->assertSeeHtml('<details');
+});

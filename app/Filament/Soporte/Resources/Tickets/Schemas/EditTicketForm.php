@@ -86,7 +86,7 @@ class EditTicketForm
                         Placeholder::make('description_preview')
                             ->label('Descripción')
                             ->content(fn (Get $get): HtmlString => new HtmlString(
-                                '<div class="fi-prose max-w-none rounded-lg border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">'
+                                '<div class="fi-prose" style="max-width: none; padding: 1rem; border: 1px solid rgba(128,128,128,.25); border-radius: 0.5rem; background: rgba(128,128,128,.04);">'
                                 .(filled($get('description'))
                                     ? Str::markdown((string) $get('description'), ['html_input' => 'escape', 'allow_unsafe_links' => false])
                                     : '<p class="text-gray-500">Sin descripción.</p>')

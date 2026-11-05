@@ -11,7 +11,6 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\HtmlString;
-use Illuminate\Support\Number;
 
 /**
  * Vista del ticket en UNA columna (filas a todo el ancho), para leer
@@ -111,19 +110,9 @@ class TicketViewInfolist
                 ->columnSpanFull()
                 ->visible(fn (Ticket $record) => $record->getMedia('attachments')->count() > 0)
                 ->schema([
-                    TextEntry::make('attachments_list')
+                    ViewEntry::make('attachments_list')
                         ->hiddenLabel()
-                        ->state(function (Ticket $record): string {
-                            return $record->getMedia('attachments')
-                                ->map(fn ($m) => sprintf(
-                                    '<a href="%s" target="_blank" class="inline-flex items-center gap-1 rounded border border-zinc-200 bg-white px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 me-2 mb-1">📎 %s <span class="text-zinc-400">(%s)</span></a>',
-                                    e($m->getUrl()),
-                                    e($m->file_name),
-                                    Number::fileSize($m->size),
-                                ))
-                                ->implode('');
-                        })
-                        ->html()
+                        ->view('filament.soporte.tickets.attachments')
                         ->columnSpanFull(),
                 ]),
 

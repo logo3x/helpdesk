@@ -12,7 +12,9 @@ use App\Notifications\TicketCommentedNotification;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\ShieldPermissionSeeder;
 use Filament\Facades\Filament;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -140,4 +142,16 @@ it('Editar muestra el resumen, la conversación y la descripción ya formateada'
         ->assertSee('Sigue fallando')
         ->assertSeeHtml('<h2>Síntomas</h2>')
         ->assertSeeHtml('<strong>Adobe</strong>');
+});
+
+it('los adjuntos se muestran como tarjetas con nombre, tamaño e ícono', function () {
+    Storage::fake(config('media-library.disk_name'));
+    $this->ticket->addMedia(UploadedFile::fake()->create('informe-falla.pdf', 120, 'application/pdf'))
+        ->toMediaCollection('attachments');
+
+    Livewire::test(ViewTicket::class, ['record' => $this->ticket->getRouteKey()])
+        ->assertSee('Adjuntos')
+        ->assertSee('informe-falla.pdf')
+        ->assertSee('📕')
+        ->assertSee('Abrir');
 });

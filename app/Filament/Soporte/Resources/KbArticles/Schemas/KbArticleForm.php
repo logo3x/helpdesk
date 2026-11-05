@@ -140,7 +140,7 @@ class KbArticleForm
                         Placeholder::make('body_preview')
                             ->hiddenLabel()
                             ->content(fn (Get $get): HtmlString => new HtmlString(
-                                '<div class="fi-prose max-w-none rounded-lg border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-white/5" style="max-height: 32rem; overflow-y: auto;">'
+                                '<div class="fi-prose" style="max-width: none; padding: 1rem; border: 1px solid rgba(128,128,128,.25); border-radius: 0.5rem; background: rgba(128,128,128,.04); max-height: 32rem; overflow-y: auto;">'
                                 .(filled($get('body'))
                                     ? Str::markdown((string) $get('body'), ['html_input' => 'escape', 'allow_unsafe_links' => false])
                                     : '<p class="text-gray-500">Escribe o genera el contenido para ver cómo queda.</p>')

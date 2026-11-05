@@ -1,196 +1,98 @@
-# Queue Worker en Windows Server (producción)
+# Procesos de fondo en Windows Server (producción)
 
-Esta guía explica cómo dejar corriendo el worker de Laravel `queue:work`
-como un **servicio de Windows** que arranca automáticamente con el sistema,
-se reinicia si cae, sobrevive a reboots y es supervisable desde el panel
-de servicios estándar de Windows.
+El Helpdesk necesita dos procesos corriendo siempre en el servidor. Los dos
+se instalan como **tareas programadas de Windows**, sin software adicional.
 
-## Contexto
-
-- **Driver**: `QUEUE_CONNECTION=database` (usa la tabla `jobs` de MySQL).
-- **Servidor**: Windows Server con MySQL.
-- **PHP**: el mismo que sirve la app (típicamente bajo IIS o XAMPP/WampServer).
-- **Por qué un servicio y no una tarea programada**: las tareas
-  programadas no son ideales para procesos largos; los servicios sí.
-
-## Arquitectura
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Windows Server                                             │
-│                                                             │
-│   ┌───────────────────┐      ┌───────────────────────────┐  │
-│   │  IIS / Apache     │      │  Servicio: HelpdeskQueue  │  │
-│   │  → sirve la app   │      │  (NSSM + queue-worker.bat)│  │
-│   │  → recibe HTTP    │      │  → consume jobs de MySQL  │  │
-│   │  → encola jobs    │      │  → reinicia c/hora        │  │
-│   └─────────┬─────────┘      └─────────────┬─────────────┘  │
-│             │                              │                │
-│             └────────────┬─────────────────┘                │
-│                          ▼                                  │
-│                  ┌───────────────┐                          │
-│                  │  MySQL        │                          │
-│                  │  ├─ jobs      │                          │
-│                  │  ├─ failed_jobs                          │
-│                  │  └─ notifications                        │
-│                  └───────────────┘                          │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Paso a paso
-
-### 1. Descargar NSSM (Non-Sucking Service Manager)
-
-Es la herramienta estándar para correr cualquier ejecutable como servicio
-en Windows. Open source, bajo MIT, sin dependencias.
-
-- Descarga: https://nssm.cc/download
-- Versión recomendada: la última estable (2.24+).
-- Extrae `nssm.exe` (de `win64\`) a `C:\nssm\`.
-
-### 2. Verificar el script `queue-worker.bat`
-
-Está en [tools/queue-worker.bat](../tools/queue-worker.bat). Si tu PHP
-**no está en el PATH**, edita la línea:
-
-```bat
-set PHP_BIN=php
-```
-
-Y ponle la ruta absoluta. Ejemplo Wampserver:
-
-```bat
-set PHP_BIN=C:\wamp64\bin\php\php8.5.0\php.exe
-```
-
-Pruébalo a mano primero (debe quedarse esperando jobs):
-
-```cmd
-.\tools\queue-worker.bat
-```
-
-Si imprime sin errores y se queda en idle ("waiting"), está OK. Ctrl+C
-para detenerlo.
-
-### 3. Registrar el servicio con NSSM
-
-Abre `cmd.exe` **como administrador** y corre:
-
-```cmd
-C:\nssm\nssm.exe install HelpdeskConfipetrolQueue
-```
-
-Se abre un GUI. Configura:
-
-| Pestaña | Campo | Valor |
+| Tarea | Qué hace | Frecuencia |
 |---|---|---|
-| **Application** | Path | `C:\wamp64\www\helpdesk\helpdesk\tools\queue-worker.bat` (ajusta a tu ruta real) |
-| **Application** | Startup directory | `C:\wamp64\www\helpdesk\helpdesk` |
-| **Details** | Display name | `Helpdesk Confipetrol Queue Worker` |
-| **Details** | Description | `Procesa la cola de notificaciones y jobs en background` |
-| **Details** | Startup type | `Automatic` |
-| **I/O** | Output (stdout) | `C:\wamp64\www\helpdesk\helpdesk\storage\logs\queue-worker.out.log` |
-| **I/O** | Error (stderr) | `C:\wamp64\www\helpdesk\helpdesk\storage\logs\queue-worker.err.log` |
-| **File rotation** | Replace existing Output/Error files | ☑ |
-| **File rotation** | Rotate files | ☑ |
-| **File rotation** | Rotate while service is running | ☑ |
-| **File rotation** | Rotate Files larger than | `10485760` (10 MB) |
-| **Exit actions** | Default action on exit | `Restart application` |
-| **Exit actions** | Delay restart by | `5000` ms |
+| `Helpdesk - Laravel Scheduler` | `php artisan schedule:run`: respaldos, vigilante de IA, sugerencias KB, cierre automático, recordatorios al cliente, alertas SLA | Cada minuto |
+| `Helpdesk - Queue Worker` | [tools/queue-worker.bat](../tools/queue-worker.bat): procesa la cola `database` (correos y trabajos en segundo plano) | Siempre vivo; se revisa cada minuto |
 
-Click **Install service**.
+> **¿Por qué no NSSM?** Microsoft Defender lo marca como "software
+> potencialmente no deseado" y bloquea la descarga, porque también lo usa
+> malware. Una tarea programada con *una sola instancia a la vez* que se
+> revisa cada minuto cumple la misma función: si el worker termina, se
+> relanza en menos de un minuto.
 
-> Lo mismo en CLI sin GUI:
->
-> ```cmd
-> nssm install HelpdeskConfipetrolQueue "C:\wamp64\www\helpdesk\helpdesk\tools\queue-worker.bat"
-> nssm set HelpdeskConfipetrolQueue AppDirectory "C:\wamp64\www\helpdesk\helpdesk"
-> nssm set HelpdeskConfipetrolQueue Description "Procesa la cola de notificaciones y jobs"
-> nssm set HelpdeskConfipetrolQueue Start SERVICE_AUTO_START
-> nssm set HelpdeskConfipetrolQueue AppStdout "C:\wamp64\www\helpdesk\helpdesk\storage\logs\queue-worker.out.log"
-> nssm set HelpdeskConfipetrolQueue AppStderr "C:\wamp64\www\helpdesk\helpdesk\storage\logs\queue-worker.err.log"
-> nssm set HelpdeskConfipetrolQueue AppRotateFiles 1
-> nssm set HelpdeskConfipetrolQueue AppRotateOnline 1
-> nssm set HelpdeskConfipetrolQueue AppRotateBytes 10485760
-> nssm set HelpdeskConfipetrolQueue AppExit Default Restart
-> nssm set HelpdeskConfipetrolQueue AppRestartDelay 5000
-> ```
+## Instalación
 
-### 4. Iniciar el servicio
+PowerShell **como Administrador**, en la carpeta del proyecto:
 
-```cmd
-nssm start HelpdeskConfipetrolQueue
+```powershell
+cd C:\inetpub\wwwroot\helpdesk
+powershell -ExecutionPolicy Bypass -File tools\install-servicios-helpdesk.ps1 -PhpPath "C:\Program Files\PHP\v8.5.12\php.exe"
 ```
 
-O abre `services.msc`, busca "Helpdesk Confipetrol Queue Worker" y dale
-**Iniciar**. Verifica que el estado quede en "En ejecución".
+Deben salir dos `[OK]`. El script se puede correr de nuevo cuando quieras
+(actualiza las tareas). Si detecta otra tarea que también corre
+`schedule:run`, avisa: hay que borrarla, porque dos schedulers ejecutan
+cada trabajo dos veces.
 
-### 5. Verificación
+Luego, en el `.env`:
 
-```cmd
-REM ¿está corriendo?
-sc query HelpdeskConfipetrolQueue
-
-REM ¿procesa los jobs?
-php artisan tinker --execute "echo 'Jobs pendientes: ' . DB::table('jobs')->count();"
-
-REM ver los logs en tiempo real (PowerShell)
-Get-Content storage\logs\queue-worker.out.log -Tail 20 -Wait
+```
+QUEUE_CONNECTION=database
 ```
 
-Crea un ticket de prueba desde el portal y verifica que la notificación
-aparezca en la campanita en segundos. Si tarda, mira el log de stderr.
+```powershell
+php artisan config:cache
+php artisan queue:restart
+```
+
+## Verificación
+
+```powershell
+Get-ScheduledTask -TaskName 'Helpdesk*' | Select-Object TaskName, State
+Get-ScheduledTask -TaskName 'Helpdesk - Laravel Scheduler' | Get-ScheduledTaskInfo | Select-Object LastRunTime, LastTaskResult
+Get-Content storage\logs\queue-worker.err.log -Tail 20
+php artisan tinker --execute 'echo DB::table("jobs")->count();'
+```
+
+- El worker debe estar en **Running** y el scheduler en **Ready** con `LastTaskResult` = `0`.
+- `queue-worker.err.log` vacío (o sin errores recientes).
+- La tabla `jobs` vuelve a 0 a los pocos segundos de comentar un ticket.
 
 ## Operaciones cotidianas
 
-### Después de un deploy
+**Después de un deploy:** `tools\deploy.bat` llama a `php artisan queue:restart`.
+El worker termina tras el trabajo actual y la tarea lo relanza con el
+código nuevo en menos de un minuto.
 
-Ejecuta [tools/after-deploy.bat](../tools/after-deploy.bat) — limpia
-caches, corre migraciones y llama a `php artisan queue:restart`. NSSM
-reiniciará el worker automáticamente con el código nuevo.
+**Cola y fallos:**
 
-### Ver qué jobs están en cola / fallaron
-
-```cmd
-php artisan queue:work --once --queue=default
-php artisan queue:failed
-php artisan queue:retry all
-php artisan queue:flush
+```powershell
+php artisan queue:failed       # trabajos fallidos
+php artisan queue:retry all    # reintentarlos
+php artisan queue:flush        # borrar los fallidos
 ```
 
-### Detener / reiniciar el servicio
+**Detener / arrancar el worker:**
 
-```cmd
-nssm stop HelpdeskConfipetrolQueue
-nssm start HelpdeskConfipetrolQueue
-nssm restart HelpdeskConfipetrolQueue
+```powershell
+Disable-ScheduledTask -TaskName 'Helpdesk - Queue Worker'; Stop-ScheduledTask -TaskName 'Helpdesk - Queue Worker'
+Enable-ScheduledTask -TaskName 'Helpdesk - Queue Worker'; Start-ScheduledTask -TaskName 'Helpdesk - Queue Worker'
 ```
 
-### Quitar el servicio
+(Solo `Stop-ScheduledTask` no basta: la tarea lo relanzaría al minuto.)
 
-```cmd
-nssm stop HelpdeskConfipetrolQueue
-nssm remove HelpdeskConfipetrolQueue confirm
+**Quitar todo:**
+
+```powershell
+Unregister-ScheduledTask -TaskName 'Helpdesk - Queue Worker' -Confirm:$false
+Unregister-ScheduledTask -TaskName 'Helpdesk - Laravel Scheduler' -Confirm:$false
 ```
 
 ## Solución de problemas
 
 | Síntoma | Causa probable | Solución |
 |---|---|---|
-| Servicio en "Started" pero `jobs` table no se vacía | PHP no encuentra `vendor/` o `.env` | Verifica `Application directory` apunta a la raíz del proyecto |
-| `php no se reconoce` en `queue-worker.err.log` | PHP no está en PATH | Edita `PHP_BIN` en `queue-worker.bat` con ruta absoluta |
-| Worker se reinicia cada 5s en bucle | Error de conexión a MySQL | Revisa `.env` `DB_*` y que el servicio MySQL esté arriba |
-| Notificaciones llegan al log pero no a la BD | `MAIL_MAILER=log` y `database` channel separado | Es esperado si la notif tiene `via=['mail']` solamente. Las del Helpdesk usan `['mail', 'database']` |
-| Memoria del worker crece sin parar | Memory leak en alguna notification | El `--max-time=3600` y `--max-jobs=1000` reciclan el worker. NSSM lo reinicia limpio. |
+| La tabla `jobs` no se vacía | Worker detenido o `QUEUE_CONNECTION` distinto de `database` | Revisa el estado de la tarea y el `.env`; corre `config:cache` |
+| `"php" no se reconoce` en `queue-worker.err.log` | Ruta de PHP incorrecta | Vuelve a correr el script con `-PhpPath` correcto |
+| Errores de conexión a MySQL en el log | Credenciales o MySQL caído | Revisa `DB_*` en el `.env` y el servicio de MySQL |
+| Los correos tardan hasta un minuto | El worker se estaba reiniciando (cada hora o tras un deploy) | Es normal |
+| Respaldos o recordatorios duplicados | Dos tareas corriendo `schedule:run` | Deja solo `Helpdesk - Laravel Scheduler` |
 
-## Recordatorios
+## Desarrollo local
 
-- **Cada vez que actualices el código** (deploy), corre `after-deploy.bat`
-  para que el worker recoja los cambios. Sin esto, sigue ejecutando la
-  versión vieja en memoria hasta que reinicie.
-- **El `.env` debe tener** `QUEUE_CONNECTION=database` en producción.
-- **Failed jobs**: `failed_jobs` table los acumula. Revísala al menos
-  una vez por semana (`php artisan queue:failed`).
-- **Backup**: la tabla `jobs` puede crecer si la cola se atasca. El
-  `after-deploy.bat` no la toca, pero ten un script aparte si necesitas
-  drenar manualmente.
+[tools/queue-worker-dev.bat](../tools/queue-worker-dev.bat) o, a mano,
+`tools\queue-worker.bat` en una CMD (Ctrl+C para detenerlo).

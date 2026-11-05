@@ -8,7 +8,7 @@ REM    1. Limpiar caches
 REM    2. Aplicar migraciones pendientes
 REM    3. Reconstruir assets de Filament
 REM    4. Pedir al worker que se reinicie tras el job actual
-REM       (NSSM lo reiniciará automáticamente, sin perder nada)
+REM       (la tarea "Helpdesk - Queue Worker" lo relanza, sin perder nada)
 REM ============================================================
 
 cd /d "%~dp0\.."
@@ -38,4 +38,4 @@ echo [5/5] Senalando al worker para que se reinicie tras el job actual...
 
 echo.
 echo === Deploy completo ===
-echo NSSM reiniciara el worker automaticamente con el codigo nuevo.
+echo La tarea programada relanzara el worker con el codigo nuevo en menos de un minuto.

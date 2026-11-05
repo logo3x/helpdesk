@@ -1,33 +1,34 @@
 @echo off
 REM ============================================================
-REM  Helpdesk Confipetrol — Queue Worker
+REM  Helpdesk Confipetrol - Queue Worker
 REM ============================================================
 REM
-REM  Procesa la cola "database" indefinidamente.
-REM  Se ejecuta como servicio de Windows via NSSM en producción
-REM  y manualmente desde una ventana CMD en desarrollo.
+REM  Procesa la cola "database". En produccion lo lanza la tarea
+REM  programada "Helpdesk - Queue Worker" (cada minuto, una sola
+REM  instancia a la vez); en desarrollo se corre a mano en una CMD.
+REM
+REM  Uso:  queue-worker.bat ["C:\ruta\a\php.exe"]
+REM        (sin argumento usa %PHP_BIN% o, si no existe, "php")
 REM
 REM  Banderas:
 REM    --queue=default    procesa la cola por defecto
 REM    --tries=3          reintenta hasta 3 veces antes de marcar failed
 REM    --backoff=60       espera 60s entre reintentos
 REM    --timeout=120      mata el job si pasa de 2 min
-REM    --sleep=3          si la cola está vacía, espera 3s antes de checar
-REM    --max-time=3600    el worker se reinicia cada hora (libera memoria)
+REM    --sleep=3          si la cola esta vacia, espera 3s antes de checar
+REM    --max-time=3600    el worker termina cada hora (libera memoria)
 REM    --max-jobs=1000    o tras procesar 1000 jobs, lo que ocurra primero
 REM
-REM  Importante: NSSM detecta la salida del proceso y lo reinicia.
-REM  El "--max-time" hace ese reinicio "limpio" cada hora para evitar
-REM  memory leaks de PHP en procesos largos.
+REM  Al terminar (max-time/max-jobs o queue:restart), la tarea
+REM  programada lo vuelve a lanzar en menos de un minuto.
 REM ============================================================
 
 cd /d "%~dp0\.."
 
-REM Ajusta la ruta a php.exe si no está en el PATH del sistema.
-REM Para Wampserver típicamente: C:\wamp64\bin\php\php8.5.0\php.exe
-if not defined PHP_BIN set PHP_BIN=php
+if not "%~1"=="" set "PHP_BIN=%~1"
+if not defined PHP_BIN set "PHP_BIN=php"
 
-%PHP_BIN% artisan queue:work ^
+"%PHP_BIN%" artisan queue:work ^
     --queue=default ^
     --tries=3 ^
     --backoff=60 ^
@@ -36,6 +37,4 @@ if not defined PHP_BIN set PHP_BIN=php
     --max-time=3600 ^
     --max-jobs=1000
 
-REM Si llegó aquí, el worker terminó (max-time/max-jobs alcanzado).
-REM NSSM lo reiniciará automáticamente.
 exit /b 0

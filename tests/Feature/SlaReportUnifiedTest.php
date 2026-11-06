@@ -9,6 +9,7 @@ use App\Models\EscalationLog;
 use App\Models\SlaConfig;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\ConsolidadoIndicadoresExporter;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\ShieldPermissionSeeder;
 use Filament\Facades\Filament;
@@ -104,7 +105,7 @@ it('un supervisor en soporte solo ve tickets y escalaciones de su departamento',
         ->assertDontSee('TK-ESCALADO-B')
         ->assertViewHas('summary', fn (array $summary) => $summary['resolved'] === 1 && $summary['breached'] === 1)
         ->assertViewHas('report', fn (array $report) => collect($report)->pluck('department_id')->all() === [$this->deptA->id])
-        ->assertDontSee('Exportar Consolidado (Excel)');
+        ->assertSee('Exportar Consolidado (Excel)');
 });
 
 it('un supervisor no puede saltarse el alcance filtrando por otro departamento', function () {
@@ -115,7 +116,32 @@ it('un supervisor no puede saltarse el alcance filtrando por otro departamento',
 
     Livewire::test(SoporteSlaReport::class)
         ->call('filterBreaches', $this->deptB->id, TicketPriority::Alta->value)
-        ->assertDontSee('TK-INCUMPLIDO-B')
+        ->assertDontSee('TK-INCUMPLIDO-B');
+});
+
+it('el consolidado de un supervisor solo trae datos de su departamento', function () {
+    $supervisor = User::factory()->create(['department_id' => $this->deptA->id]);
+    $supervisor->assignRole('supervisor_soporte');
+    $this->actingAs($supervisor);
+    Filament::setCurrentPanel(Filament::getPanel('soporte'));
+
+    $exporter = Mockery::mock(ConsolidadoIndicadoresExporter::class);
+    $exporter->shouldReceive('toBinary')->once()->with(Mockery::type('int'), $this->deptA->id)->andReturn('xlsx');
+    app()->instance(ConsolidadoIndicadoresExporter::class, $exporter);
+
+    Livewire::test(SoporteSlaReport::class)
+        ->call('exportConsolidado')
+        ->assertFileDownloaded('consolidado-indicadores-ti-'.now()->format('Y')."-depto-{$this->deptA->id}.xlsx");
+});
+
+it('un supervisor sin departamento no puede descargar el consolidado', function () {
+    $supervisor = User::factory()->create(['department_id' => null]);
+    $supervisor->assignRole('supervisor_soporte');
+    $this->actingAs($supervisor);
+    Filament::setCurrentPanel(Filament::getPanel('soporte'));
+
+    Livewire::test(SoporteSlaReport::class)
+        ->assertDontSee('Exportar Consolidado (Excel)')
         ->call('exportConsolidado')
         ->assertForbidden();
 });

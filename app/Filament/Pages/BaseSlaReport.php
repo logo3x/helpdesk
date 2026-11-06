@@ -191,8 +191,10 @@ abstract class BaseSlaReport extends Page
                 ->label('Exportar Consolidado (Excel)')
                 ->icon('heroicon-o-table-cells')
                 ->color('success')
-                ->tooltip('Descarga el "Consolidado de Indicadores TI" con la plantilla oficial del Grupo Protexa.')
-                ->visible(fn (): bool => ! $this->isDepartmentScoped())
+                ->tooltip(fn (): string => $this->isDepartmentScoped()
+                    ? 'Descarga el "Consolidado de Indicadores TI" con la plantilla oficial del Grupo Protexa, solo con los datos de tu departamento.'
+                    : 'Descarga el "Consolidado de Indicadores TI" con la plantilla oficial del Grupo Protexa.')
+                ->visible(fn (): bool => $this->departmentScopeId() !== 0)
                 ->action(fn () => $this->exportConsolidado()),
         ];
     }
@@ -216,23 +218,26 @@ abstract class BaseSlaReport extends Page
     }
 
     /**
-     * Descarga el consolidado anual. El consolidado agrega TODOS los
-     * departamentos, así que no está disponible para un reporte limitado
-     * a un departamento.
+     * Descarga el consolidado anual con el mismo alcance del reporte:
+     * todos los departamentos, o solo el del supervisor. Un supervisor
+     * sin departamento (alcance 0) no puede descargarlo.
      *
      * El año se toma del rango personalizado si existe; si no, el año en
      * curso (los presets miran hacia atrás desde hoy).
      */
     public function exportConsolidado(): StreamedResponse
     {
-        abort_if($this->isDepartmentScoped(), 403);
+        abort_if($this->departmentScopeId() === 0, 403);
 
         $year = $this->hasCustomRange() && $this->dateFrom
             ? (int) Date::parse($this->dateFrom)->format('Y')
             : (int) now()->format('Y');
 
-        $binary = app(ConsolidadoIndicadoresExporter::class)->toBinary($year);
-        $filename = "consolidado-indicadores-ti-{$year}.xlsx";
+        $scopeDepartmentId = $this->departmentScopeId();
+        $binary = app(ConsolidadoIndicadoresExporter::class)->toBinary($year, $scopeDepartmentId);
+        $filename = $scopeDepartmentId === null
+            ? "consolidado-indicadores-ti-{$year}.xlsx"
+            : "consolidado-indicadores-ti-{$year}-depto-{$scopeDepartmentId}.xlsx";
 
         return response()->streamDownload(
             fn () => print ($binary),

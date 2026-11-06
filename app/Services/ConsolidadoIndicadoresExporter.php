@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Enums\TicketPriority;
+use App\Models\Department;
 use App\Models\SatisfactionSurvey;
 use App\Models\Ticket;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -31,6 +33,9 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  * Las secciones que el sistema NO mide (Obsolescencia, Proyectos,
  * Ciberseguridad, Finanzas, Hechos Relevantes) se dejan como están
  * en la plantilla — el usuario las completa manualmente.
+ *
+ * Con $departmentId todos los indicadores se calculan solo con los
+ * tickets (y encuestas) de ese departamento, y la cabecera lo indica.
  */
 class ConsolidadoIndicadoresExporter
 {
@@ -70,11 +75,18 @@ class ConsolidadoIndicadoresExporter
     }
 
     /**
+     * Departamento al que se limitan los indicadores (null = todos).
+     */
+    protected ?int $departmentId = null;
+
+    /**
      * Genera el .xlsx llenando solo los meses del año indicado y
      * devuelve el binario listo para descargar.
      */
-    public function toBinary(int $year): string
+    public function toBinary(int $year, ?int $departmentId = null): string
     {
+        $this->departmentId = $departmentId;
+
         $sp = $this->loadTemplate();
         $sheet = $sp->getSheet(0);
 
@@ -116,13 +128,28 @@ class ConsolidadoIndicadoresExporter
         }
 
         // Cabecera del año
-        $sheet->setCellValue('B6', "Consolidado de Indicadores {$year} | Tecnologías de la Información");
+        $header = "Consolidado de Indicadores {$year} | Tecnologías de la Información";
+        if ($departmentId !== null) {
+            $header .= ' | '.(Department::query()->whereKey($departmentId)->value('name') ?? 'Sin departamento');
+        }
+        $sheet->setCellValue('B6', $header);
 
         $writer = new Xlsx($sp);
         ob_start();
         $writer->save('php://output');
 
         return (string) ob_get_clean();
+    }
+
+    /**
+     * Consulta base de tickets, limitada al departamento si se indicó.
+     *
+     * @return Builder<Ticket>
+     */
+    protected function tickets(): Builder
+    {
+        return Ticket::query()
+            ->when($this->departmentId !== null, fn (Builder $query) => $query->where('department_id', $this->departmentId));
     }
 
     protected function loadTemplate(): Spreadsheet
@@ -136,7 +163,7 @@ class ConsolidadoIndicadoresExporter
      */
     protected function ticketsResolvedRate(CarbonImmutable $from, CarbonImmutable $to): ?float
     {
-        $created = Ticket::query()
+        $created = $this->tickets()
             ->whereBetween('created_at', [$from, $to])
             ->count();
 
@@ -144,7 +171,7 @@ class ConsolidadoIndicadoresExporter
             return null;
         }
 
-        $resolved = Ticket::query()
+        $resolved = $this->tickets()
             ->whereBetween('created_at', [$from, $to])
             ->whereNotNull('resolved_at')
             ->count();
@@ -159,6 +186,10 @@ class ConsolidadoIndicadoresExporter
     protected function supportCsatRate(CarbonImmutable $from, CarbonImmutable $to): ?float
     {
         $avg = SatisfactionSurvey::query()
+            ->when($this->departmentId !== null, fn ($query) => $query->whereHas(
+                'ticket',
+                fn ($ticket) => $ticket->where('department_id', $this->departmentId),
+            ))
             ->whereNotNull('responded_at')
             ->whereBetween('responded_at', [$from, $to])
             ->whereNotNull('rating')
@@ -179,7 +210,7 @@ class ConsolidadoIndicadoresExporter
      */
     protected function uptimeRate(CarbonImmutable $from, CarbonImmutable $to): ?int
     {
-        $resolved = Ticket::query()
+        $resolved = $this->tickets()
             ->whereBetween('resolved_at', [$from, $to])
             ->whereNotNull('sla_config_id')
             ->count();
@@ -188,7 +219,7 @@ class ConsolidadoIndicadoresExporter
             return null;
         }
 
-        $breached = Ticket::query()
+        $breached = $this->tickets()
             ->whereBetween('resolved_at', [$from, $to])
             ->whereNotNull('sla_config_id')
             ->where('resolution_breached', true)
@@ -203,7 +234,7 @@ class ConsolidadoIndicadoresExporter
      */
     protected function majorIncidents(CarbonImmutable $from, CarbonImmutable $to): int
     {
-        return Ticket::query()
+        return $this->tickets()
             ->where('priority', TicketPriority::Critica)
             ->whereBetween('created_at', [$from, $to])
             ->count();

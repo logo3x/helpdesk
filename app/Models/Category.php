@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\AuditsActivity;
+use BladeUI\Icons\Exceptions\SvgNotFound;
 use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -35,6 +36,40 @@ class Category extends Model
             'is_active' => 'boolean',
             'sort_order' => 'integer',
         ];
+    }
+
+    /**
+     * Nombres de ícono ya verificados en esta petición.
+     *
+     * @var array<string, string|null>
+     */
+    protected static array $resolvedIcons = [];
+
+    /**
+     * Ícono listo para dibujar, o null si el guardado no existe.
+     *
+     * Las categorías antiguas pueden tener valores escritos a mano (p. ej.
+     * "printer"); se prueba también con el prefijo heroicon-o-. Dibujar un
+     * nombre inexistente lanza SvgNotFound y tumba la página entera.
+     */
+    public function displayIcon(): ?string
+    {
+        $icon = trim((string) $this->icon);
+
+        if ($icon === '') {
+            return null;
+        }
+
+        return static::$resolvedIcons[$icon] ??= collect([$icon, 'heroicon-o-'.$icon])
+            ->first(function (string $candidate): bool {
+                try {
+                    svg($candidate);
+
+                    return true;
+                } catch (SvgNotFound) {
+                    return false;
+                }
+            });
     }
 
     /** @return BelongsTo<Department, $this> */

@@ -83,10 +83,10 @@
             @php($selectedCat = $category_id ? ($categoriesIndex[(int) $category_id] ?? null) : null)
             @if ($selectedCat && $selectedCat->department)
                 <div class="mt-2 flex items-center gap-3 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-200">
-                    @if (! empty($selectedCat->icon))
+                    @if ($selectedCat->displayIcon())
                         {{-- Icono visual grande de la categoría seleccionada --}}
                         <span class="shrink-0" style="width:1.75rem;height:1.75rem;color:rgb(2 132 199);">
-                            @svg($selectedCat->icon, 'w-7 h-7')
+                            @svg($selectedCat->displayIcon(), 'w-7 h-7')
                         </span>
                     @else
                         <flux:icon.information-circle class="shrink-0 size-6 text-sky-600" />

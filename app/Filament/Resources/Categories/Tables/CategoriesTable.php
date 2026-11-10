@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Categories\Tables;
 
+use App\Models\Category;
 use App\Models\Department;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -20,7 +21,7 @@ class CategoriesTable
             ->columns([
                 IconColumn::make('icon')
                     ->label('Icono')
-                    ->icon(fn (?string $state): ?string => $state ?: null)
+                    ->icon(fn (Category $record): ?string => $record->displayIcon())
                     ->placeholder('—')
                     ->color('gray'),
                 TextColumn::make('department.name')
